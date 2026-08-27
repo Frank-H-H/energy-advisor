@@ -51,6 +51,7 @@
       select.empty()
       select.append($('<option>').val('').text('-- none --'))
       RED.nodes.eachConfig(function (id, conf) {
+        if (!conf) return
         if (conf.type === 'energy-system-config') {
           select.append($('<option>').val(id).text(conf.name || id))
         }

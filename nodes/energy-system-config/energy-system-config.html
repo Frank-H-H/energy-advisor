@@ -5,13 +5,13 @@
   </div>
 
   <div class="form-row">
-    <label for="node-input-battery_ref">Battery config</label>
-    <select id="node-input-battery_ref"></select>
+    <label for="node-input-battery_config">Battery config</label>
+    <select id="node-input-battery_config" class="node-config-select"></select>
   </div>
 
   <div class="form-row">
-    <label for="node-input-grid_ref">Grid config</label>
-    <select id="node-input-grid_ref"></select>
+    <label for="node-input-grid_config">Grid config</label>
+    <select id="node-input-grid_config" class="node-config-select"></select>
   </div>
 
   <div class="form-row">
@@ -28,8 +28,8 @@
     category: 'config',
     defaults: {
       name: { value: '' },
-      battery_ref: { value: null },
-      grid_ref: { value: null },
+      battery_config: { value: '', type: 'energy-battery-config' },
+      grid_config: { value: '', type: 'energy-grid-config' },
       analysis_interval_minutes: { value: 15 }
     },
     label: function () {
@@ -37,13 +37,14 @@
     },
     oneditprepare: function () {
       // populate battery & grid config dropdowns
-      const batterySelect = $('#node-input-battery_ref')
-      const gridSelect = $('#node-input-grid_ref')
+      const batterySelect = $('#node-input-battery_config')
+      const gridSelect = $('#node-input-grid_config')
       batterySelect.empty()
       gridSelect.empty()
       batterySelect.append($('<option>').val('').text('-- none --'))
       gridSelect.append($('<option>').val('').text('-- none --'))
       RED.nodes.eachConfig(function (id, conf) {
+        if (!conf) return
         if (conf.type === 'energy-battery-config') {
           batterySelect.append($('<option>').val(id).text(conf.name || id))
         }
@@ -51,6 +52,10 @@
           gridSelect.append($('<option>').val(id).text(conf.name || id))
         }
       })
+      // pre-select current value (enables the + / pencil UI)
+      batterySelect.val(this.battery_config || '')
+      // pre-select current value (enables the + / pencil UI)
+      gridSelect.val(this.grid_config || '')
     }
   })
 </script>
