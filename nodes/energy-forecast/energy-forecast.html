@@ -1,38 +1,41 @@
-<!-- nodes/energy-forecast/energy-forecast.html -->
 <script type="text/html" data-template-name="energy-forecast">
   <div class="form-row">
     <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
-    <input type="text" id="node-input-name" placeholder="Name">
+    <input id="node-input-name" type="text" />
   </div>
-</script>
 
-<script type="text/html" data-help-name="energy-forecast">
-  <p>
-    The energy-forecast node validates input and invokes the ForecastEngine from the energy-advisor library.
-  </p>
-  <h4>Input (msg.payload)</h4>
-  <pre>
-{
-  intervals: [ { start, end, durationMs, values: { consumption_kwh, pv_kwh, importPrice, exportPrice } }, ... ],
-  components: { battery: { capacity_kwh, soc_kwh, min_soc_kwh, ... } }
-}
-  </pre>
-  <h4>Output (msg.payload)</h4>
-  <p>Array of forecast intervals. Each interval.values contains calculated fields like battery_soc_kwh, battery_charge_kwh, grid_import_kwh, grid_export_kwh, cost, revenue.</p>
+  <div class="form-row">
+    <label for="node-input-system_config">System config</label>
+    <select id="node-input-system_config"></select>
+  </div>
+
+  <div class="form-row">
+    <label for="node-input-inputField">Input payload field</label>
+    <input id="node-input-inputField" type="text" placeholder="payload" />
+    <div class="form-tips">Which property of msg contains the Forecast input (default: payload)</div>
+  </div>
 </script>
 
 <script type="text/javascript">
   RED.nodes.registerType('energy-forecast', {
-    category: 'energy',
-    color: '#a6bbcf',
+    category: 'function',
     defaults: {
-      name: { value: '' }
+      name: { value: '' },
+      system_config: { value: '' },
+      inputField: { value: 'payload' }
     },
-    inputs: 1,
-    outputs: 1,
-    icon: 'font-awesome/fa-bolt',
-    label: function() {
-      return this.name || 'energy-forecast';
+    label: function () {
+      return this.name || 'energy-forecast'
+    },
+    oneditprepare: function () {
+      const select = $('#node-input-system_config')
+      select.empty()
+      select.append($('<option>').val('').text('-- none --'))
+      RED.nodes.eachConfig(function (id, conf) {
+        if (conf.type === 'energy-system-config') {
+          select.append($('<option>').val(id).text(conf.name || id))
+        }
+      })
     }
-  });
+  })
 </script>
