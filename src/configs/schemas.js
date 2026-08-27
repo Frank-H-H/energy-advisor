@@ -1,4 +1,4 @@
-// src/configs/schemas.js
+// mapping helper + simple schema defaults for the config nodes
 
 export const batteryConfigSchema = {
   type: 'energy-battery-config',
@@ -24,7 +24,7 @@ export const systemConfigSchema = {
   type: 'energy-system-config',
   defaults: {
     name: '',
-    // either '15' or '60'
+    // either 15 or 60
     analysis_interval_minutes: 15,
     // references to config node ids (strings) or inline objects
     battery_ref: null,
@@ -39,7 +39,7 @@ export function mapSystemConfigToComponents(systemConfig = {}, batteryConfig = n
 
   const components = {
     battery: {
-      capacity_kwh: Number(b.capacity_kwh ?? b.capacity ?? batteryConfig?.capacity_kwh ?? 0),
+      capacity_kwh: Number(b.capacity_kwh ?? b.capacity ?? 0),
       soc_kwh: Number(b.soc_kwh ?? b.initial_soc_kwh ?? 0),
       min_soc_kwh: Number(b.min_soc_kwh ?? 0),
       max_charge_power_kw: Number(b.max_charge_power_kw ?? b.maxChargeKw ?? 0),

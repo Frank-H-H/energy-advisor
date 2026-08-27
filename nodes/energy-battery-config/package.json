@@ -1,0 +1,11 @@
+{
+  "name": "energy-battery-config-node",
+  "version": "0.1.0",
+  "description": "Node-RED node for energy-advisor battery config",
+  "keywords": ["node-red","energy","forecast"],
+  "node-red": {
+    "nodes": {
+      "energy-battery-config": "energy-battery-config.js"
+    }
+  }
+}

@@ -28,7 +28,10 @@
   "node-red": {
     "nodes": {
       "energy-forecast": "nodes/energy-forecast/energy-forecast.js",
-      "energy-advisor": "nodes/energy-advisor/energy-advisor.js"
+      "energy-advisor": "nodes/energy-advisor/energy-advisor.js",
+      "energy-battery-config": "nodes/energy-battery-config/energy-battery-config.js",
+      "energy-grid-config": "nodes/energy-grid-config/energy-grid-config.js",
+      "energy-system-config": "nodes/energy-system-config/energy-system-config.js"
     }
   }
 }
