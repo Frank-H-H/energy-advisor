@@ -1,0 +1,34 @@
+﻿{
+  "name": "energy-advisor",
+  "version": "0.1.0",
+  "description": "Decision-support library for residential energy systems: forecast and advisor engines with Node-RED adapters.",
+  "license": "MIT",
+  "type": "module",
+  "main": "src/index.js",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint . --ext .js",
+    "format": "prettier --write ."
+  },
+  "keywords": ["energy","forecast","node-red","advisor","battery","pv"],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Frank-H-H/energy-advisor.git"
+  },
+  "author": "",
+  "devDependencies": {
+    "eslint": "^8.0.0",
+    "prettier": "^2.0.0",
+    "vitest": "^1.0.0"
+  },
+  "node-red": {
+    "nodes": {
+      "energy-forecast": "nodes/energy-forecast/energy-forecast.js",
+      "energy-advisor": "nodes/energy-advisor/energy-advisor.js"
+    }
+  }
+}

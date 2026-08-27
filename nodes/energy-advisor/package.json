@@ -1,0 +1,11 @@
+﻿{
+  "name": "energy-advisor-node",
+  "version": "0.1.0",
+  "description": "Node-RED node for energy-advisor advisor",
+  "keywords": ["node-red","energy","advisor"],
+  "node-red": {
+    "nodes": {
+      "energy-advisor": "energy-advisor.js"
+    }
+  }
+}
