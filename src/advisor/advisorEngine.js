@@ -24,10 +24,18 @@ export class AdvisorEngine {
     const firstNeg = negIntervals[0]
     const negIndex = forecast.findIndex(iv => iv.start === firstNeg.start)
 
-    // Estimate expected PV surplus during negative period
+    // Estimate expected "need for free capacity" during negative periods.
+    // We want to capture two sources:
+    //  1) PV surplus that would need battery capacity (pv_kwh - consumption_kwh > 0)
+    //  2) If the import price is negative, it's economical to CHARGE from the grid during the negative price interval
+    //     therefore we also estimate potential grid-charge as the interval's consumption (or available charging window).
+    // The heuristic below sums (pv surplus) + (consumption during negative price windows) to produce a target capacity need.
     const neededCapacity = negIntervals.reduce((acc, iv) => {
-      const surplus = Math.max(0, (iv.values?.pv_kwh ?? 0) - (iv.values?.consumption_kwh ?? 0))
-      return acc + surplus
+      const pv = Number(iv.values?.pv_kwh ?? 0)
+      const cons = Number(iv.values?.consumption_kwh ?? 0)
+      const pvSurplus = Math.max(0, pv - cons)
+      const gridChargePotential = (Number(iv.values?.importPrice ?? 0) < 0) ? Math.max(0, cons) : 0
+      return acc + pvSurplus + gridChargePotential
     }, 0)
 
     // Available free capacity just before negative period
