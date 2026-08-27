@@ -37,7 +37,7 @@
     color: '#a6bbcf',
     defaults: {
       name: { value: '' },
-      system_config: { value: '' },
+      system_config: { value: '', type: 'energy-system-config' },
       inputField: { value: 'payload' }
     },
     inputs: 1,
@@ -55,6 +55,8 @@
           select.append($('<option>').val(id).text(conf.name || id))
         }
       })
+      // pre-select current value (enables the + / pencil UI)
+      select.val(this.system_config || '')
     }
   });
 </script>
