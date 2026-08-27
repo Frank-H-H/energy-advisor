@@ -17,16 +17,20 @@
     },
     "overrides": [{
             "files": ["tests//*.js"],
-            "env": {
-                "vitest": true
+            "globals": {
+                "describe": "readonly",
+                "it": "readonly",
+                "test": "readonly",
+                "expect": "readonly",
+                "beforeEach": "readonly",
+                "afterEach": "readonly",
+                "afterAll": "readonly",
+                "beforeAll": "readonly"
             }
         }, {
             "files": ["nodes//*.js"],
-            "rules": {
-                "no-undef": ["error", {
-                        "typeof": true
-                    }
-                ]
+            "globals": {
+                "RED": "readonly"
             }
         }
     ]
