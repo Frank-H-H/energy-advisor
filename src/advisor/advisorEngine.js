@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Simple advisor engine that demonstrates look-ahead reasoning.
  * It scans the forecast for negative import prices in future intervals and
  * recommends discharging the battery before such periods to create capacity when beneficial.

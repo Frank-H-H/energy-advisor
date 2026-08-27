@@ -1,4 +1,4 @@
-﻿// CommonJS Node-RED node file that dynamically imports the ESM core
+// CommonJS Node-RED node file that dynamically imports the ESM core
 const path = require('path')
 const { pathToFileURL } = require('url')
 

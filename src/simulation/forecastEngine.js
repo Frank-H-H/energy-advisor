@@ -1,4 +1,4 @@
-﻿import { DEFAULT_INTERVAL_MS } from "../time-series/timeSeries.js"
+import { DEFAULT_INTERVAL_MS } from "../time-series/timeSeries.js"
 import { Battery } from "../components/battery.js"
 
 export class ForecastEngine {

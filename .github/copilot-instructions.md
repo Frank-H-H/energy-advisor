@@ -1,4 +1,4 @@
-﻿# GitHub Copilot Instructions
+# GitHub Copilot Instructions
 
 This file explains how to safely and consistently extend the energy-advisor project using GitHub Copilot.
 

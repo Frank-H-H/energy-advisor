@@ -1,4 +1,4 @@
-﻿import { Battery } from "../../src/components/battery.js"
+import { Battery } from "../../src/components/battery.js"
 import { describe, it, expect } from "vitest"
 
 describe("Battery basic behavior", () => {

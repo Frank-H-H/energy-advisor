@@ -1,4 +1,4 @@
-﻿# Energy Advisor
+# Energy Advisor
 
 Early-stage scaffold for the energy-advisor library: forecast and advisor engines with Node-RED adapters.
 

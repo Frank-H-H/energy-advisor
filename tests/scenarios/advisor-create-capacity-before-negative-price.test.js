@@ -1,4 +1,4 @@
-﻿import fs from "fs"
+import fs from "fs"
 import path from "path"
 import { describe, it, expect } from "vitest"
 import { ForecastEngine } from "../../src/simulation/forecastEngine.js"

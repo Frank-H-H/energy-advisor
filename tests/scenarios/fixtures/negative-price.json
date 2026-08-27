@@ -1,4 +1,4 @@
-﻿{
+{
   "intervals": [
     { "start": "2026-01-01T00:00:00Z", "end": "2026-01-01T00:15:00Z", "durationMs": 900000, "values": { "consumption_kwh": 1, "pv_kwh": 0, "importPrice": 0.2 } },
     { "start": "2026-01-01T00:15:00Z", "end": "2026-01-01T00:30:00Z", "durationMs": 900000, "values": { "consumption_kwh": 0.5, "pv_kwh": 3, "importPrice": 0.1 } },

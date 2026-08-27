@@ -1,4 +1,4 @@
-﻿import { createIntervals } from "../../src/time-series/timeSeries.js"
+import { createIntervals } from "../../src/time-series/timeSeries.js"
 import { ForecastEngine } from "../../src/simulation/forecastEngine.js"
 
 import { describe, it, expect } from "vitest"

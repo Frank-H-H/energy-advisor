@@ -1,4 +1,4 @@
-﻿# Advisor specification
+# Advisor specification
 
 Purpose: analyze a forecast and produce recommendations that are actionable proposals (not commands).
 

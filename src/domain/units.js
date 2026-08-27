@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Units and helpers
  * Energy: kWh
  * Power: kW

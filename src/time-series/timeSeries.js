@@ -1,4 +1,4 @@
-﻿// time-series utilities
+// time-series utilities
 
 export const DEFAULT_INTERVAL_MS = 15 * 60 * 1000 // 15 minutes
 

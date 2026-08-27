@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Basic Battery model.
  * capacity_kwh: kWh
  * soc_kwh: kWh (initial)

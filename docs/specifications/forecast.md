@@ -1,4 +1,4 @@
-﻿# Forecast specification
+# Forecast specification
 
 Purpose: define the inputs and outputs for the ForecastEngine.
 

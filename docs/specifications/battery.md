@@ -1,4 +1,4 @@
-﻿# Battery specification
+# Battery specification
 
 Units:
 - capacity, SOC, energy: kWh
