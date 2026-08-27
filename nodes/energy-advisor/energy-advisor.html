@@ -1,0 +1,52 @@
+<!-- nodes/energy-advisor/energy-advisor.html -->
+<script type="text/html" data-template-name="energy-advisor">
+  <div class="form-row">
+    <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+    <input type="text" id="node-input-name" placeholder="Name">
+  </div>
+</script>
+
+<script type="text/html" data-help-name="energy-advisor">
+  <p>
+    The energy-advisor node accepts a forecast (array of intervals) and produces recommendations.
+  </p>
+  <h4>Input (msg.payload)</h4>
+  <pre>
+[ { start, end, durationMs, values: { consumption_kwh, pv_kwh, battery_soc_kwh, importPrice, exportPrice, ... } }, ... ]
+  </pre>
+  <p>Optional: pass component configs in <code>msg.components</code> when used outside Node-RED.</p>
+  <h4>Output (msg.payload)</h4>
+  <pre>
+[
+  {
+    timestamp,
+    durationMs,
+    component,
+    action,
+    energy_kwh,
+    reason,
+    expectedBenefit,
+    priority,
+    confidence
+  },
+  ...
+]
+  </pre>
+  <p>Recommendations are proposals only — this node does not control devices.</p>
+</script>
+
+<script type="text/javascript">
+  RED.nodes.registerType('energy-advisor', {
+    category: 'energy',
+    color: '#f0d36a',
+    defaults: {
+      name: { value: '' }
+    },
+    inputs: 1,
+    outputs: 1,
+    icon: 'font-awesome/fa-lightbulb-o',
+    label: function() {
+      return this.name || 'energy-advisor';
+    }
+  });
+</script>
