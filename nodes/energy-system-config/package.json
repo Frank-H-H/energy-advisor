@@ -1,5 +1,5 @@
 {
-  "name": "energy-grid-system-node",
+  "name": "energy-system-node",
   "version": "0.1.0",
   "description": "Node-RED node for energy-advisor system config",
   "keywords": ["node-red","energy","forecast"],

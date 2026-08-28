@@ -47,10 +47,12 @@
       return this.name || 'energy-forecast';
     },
     oneditprepare: function () {
+      console.log('energy-forecast.oneditprepare:', this)
       const select = $('#node-input-system_config')
       select.empty()
       select.append($('<option>').val('').text('-- none --'))
-      RED.nodes.eachConfig(function (id, conf) {
+      RED.nodes.eachConfig(function (proxy) {
+        console.log('energy-forecast.eachConfig:', proxy)
         if (!conf) return
         if (conf.type === 'energy-system-config') {
           select.append($('<option>').val(id).text(conf.name || id))
@@ -58,6 +60,13 @@
       })
       // pre-select current value (enables the + / pencil UI)
       select.val(this.system_config || '')
+    },
+    oneditsave: function () {
+      console.log('energy-forecast.oneditsave:', {
+        name: $('#node-input-name').val(),
+        system_config: $('#node-input-system_config').val()
+      })
+      this.name = $('#node-input-name').val()
     }
   });
 </script>

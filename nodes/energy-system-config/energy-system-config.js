@@ -6,5 +6,7 @@ module.exports = function (RED) {
     this.grid_config = config.grid_config || null
     this.analysis_interval_minutes = Number(config.analysis_interval_minutes ?? 15)
   }
-  RED.nodes.registerType('energy-system-config', EnergySystemConfigNode)
+  RED.nodes.registerType('energy-system-config', EnergySystemConfigNode), {
+    credentials: {}
+  }
 }
