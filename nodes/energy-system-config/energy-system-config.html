@@ -1,73 +1,23 @@
-<script type="text/html" data-template-name="energy-system-config">
-  <div class="form-row">
-    <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
-    <input type="text" id="node-input-name" placeholder="Name">
-  </div>
-
-  <div class="form-row">
-    <label for="node-input-battery_config">Battery config</label>
-    <select id="node-input-battery_config" class="node-config-select"></select>
-  </div>
-
-  <div class="form-row">
-    <label for="node-input-grid_config">Grid config</label>
-    <select id="node-input-grid_config" class="node-config-select"></select>
-  </div>
-
-  <div class="form-row">
-    <label for="node-input-analysis_interval_minutes">Analysis interval</label>
-    <select id="node-input-analysis_interval_minutes">
-      <option value="15">15 minutes</option>
-      <option value="60">1 hour</option>
-    </select>
-  </div>
-</script>
-
 <script type="text/javascript">
-  RED.nodes.registerType('energy-system-config', {
+  RED.nodes.registerType('energy-system-config',{
     category: 'config',
     defaults: {
-      name: { value: '' },
-      battery_config: { value: '', type: 'energy-battery-config' },
-      grid_config: { value: '', type: 'energy-grid-config' },
-      analysis_interval_minutes: { value: 15 }
+      name: {value: '', required:false},
+      analysis_interval_minutes: {value:15, required:true},
     },
-    label: function () {
-      return this.name || 'system-config'
-    },
-    oneditprepare: function () {
-      console.log('energy-system-config:', this)
-      console.log('energy-system-config name:', this.name)
-      // populate battery & grid config dropdowns
-      const batterySelect = $('#node-input-battery_config')
-      const gridSelect = $('#node-input-grid_config')
-      $('#node-input-name')[0].value = this.name
-      batterySelect.empty()
-      gridSelect.empty()
-      batterySelect.append($('<option>').val('').text('-- none --'))
-      gridSelect.append($('<option>').val('').text('-- none --'))
-      RED.nodes.eachConfig(function (id, conf) {
-        if (!conf) return
-        if (conf.type === 'energy-battery-config') {
-          batterySelect.append($('<option>').val(id).text(conf.name || id))
-        }
-        if (conf.type === 'energy-grid-config') {
-          gridSelect.append($('<option>').val(id).text(conf.name || id))
-        }
-      })
-      // pre-select current value (enables the + / pencil UI)
-      batterySelect.val(this.battery_config || '')
-      // pre-select current value (enables the + / pencil UI)
-      gridSelect.val(this.grid_config || '')
-    },
-    oneditsave: function () {
-      console.log('saving energy-system-config:', {
-        name: $('#node-input-name').val(),
-        battery_config: $('#node-input-battery_config').val(),
-        grid_config: $('#node-input-grid_config').val(),
-        analysis_interval_minutes: $('#node-input-analysis_interval_minutes').val()
-      })
-      this.name = $('#node-input-name').val()
+    label: function() {
+      return this.name || 'energy-system-config';
     }
-  })
+  });
+</script>
+
+<script type="text/html" data-template-name="energy-system-config">
+  <div class="form-row">
+    <label for="node-config-input-name"><i class="fa fa-bookmark"></i> Name</label>
+    <input type="text" id="node-config-input-name">
+  </div>
+  <div class="form-row">
+    <label for="node-config-input-analysis_interval_minutes"><i class="fa fa-bookmark"></i> Analysis interval</label>
+    <input type="text" id="node-config-input-analysis_interval_minutes">
+  </div>
 </script>

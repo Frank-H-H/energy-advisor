@@ -9,6 +9,8 @@ module.exports = function (RED) {
 
     // store selected system config id (empty string if none)
     node.systemConfigId = config.system_config || ''
+    node.battery_config = config.battery_config || ''
+    node.grid_config = config.grid_config || ''
 
     // resolve file:// URL for the ESM module(s)
     const coreUrl = pathToFileURL(path.join(__dirname, '..', '..', 'src', 'index.js')).href

@@ -1,43 +1,38 @@
-<script type="text/html" data-template-name="energy-battery-config">
-  <div class="form-row">
-    <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
-    <input id="node-input-name" type="text" />
-  </div>
-  <div class="form-row">
-    <label for="node-input-capacity_kwh"><i class="fa fa-battery-full"></i> Capacity (kWh)</label>
-    <input id="node-input-capacity_kwh" type="number" min="0" />
-  </div>
-  <div class="form-row">
-    <label for="node-input-max_charge_power_kw">Max charge power (kW)</label>
-    <input id="node-input-max_charge_power_kw" type="number" min="0" />
-  </div>
-  <div class="form-row">
-    <label for="node-input-max_discharge_power_kw">Max discharge power (kW)</label>
-    <input id="node-input-max_discharge_power_kw" type="number" min="0" />
-  </div>
-  <div class="form-row">
-    <label for="node-input-charge_efficiency">Charge efficiency (0..1)</label>
-    <input id="node-input-charge_efficiency" type="number" min="0" max="1" step="0.01" />
-  </div>
-  <div class="form-row">
-    <label for="node-input-notes">Notes</label>
-    <input id="node-input-notes" type="text" />
-  </div>
-</script>
-
 <script type="text/javascript">
   RED.nodes.registerType('energy-battery-config', {
     category: 'config',
     defaults: {
-      name: { value: '' },
-      capacity_kwh: { value: 43, validate: RED.validators.number() },
-      max_charge_power_kw: { value: 8, validate: RED.validators.number() },
-      max_discharge_power_kw: { value: 8, validate: RED.validators.number() },
+      name: {value: '', required:false},
+      capacity_kwh: { value:15, required:true, validate: RED.validators.number()},
+      max_charge_power_kw: { value: 10, validate: RED.validators.number() },
+      max_discharge_power_kw: { value: 10, validate: RED.validators.number() },
       charge_efficiency: { value: 0.9, validate: RED.validators.number() },
-      notes: { value: '' }
     },
-    label: function () {
-      return this.name || 'battery-config'
+    label: function() {
+      return this.name || 'energy-battery-config';
     }
-  })
+  });
+</script>
+
+<script type="text/html" data-template-name="energy-battery-config">
+  <div class="form-row">
+    <label for="node-config-input-name"><i class="fa fa-bookmark"></i> Name</label>
+  <input type="text" id="node-config-input-name">
+  </div>
+  <div class="form-row">
+    <label for="node-config-input-capacity_kwh"><i class="fa fa-bookmark"></i> Capacity</label>
+    <input id="node-config-input-capacity_kwh" type="number" min="0" step="0.01">
+  </div>
+  <div class="form-row">
+    <label for="node-config-input-max_charge_power_kw"><i class="fa fa-bookmark"></i> Max charge power</label>
+    <input id="node-config-input-max_charge_power_kw" type="number" min="0" step="0.01">
+  </div>
+  <div class="form-row">
+    <label for="node-config-input-max_discharge_power_kw"><i class="fa fa-bookmark"></i> Max discharge power</label>
+    <input id="node-config-input-max_discharge_power_kw" type="number" min="0" step="0.01">
+  </div>
+  <div class="form-row">
+    <label for="node-config-input-charge_efficiency"><i class="fa fa-bookmark"></i> Charge efficiency (0..1)</label>
+    <input id="node-config-input-charge_efficiency" type="number" min="0" max="1" step="0.01">
+  </div>
 </script>

@@ -1,23 +1,23 @@
-<script type="text/html" data-template-name="energy-grid-config">
-  <div class="form-row">
-    <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
-    <input id="node-input-name" type="text" />
-  </div>
-  <div class="form-row">
-    <label for="node-input-max_export_power_kw">Max export power (kW)</label>
-    <input id="node-input-max_export_power_kw" type="number" min="0" />
-  </div>
-</script>
-
 <script type="text/javascript">
   RED.nodes.registerType('energy-grid-config', {
     category: 'config',
     defaults: {
-      name: { value: '' },
-      max_export_power_kw: { value: 7, validate: RED.validators.number() }
+      name: {value: '', required:false},
+      max_export_power_kw: { value:7, required:false, validate: RED.validators.number()},
     },
-    label: function () {
-      return this.name || 'grid-config'
+    label: function() {
+      return this.name || 'energy-grid-config';
     }
-  })
+  });
+</script>
+
+<script type="text/html" data-template-name="energy-grid-config">
+  <div class="form-row">
+    <label for="node-config-input-name"><i class="fa fa-bookmark"></i> Name</label>
+  <input type="text" id="node-config-input-name">
+  </div>
+  <div class="form-row">
+    <label for="node-config-input-max_export_power_kw"><i class="fa fa-bookmark"></i> Max export power (kW)</label>
+    <input id="node-config-input-max_export_power_kw" type="number" min="0" step="0.01">
+  </div>
 </script>

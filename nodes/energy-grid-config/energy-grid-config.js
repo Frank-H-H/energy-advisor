@@ -1,8 +1,8 @@
-module.exports = function (RED) {
-  function EnergyGridConfigNode(config) {
-    RED.nodes.createNode(this, config)
-    this.name = config.name
-    this.max_export_power_kw = Number(config.max_export_power_kw ?? 7)
+module.exports = function(RED) {
+  function EnergyGridConfigNode(n) {
+    RED.nodes.createNode(this,n);
+    this.name = n.name
+    this.max_export_power_kw = Number(n.max_export_power_kw ?? 7)
   }
-  RED.nodes.registerType('energy-grid-config', EnergyGridConfigNode)
+  RED.nodes.registerType("energy-grid-config",EnergyGridConfigNode);
 }
