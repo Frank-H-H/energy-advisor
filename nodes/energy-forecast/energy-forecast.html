@@ -26,17 +26,230 @@
 
 <script type="text/html" data-help-name="energy-forecast">
   <p>
-    The energy-forecast node validates input and invokes the ForecastEngine from the energy-advisor library.
+    Simulates the expected energy flow of an energy system based on a forecast
+    of PV production, consumption, grid targets and electricity prices.
   </p>
-  <h4>Input (msg.payload)</h4>
-  <pre>
-{
-  intervals: [ { start, end, durationMs, values: { consumption_kwh, pv_kwh, importPrice, exportPrice } }, ... ],
-  components: { battery: { capacity_kwh, soc_kwh, min_soc_kwh, ... } }
-}
-  </pre>
-  <h4>Output (msg.payload)</h4>
-  <p>Array of forecast intervals. Each interval.values contains calculated fields like battery_soc_kwh, battery_charge_kwh, grid_import_kwh, grid_export_kwh, cost, revenue.</p>
+
+  <h3>Input</h3>
+
+  <p>
+    By default, the node expects the forecast in <code>msg.payload</code>.
+    The input property can be changed using the <b>Input payload field</b>
+    setting.
+  </p>
+
+  <p>The payload must contain an array of forecast intervals:</p>
+
+  <pre>{
+  "intervals": [
+    {
+      "start": "2026-08-29T12:00:00Z",
+      "end": "2026-08-29T12:15:00Z",
+      "pvProduction": 4.2,
+      "consumption": 1.8,
+      "gridTarget": 0,
+      "importPrice": 0.32,
+      "exportPrice": 0.08
+    },
+    {
+      "start": "2026-08-29T12:15:00Z",
+      "end": "2026-08-29T12:30:00Z",
+      "pvProduction": 4.8,
+      "consumption": 1.9,
+      "gridTarget": 0,
+      "importPrice": 0.32,
+      "exportPrice": 0.08
+    }
+  ],
+  "extraLoads": [
+    {
+      "remainingMinutes": 45,
+      "powerKw": 3.6
+    }
+  ]
++}</pre>
+
+  <h4>Intervals</h4>
+
+  <p>
+    Each interval describes a period between <code>start</code> and
+    <code>end</code>. Timestamps must be valid date/time values.
+  </p>
+
+  <dl>
+    <dt><code>start</code></dt>
+    <dd>Start of the forecast interval.</dd>
+
+    <dt><code>end</code></dt>
+    <dd>End of the forecast interval.</dd>
+
+    <dt><code>pvProduction</code></dt>
+    <dd>
+      Expected PV production in <b>kW</b>.
+    </dd>
+
+    <dt><code>consumption</code></dt>
+    <dd>
+      Estimated normal household consumption in <b>kW</b>.
+    </dd>
+
+    <dt><code>gridTarget</code></dt>
+    <dd>
+      Desired power exchange with the electricity grid in <b>kW</b>.
+      A positive value represents grid import, a negative value represents
+      grid export, and zero represents no desired grid exchange.
+    </dd>
+
+    <dt><code>importPrice</code></dt>
+    <dd>
+      Electricity purchase price in currency per <b>kWh</b>.
+    </dd>
+
+    <dt><code>exportPrice</code></dt>
+    <dd>
+      Electricity selling price in currency per <b>kWh</b>.
+    </dd>
+  </dl>
+
+  <h4>Grid target</h4>
+
+  <p>
+    <code>gridTarget</code> describes the desired power at the grid connection
+    point:
+  </p>
+
+  <ul>
+    <li><code>gridTarget &gt; 0</code> — import power from the grid</li>
+    <li><code>gridTarget = 0</code> — no grid exchange</li>
+    <li><code>gridTarget &lt; 0</code> — export power to the grid</li>
+  </ul>
+
+  <p>
+    For example, <code>gridTarget: 2</code> represents a desired grid import
+    of 2 kW, while <code>gridTarget: -2</code> represents a desired grid
+    export of 2 kW.
+  </p>
+
+  <h4>Extra loads</h4>
+
+  <p>
+    The optional <code>extraLoads</code> array describes additional consumers
+    that are currently running but are not included in the normal
+    <code>consumption</code> forecast.
+  </p>
+
+  <p>Each extra load contains:</p>
+
+  <dl>
+    <dt><code>remainingMinutes</code></dt>
+    <dd>
+      Number of minutes for which the load is expected to continue running.
+    </dd>
+
+    <dt><code>powerKw</code></dt>
+    <dd>
+      Power consumption of the load in <b>kW</b>.
+    </dd>
+  </dl>
+
+  <p>
+    An extra load should not already be included in
+    <code>consumption</code>, otherwise it will be counted twice.
+  </p>
+
+  <p>Example:</p>
+
+  <pre>{
+  "extraLoads": [
+    {
+      "remainingMinutes": 30,
+      "powerKw": 3.6
+    },
+    {
+      "remainingMinutes": 90,
+      "powerKw": 1.2
+    }
+  ]
++}</pre>
+
+  <h4>Prices</h4>
+
+  <p>
+    <code>importPrice</code> and <code>exportPrice</code> are specified per
+    kWh. They are used to calculate the cost of imported energy and the
+    revenue from exported energy.
+  </p>
+
+  <h3>Output</h3>
+
+  <p>
+    The node outputs the calculated forecast as <code>msg.payload</code>.
+    The result is an array containing one result for each input interval.
+  </p>
+
+  <p>A result interval contains calculated values such as:</p>
+
+  <pre>{
+  "start": "2026-08-29T12:00:00Z",
+  "end": "2026-08-29T12:15:00Z",
+  "exportedEnergy": 0,
+  "importedEnergy": 0,
+  "missedProduction": 0,
+  "extraConsumedEnergy": 0.9,
+  "battery_charge_kwh": 0.6,
+  "battery_discharge_kwh": 0,
+  "battery_soc_kwh": 21.4,
+  "importPrice": 0.32,
+  "exportPrice": 0.08,
+  "cost": 0,
+  "revenue": 0
++}</pre>
+
+  <dl>
+    <dt><code>exportedEnergy</code></dt>
+    <dd>Energy exported to the grid in <b>kWh</b>.</dd>
+
+    <dt><code>importedEnergy</code></dt>
+    <dd>Energy imported from the grid in <b>kWh</b>.</dd>
+
+    <dt><code>missedProduction</code></dt>
+    <dd>PV energy that could not be used or stored, in <b>kWh</b>.</dd>
+
+    <dt><code>extraConsumedEnergy</code></dt>
+    <dd>Energy consumed by extra loads, in <b>kWh</b>.</dd>
+
+    <dt><code>battery_charge_kwh</code></dt>
+    <dd>Energy added to the battery during the interval.</dd>
+
+    <dt><code>battery_discharge_kwh</code></dt>
+    <dd>Energy discharged from the battery during the interval.</dd>
+
+    <dt><code>battery_soc_kwh</code></dt>
+    <dd>Battery state of charge at the end of the interval.</dd>
+
+    <dt><code>cost</code></dt>
+    <dd>Cost of imported electricity.</dd>
+
+    <dt><code>revenue</code></dt>
+    <dd>Revenue from exported electricity.</dd>
+  </dl>
+
+  <h3>Configuration</h3>
+
+  <p>
+    The node can use the following configuration nodes:
+  </p>
+
+  <ul>
+    <li><b>System config</b> — system-wide simulation settings</li>
+    <li><b>Battery config</b> — battery capacity, power limits and efficiencies</li>
+    <li><b>Grid config</b> — grid and export limitations</li>
+  </ul>
+
+  <p>
+    These configuration nodes are selected in the node configuration and do
+    not need to be included in the input payload.
+  </p>
 </script>
 
 <script type="text/javascript">
