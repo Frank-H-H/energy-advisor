@@ -7,6 +7,7 @@
       max_charge_power_kw: { value: 10, validate: RED.validators.number() },
       max_discharge_power_kw: { value: 10, validate: RED.validators.number() },
       charge_efficiency: { value: 0.9, validate: RED.validators.number() },
+      discharge_efficiency : { value: 0.9, validate: RED.validators.number() },
     },
     label: function() {
       return this.name || 'energy-battery-config';
@@ -34,5 +35,9 @@
   <div class="form-row">
     <label for="node-config-input-charge_efficiency"><i class="fa fa-bookmark"></i> Charge efficiency (0..1)</label>
     <input id="node-config-input-charge_efficiency" type="number" min="0" max="1" step="0.01">
+  </div>
+  <div class="form-row">
+    <label for="node-config-input-discharge_efficiency"><i class="fa fa-bookmark"></i> Discharge efficiency (0..1)</label>
+    <input id="node-config-input-discharge_efficiency" type="number" min="0" max="1" step="0.01">
   </div>
 </script>
