@@ -34,12 +34,11 @@ export function simulateTimestep({ state = {}, interval, components = {}, option
 
   const batterySpec = components.battery || {}
   const gridSpec = components.grid || {}
-
-  const CAPACITY = Number(batterySpec.capacity_kwh ?? batterySpec.KWH_TOTAL_BATTERY_CAPACITY ?? Infinity)
-  const MAX_CHARGE = Number(batterySpec.max_charge_power_kw ?? batterySpec.max_charge_kw ?? batterySpec.KW_MAX_BATTERY_CHARGE ?? Infinity)
-  const MAX_DISCHARGE = Number(batterySpec.max_discharge_power_kw ?? batterySpec.max_discharge_kw ?? MAX_CHARGE)
-  const CHARGE_EFF = Number(batterySpec.charge_efficiency ?? batterySpec.chargeEff ?? 1)
-  const DISCHARGE_EFF = Number(batterySpec.discharge_efficiency ?? batterySpec.dischargeEff ?? 1)
+  const CAPACITY = Number(batterySpec.capacity_kwh ?? 10)
+  const MAX_CHARGE = Number(batterySpec.max_charge_power_kw ?? Infinity)
+  const MAX_DISCHARGE = Number(batterySpec.max_discharge_power_kw ?? Infinity)
+  const CHARGE_EFF = Number(batterySpec.charge_efficiency ?? 1)
+  const DISCHARGE_EFF = Number(batterySpec.discharge_efficiency ?? 1)
   const MIN_SOC = Number(batterySpec.min_soc_kwh ?? 0)
 
   const MAX_EXPORT = Number(gridSpec.max_export_power_kw ?? gridSpec.KW_MAX_EXPORT_POWER ?? Infinity)
