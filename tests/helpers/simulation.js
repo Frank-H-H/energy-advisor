@@ -1,12 +1,21 @@
 export function makeTimestep(startISO, endISO, values = {}) {
-  const start = new Date(startISO)
-  const end = new Date(endISO)
+  const start = new Date(startISO);
+  const end = new Date(endISO);
 
   return {
     start,
     end,
-    ...values
-  }
+    ...values,
+  };
+}
+
+export function makeState(currentTimeISO, values = {}) {
+  const time = new Date(currentTimeISO);
+
+  return {
+    time,
+    ...values,
+  };
 }
 
 export function makeComponents({
@@ -16,7 +25,7 @@ export function makeComponents({
   max_export_kw = 7,
   charge_efficiency = 1,
   discharge_efficiency = 1,
-  min_soc_kwh = 0
+  min_soc_kwh = 0,
 } = {}) {
   return {
     battery: {
@@ -25,10 +34,10 @@ export function makeComponents({
       max_discharge_power_kw: max_discharge_kw,
       charge_efficiency,
       discharge_efficiency,
-      min_soc_kwh
+      min_soc_kwh,
     },
     grid: {
-      max_export_power_kw: max_export_kw
-    }
-  }
+      max_export_power_kw: max_export_kw,
+    },
+  };
 }

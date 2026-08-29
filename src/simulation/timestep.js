@@ -33,14 +33,6 @@ export function simulateTimestep({
   }
 
   timestep.batteryEnergyAtStart = state.batteryEnergyAtStart;
-  const temporaryResultTimestep = timestep;
-  temporaryResultTimestep.batteryEnergyAtEnd = timestep.batteryEnergyAtStart;
-  const temporaryResult = {
-    nextState: { ...timestep },
-    outputs: {},
-    diagnostics: {},
-  };
-  return temporaryResult;
   // normalize inputs
   timestep.expectedProductionPower = Number(
     timestep.expectedProductionPower || 0
@@ -168,7 +160,10 @@ export function simulateTimestep({
     for (let index = 1; index < timePointsInThisFrame.length; index++) {
       const currentEnd = timePointsInThisFrame[index];
       if (!isBefore(timeToStart, currentStart)) {
-        timestepPartsToSimulate.push(interval(currentStart, currentEnd));
+        timestepPartsToSimulate.push({
+          ...timestep,
+          ...interval(currentStart, currentEnd),
+        });
       }
       currentStart = currentEnd;
     }
@@ -390,5 +385,5 @@ export function simulateTimestep({
   //  const nextState = timestep;
   const outputs = {};
   const diagnostics = {};
-  return { nextState, outputs, diagnostics };
+  return { nextState: timestep, outputs, diagnostics };
 }
