@@ -21,7 +21,7 @@ describe('simulateTimestep - influence of production only', () => {
       });
       const components = makeComponents({});
 
-      const { nextState, outputs, diagnostics } = simulateTimestep({
+      const { nextState } = simulateTimestep({
         state,
         timestep,
         components,
@@ -47,7 +47,7 @@ describe('simulateTimestep - influence of production only', () => {
       });
       const components = makeComponents({});
 
-      const { nextState, outputs, diagnostics } = simulateTimestep({
+      const { nextState } = simulateTimestep({
         state,
         timestep,
         components,
@@ -58,7 +58,7 @@ describe('simulateTimestep - influence of production only', () => {
         'expected energy change = 4 kW * (15/60)h = 1 kWh'
       ).toBeCloseTo(21, 6);
     });
-    it.only('batteryEnergyAtEnd cannot exceed capacity (charge capped at capacity)', () => {
+    it('batteryEnergyAtEnd cannot exceed capacity (charge capped at capacity)', () => {
       const state = makeState('2026-04-08T12:05:00.000Z', {
         batteryEnergyAtStart: 42.8,
       });
@@ -74,23 +74,5 @@ describe('simulateTimestep - influence of production only', () => {
         'batteryEnergyAtEnd cannot exceed capacity'
       ).toBeCloseTo(43, 6); // clamped to capacity
     });
-  });
-
-  it.skip('future frame: production increases SOC (4 kW => +1 kWh in 15min)', () => {
-    const timestep = makeTimestep(
-      '2026-04-08T13:00:00.000Z',
-      '2026-04-08T13:15:00.000Z',
-      {
-        expectedProductionPower: 4,
-      }
-    );
-    const state = makeState('2026-04-08T12:05:00.000Z', {
-      batteryEnergyAtStart: 20,
-    });
-    const components = makeComponents({ max_charge_kw: 8.7 });
-
-    const { nextState } = simulateTimestep({ state, timestep, components });
-
-    expect(nextState.batteryEnergyAtEnd).toBeCloseTo(21, 6);
   });
 });

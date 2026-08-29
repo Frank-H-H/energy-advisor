@@ -22,12 +22,7 @@ import {
  * Returns: { nextState, outputs, diagnostics }
  */
 
-export function simulateTimestep({
-  state = {},
-  timestep,
-  components = {},
-  options = {},
-}) {
+export function simulateTimestep({ state = {}, timestep, components = {} }) {
   if (!timestep || !timestep.start || !timestep.end) {
     throw new Error('timestep with start and end required');
   }
@@ -54,41 +49,25 @@ export function simulateTimestep({
   const gridSpec = components.grid || {};
   const CAPACITY = Number(batterySpec.capacity_kwh ?? 10);
   const MAX_CHARGE = Number(batterySpec.max_charge_power_kw ?? Infinity);
-  const MAX_DISCHARGE = Number(batterySpec.max_discharge_power_kw ?? Infinity);
-  const CHARGE_EFF = Number(batterySpec.charge_efficiency ?? 1);
-  const DISCHARGE_EFF = Number(batterySpec.discharge_efficiency ?? 1);
-  const MIN_SOC = Number(batterySpec.min_soc_kwh ?? 0);
 
   const MAX_EXPORT = Number(
     gridSpec.max_export_power_kw ?? gridSpec.KW_MAX_EXPORT_POWER ?? Infinity
   );
 
-  let socStart = Number(
-    state.battery_soc_kwh ??
-      state.batteryEnergyAtStart ??
-      batterySpec.soc_kwh ??
-      0
-  );
-
   // helpers
-  const toHours = (ms) => ms / 3600000;
-  const timestepFraction = () =>
-    toHours(
-      new Date(timestep.end).getTime() - new Date(timestep.start).getTime()
-    );
 
   const timestepPartsToSimulate = computeTimestepPartsToSimulate(
     state,
     timestep
   );
-  //  if (DEBUG) {
-  //      timestep.timestepPartsToSimulate = timestepPartsToSimulate
-  //  }
+  if (!state.DEBUG) {
+    timestep.timestepPartsToSimulate = timestepPartsToSimulate;
+  }
 
   for (let index = 0; index < timestepPartsToSimulate.length; index++) {
     const timestep = timestepPartsToSimulate[index];
     if (index == 0) {
-      timestep.batteryEnergyAtStart = timestep.batteryEnergyAtStart;
+      // do nothing
     } else {
       timestep.batteryEnergyAtStart =
         timestepPartsToSimulate[index - 1].batteryEnergyAtEnd;
@@ -125,9 +104,9 @@ export function simulateTimestep({
     timestep.extraConsumedEnergy = 0;
   }
 
-  //  if(!DEBUG) {
-  //      cleanTimesteps(timestepPartsToSimulate)
-  //  }
+  if (!state.DEBUG) {
+    cleanTimesteps(timestepPartsToSimulate);
+  }
 
   function computeTimestepPartsToSimulate(state, timestep) {
     const timePointsInThisFrame = new Array();
@@ -150,9 +129,9 @@ export function simulateTimestep({
       }
     }
     timePointsInThisFrame.sort();
-    //    if (DEBUG) {
-    //        timestep.timePointsInThisFrame = timePointsInThisFrame
-    //    }
+    if (!state.DEBUG) {
+      timestep.timePointsInThisFrame = timePointsInThisFrame;
+    }
 
     const timestepPartsToSimulate = new Array();
 

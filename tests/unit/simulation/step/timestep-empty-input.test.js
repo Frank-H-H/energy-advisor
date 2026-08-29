@@ -12,7 +12,7 @@ describe('simulateTimestep - no data at all', () => {
       const state = { batteryEnergyAtStart: 20 };
       const components = makeComponents({});
 
-      const { nextState, outputs, diagnostics } = simulateTimestep({
+      const { nextState } = simulateTimestep({
         state,
         timestep,
         components,
@@ -30,7 +30,7 @@ describe('simulateTimestep - no data at all', () => {
       const state = { batteryEnergyAtStart: 20 };
       const components = makeComponents({});
 
-      const { nextState, outputs, diagnostics } = simulateTimestep({
+      const { nextState } = simulateTimestep({
         state,
         timestep,
         components,
