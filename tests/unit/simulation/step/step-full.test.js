@@ -29,7 +29,7 @@ function makeComponents({ capacity_kwh = 43, max_charge_kw = 8, max_export_kw = 
   }
 }
 
-describe('simulateTimestep — full example conversions from Node-RED flow', () => {
+describe('simulateTimestep - full example conversions from Node-RED flow', () => {
   it('current frame (time inside interval -> 10 minutes) computes expected SOC', () => {
     // Node-RED used message.time=12:05 within a 12:00-12:15 interval -> simulate 12:05-12:15 (10 minutes)
     const interval = makeInterval('2026-04-08T12:05:00.000Z', '2026-04-08T12:15:00.000Z', {

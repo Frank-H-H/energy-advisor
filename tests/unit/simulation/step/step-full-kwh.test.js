@@ -29,7 +29,7 @@ function makeComponents({ capacity_kwh = 43.52, max_charge_kw = 8.7, max_export_
   }
 }
 
-describe('simulateTimestep — Full example (kWh message field names)', () => {
+describe('simulateTimestep - Full example (kWh message field names)', () => {
   it('current frame (partial 10 minutes) returns kWhInBatteryEnd = 20.25', () => {
     const interval = makeInterval('2026-04-08T12:05:00.000Z', '2026-04-08T12:15:00.000Z', {
       expectedProductionPower: 6,
