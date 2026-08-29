@@ -1,3 +1,39 @@
+export function defaultSimpleTestSettingsForPartialStepFixture(
+  extraStateValues,
+  extraTimestepValues
+) {
+  return {
+    state: makeState('2026-04-08T12:05:00.000Z', {
+      batteryEnergyAtStart: 20,
+      ...extraStateValues,
+    }),
+    timestep: makeTimestep(
+      '2026-04-08T12:00:00.000Z',
+      '2026-04-08T12:15:00.000Z',
+      { ...extraTimestepValues }
+    ),
+    components: makeComponents({}),
+  };
+}
+
+export function defaultSimpleTestSettingsForFullStepFixture(
+  extraStateValues,
+  extraTimestepValues
+) {
+  return {
+    state: makeState('2026-04-08T12:00:00.000Z', {
+      batteryEnergyAtStart: 20,
+      ...extraStateValues,
+    }),
+    timestep: makeTimestep(
+      '2026-04-08T13:00:00.000Z',
+      '2026-04-08T13:15:00.000Z',
+      { ...extraTimestepValues }
+    ),
+    components: makeComponents({}),
+  };
+}
+
 export function makeTimestep(startISO, endISO, values = {}) {
   const start = new Date(startISO);
   const end = new Date(endISO);
