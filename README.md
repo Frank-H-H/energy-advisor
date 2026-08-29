@@ -249,8 +249,8 @@ apex_config:
 - Forecast engine to compute interval-based forecasts (based on consumption, PV, prices).
 - Advisor engine to propose actions (battery charge/discharge, grid import/export) to reduce cost or maximize revenue.
 - Node-RED nodes for easy integration into flows:
-  - `energy-forecast` — run forecast engine
-  - `energy-advisor` — run advisor to produce recommendations
+  - `energy-forecast` - run forecast engine
+  - `energy-advisor` - run advisor to produce recommendations
   - Config nodes: `energy-system-config`, `energy-battery-config`, `energy-grid-config`
 
 ---
@@ -293,4 +293,4 @@ Developer flow (recommended)
 
 ## License
 
-MIT — see LICENSE.
+MIT - see LICENSE.
