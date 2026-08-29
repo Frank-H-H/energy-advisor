@@ -93,7 +93,7 @@ export function simulateTimestep({
       timestep.batteryEnergyAtStart =
         timestepPartsToSimulate[index - 1].batteryEnergyAtEnd;
     }
-    internalSimulateTimestep(timestep, timestep, true);
+    internalSimulateTimestep(timestep, true);
   }
 
   if (timestepPartsToSimulate.length >= 1) {
@@ -170,10 +170,10 @@ export function simulateTimestep({
     return timestepPartsToSimulate;
   }
 
-  function internalSimulateTimestep(timestep, message, continueDeeper) {
+  function internalSimulateTimestep(timestep, continueDeeper) {
     const timestepFraction = getFractionOfHour(timestep);
     timestep.timestepFraction = timestepFraction;
-    const unconstrainedPowerBalance = getPowerBalance(timestep, message);
+    const unconstrainedPowerBalance = getPowerBalance(timestep);
     timestep.unconstrainedPowerBalance = unconstrainedPowerBalance;
     const constrainedPowerBalance = getConstrainedPowerBalance(
       unconstrainedPowerBalance
@@ -181,12 +181,12 @@ export function simulateTimestep({
     timestep.constrainedPowerBalance = constrainedPowerBalance;
     timestep.missedProduction =
       Math.min(
-        message.expectedProductionPower,
+        timestep.expectedProductionPower,
         Math.max(0, unconstrainedPowerBalance - constrainedPowerBalance)
       ) * timestepFraction;
-    if (!isBefore(message.extraConsumptionEndsAt, timestep.end)) {
+    if (!isBefore(timestep.extraConsumptionEndsAt, timestep.end)) {
       timestep.extraConsumedEnergy =
-        message.extraConsumptionPower * timestepFraction;
+        timestep.extraConsumptionPower * timestepFraction;
     } else {
       timestep.extraConsumedEnergy = 0;
     }
@@ -214,7 +214,7 @@ export function simulateTimestep({
     timestep.limitedBatteryChargePower = limitedBatteryChargePower;
     timestep.missedProduction =
       Math.min(
-        message.expectedProductionPower,
+        timestep.expectedProductionPower,
         Math.max(
           0,
           unconstrainedPowerBalance -
@@ -227,8 +227,8 @@ export function simulateTimestep({
       timestep.batteryEnergyAtEnd = timestep.batteryEnergyAtStart;
 
       // TODO: THIS WITH GRDID POINT IS UNTESTED
-      //timestep.exportedEnergy = Math.max(0, - message.targetGridPoint) * timestepFraction
-      //timestep.importedEnergy = Math.max(0, message.targetGridPoint) * timestepFraction
+      //timestep.exportedEnergy = Math.max(0, - timestep.targetGridPoint) * timestepFraction
+      //timestep.importedEnergy = Math.max(0, timestep.targetGridPoint) * timestepFraction
       timestep.exportedEnergy = 0;
       timestep.importedEnergy = 0;
       return;
@@ -263,24 +263,30 @@ export function simulateTimestep({
       );
       timestep.timePointWhenFull = timePointWhenFull;
 
-      const firstTimestep = interval(timestep.start, timePointWhenFull);
-      const secondTimestep = interval(timePointWhenFull, timestep.end);
-      firsttimestep.batteryEnergyAtStart = timestep.batteryEnergyAtStart;
-      internalSimulateTimestep(firstTimestep, message, false);
-      secondtimestep.batteryEnergyAtStart = firsttimestep.batteryEnergyAtEnd;
-      internalSimulateTimestep(secondTimestep, message, false);
+      const firstTimestep = {
+        ...timestep,
+        ...interval(timestep.start, timePointWhenFull),
+      };
+      const secondTimestep = {
+        ...timestep,
+        ...interval(timePointWhenFull, timestep.end),
+      };
+      firstTimestep.batteryEnergyAtStart = timestep.batteryEnergyAtStart;
+      internalSimulateTimestep(firstTimestep, false);
+      secondTimestep.batteryEnergyAtStart = firstTimestep.batteryEnergyAtEnd;
+      internalSimulateTimestep(secondTimestep, false);
       timestep.firstTimestep = firstTimestep;
       timestep.secondTimestep = secondTimestep;
       timestep.exportedEnergy =
-        firsttimestep.exportedEnergy + secondtimestep.exportedEnergy;
+        firstTimestep.exportedEnergy + secondTimestep.exportedEnergy;
       timestep.importedEnergy =
-        firsttimestep.importedEnergy + secondtimestep.importedEnergy;
+        firstTimestep.importedEnergy + secondTimestep.importedEnergy;
       timestep.missedProduction =
-        firsttimestep.missedProduction + secondtimestep.missedProduction;
+        firstTimestep.missedProduction + secondTimestep.missedProduction;
       timestep.extraConsumedEnergy =
-        firsttimestep.extraConsumedEnergy + secondtimestep.extraConsumedEnergy;
+        firstTimestep.extraConsumedEnergy + secondTimestep.extraConsumedEnergy;
 
-      timestep.batteryEnergyAtEnd = timestep.secondtimestep.batteryEnergyAtEnd;
+      timestep.batteryEnergyAtEnd = timestep.secondTimestep.batteryEnergyAtEnd;
     } else if (unconstrainedBatteryEnergyAtEnd <= 0) {
       // discharging to empty
       if (!continueDeeper) {
@@ -302,30 +308,36 @@ export function simulateTimestep({
       );
       timestep.timePointWhenEmpty = timePointWhenEmpty;
 
-      const firstTimestep = interval(timestep.start, timePointWhenEmpty);
-      const secondTimestep = interval(timePointWhenEmpty, timestep.end);
-      firsttimestep.batteryEnergyAtStart = timestep.batteryEnergyAtStart;
-      internalSimulateTimestep(firstTimestep, message, false);
-      secondtimestep.batteryEnergyAtStart = firsttimestep.batteryEnergyAtEnd;
-      internalSimulateTimestep(secondTimestep, message, false);
+      const firstTimestep = {
+        ...timestep,
+        ...interval(timestep.start, timePointWhenEmpty),
+      };
+      const secondTimestep = {
+        ...timestep,
+        ...interval(timePointWhenEmpty, timestep.end),
+      };
+      firstTimestep.batteryEnergyAtStart = timestep.batteryEnergyAtStart;
+      internalSimulateTimestep(firstTimestep, false);
+      secondTimestep.batteryEnergyAtStart = firstTimestep.batteryEnergyAtEnd;
+      internalSimulateTimestep(secondTimestep, false);
       timestep.firstTimestep = firstTimestep;
       timestep.secondTimestep = secondTimestep;
       timestep.exportedEnergy =
-        firsttimestep.exportedEnergy + secondtimestep.exportedEnergy;
+        firstTimestep.exportedEnergy + secondTimestep.exportedEnergy;
       timestep.importedEnergy =
-        firsttimestep.importedEnergy + secondtimestep.importedEnergy;
+        firstTimestep.importedEnergy + secondTimestep.importedEnergy;
       timestep.missedProduction =
-        firsttimestep.missedProduction + secondtimestep.missedProduction;
+        firstTimestep.missedProduction + secondTimestep.missedProduction;
       timestep.extraConsumedEnergy =
-        firsttimestep.extraConsumedEnergy + secondtimestep.extraConsumedEnergy;
+        firstTimestep.extraConsumedEnergy + secondTimestep.extraConsumedEnergy;
 
-      timestep.batteryEnergyAtEnd = timestep.secondtimestep.batteryEnergyAtEnd;
+      timestep.batteryEnergyAtEnd = timestep.secondTimestep.batteryEnergyAtEnd;
     } else {
       timestep.batteryEnergyAtEnd = unconstrainedBatteryEnergyAtEnd;
       timestep.exportedEnergy =
-        Math.max(0, -message.targetGridPoint) * timestepFraction;
+        Math.max(0, -timestep.targetGridPoint) * timestepFraction;
       timestep.importedEnergy =
-        Math.max(0, message.targetGridPoint) * timestepFraction;
+        Math.max(0, timestep.targetGridPoint) * timestepFraction;
       //timestep.exportedEnergy = 0
       //timestep.importedEnergy = 0
     }
