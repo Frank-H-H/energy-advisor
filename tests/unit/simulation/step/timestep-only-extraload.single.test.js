@@ -1,0 +1,147 @@
+import { describe, it, expect } from 'vitest';
+import { simulateTimestep } from '../../../../src/simulation/timestep.js';
+import {
+  defaultSimpleTestSettingsForPartialStepFixture,
+  defaultSimpleTestSettingsForFullStepFixture,
+} from '../../../helpers/simulation.js';
+
+describe('simulateTimestep - influence of single extra load only', () => {
+  describe('for partial current timestep, car is stopping in future timestep', () => {
+    it('batteryEnergyAtEnd changes', () => {
+      const testFixture = defaultSimpleTestSettingsForPartialStepFixture(
+        {},
+        {
+          extraConsumptionPower: 2.1,
+          extraConsumptionEndsAt: new Date('2026-04-08T14:00:00.000Z'),
+        }
+      );
+
+      const { nextState } = simulateTimestep(testFixture);
+
+      expect(
+        nextState.batteryEnergyAtEnd,
+        'expected energy change = -2.1 kW * (10/60)h = -0.35 kWh'
+      ).toBeCloseTo(19.65, 6);
+    });
+    it('batteryEnergyAtEnd cannot go below 0', () => {
+      const testFixture = defaultSimpleTestSettingsForPartialStepFixture(
+        { batteryEnergyAtStart: 0.2 },
+        {
+          extraConsumptionPower: 2.1,
+          extraConsumptionEndsAt: new Date('2026-04-08T14:00:00.000Z'),
+        }
+      );
+
+      const { nextState } = simulateTimestep(testFixture);
+
+      expect(
+        nextState.batteryEnergyAtEnd,
+        'batteryEnergyAtEnd capped at 0'
+      ).toBeCloseTo(0, 6);
+    });
+  });
+  describe('for partial current timestep, car is stopping in within timestep', () => {
+    it('batteryEnergyAtEnd changes', () => {
+      const testFixture = defaultSimpleTestSettingsForPartialStepFixture(
+        {},
+        {
+          extraConsumptionPower: 2.1,
+          extraConsumptionEndsAt: new Date('2026-04-08T12:13:00.000Z'),
+        }
+      );
+
+      const { nextState } = simulateTimestep(testFixture);
+
+      expect(
+        nextState.batteryEnergyAtEnd,
+        'expected energy change = -2.1 kW * (6/60)h = -0.28 kWh'
+      ).toBeCloseTo(19.72, 6);
+    });
+    it('batteryEnergyAtEnd cannot go below 0', () => {
+      const testFixture = defaultSimpleTestSettingsForPartialStepFixture(
+        { batteryEnergyAtStart: 0.2 },
+        {
+          extraConsumptionPower: 2.1,
+          extraConsumptionEndsAt: new Date('2026-04-08T12:13:00.000Z'),
+        }
+      );
+
+      const { nextState } = simulateTimestep(testFixture);
+
+      expect(
+        nextState.batteryEnergyAtEnd,
+        'batteryEnergyAtEnd capped at 0'
+      ).toBeCloseTo(0, 6);
+    });
+  });
+
+  describe('for full future timestep, car is stopping in an even later future timestep', () => {
+    it('batteryEnergyAtEnd changes', () => {
+      const testFixture = defaultSimpleTestSettingsForFullStepFixture(
+        {},
+        {
+          extraConsumptionPower: 4,
+          extraConsumptionEndsAt: new Date('2026-04-08T14:00:00.000Z'), // covers full frame
+        }
+      );
+
+      const { nextState } = simulateTimestep(testFixture);
+
+      expect(
+        nextState.batteryEnergyAtEnd,
+        'expected energy change = -4 kW * 0.25 h = -1 kWh'
+      ).toBeCloseTo(19, 6);
+    });
+    it('batteryEnergyAtEnd cannot go below 0', () => {
+      const testFixture = defaultSimpleTestSettingsForFullStepFixture(
+        { batteryEnergyAtStart: 0.2 },
+        {
+          extraConsumptionPower: 4,
+          extraConsumptionEndsAt: new Date('2026-04-08T14:00:00.000Z'), // covers full frame
+        }
+      );
+
+      const { nextState } = simulateTimestep(testFixture);
+
+      expect(
+        nextState.batteryEnergyAtEnd,
+        'batteryEnergyAtEnd capped at 0'
+      ).toBeCloseTo(0, 6); // clamped to 0
+    });
+  });
+
+  describe('for full future timestep, car is stopping in an that exact future timestep', () => {
+    it('batteryEnergyAtEnd changes', () => {
+      const testFixture = defaultSimpleTestSettingsForFullStepFixture(
+        {},
+        {
+          extraConsumptionPower: 3,
+          extraConsumptionEndsAt: new Date('2026-04-08T13:05:00.000Z'), // covers full frame
+        }
+      );
+
+      const { nextState } = simulateTimestep(testFixture);
+
+      expect(
+        nextState.batteryEnergyAtEnd,
+        'expected energy change = -3 kW * 5/60 h = -0.25 kWh'
+      ).toBeCloseTo(19.75, 6);
+    });
+    it('batteryEnergyAtEnd cannot go below 0', () => {
+      const testFixture = defaultSimpleTestSettingsForFullStepFixture(
+        { batteryEnergyAtStart: 0.2 },
+        {
+          extraConsumptionPower: 3,
+          extraConsumptionEndsAt: new Date('2026-04-08T13:05:00.000Z'), // covers full frame
+        }
+      );
+
+      const { nextState } = simulateTimestep(testFixture);
+
+      expect(
+        nextState.batteryEnergyAtEnd,
+        'batteryEnergyAtEnd capped at 0'
+      ).toBeCloseTo(0, 6); // clamped to 0
+    });
+  });
+});
