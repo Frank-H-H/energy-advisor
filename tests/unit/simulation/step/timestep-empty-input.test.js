@@ -8,7 +8,7 @@ describe('simulateTimestep - no data at all', () => {
       '2026-04-08T12:05:00.000Z',
       '2026-04-08T12:15:00.000Z'
     );
-    it('no input at all', () => {
+    it('no change in batteryEnergyAtEnd', () => {
       const state = { batteryEnergyAtStart: 20 };
       const components = makeComponents({});
 
@@ -26,7 +26,7 @@ describe('simulateTimestep - no data at all', () => {
       '2026-04-08T13:00:00.000Z',
       '2026-04-08T13:15:00.000Z'
     );
-    it('no input at all', () => {
+    it('no change in batteryEnergyAtEnd', () => {
       const state = { batteryEnergyAtStart: 20 };
       const components = makeComponents({});
 
