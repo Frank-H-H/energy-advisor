@@ -40,5 +40,8 @@
       "energy-grid-config": "nodes/energy-grid-config/energy-grid-config.js",
       "energy-system-config": "nodes/energy-system-config/energy-system-config.js"
     }
+  },
+  "dependencies": {
+    "date-fns": "^4.4.0"
   }
 }
