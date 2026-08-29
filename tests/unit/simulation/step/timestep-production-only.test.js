@@ -6,8 +6,8 @@ import {
 } from '../../../helpers/simulation.js';
 
 describe('simulateTimestep - influence of production only', () => {
-  describe.only('for partial current frame', () => {
-    it.only('batteryEnergyAtEnd changes', () => {
+  describe('for partial current frame', () => {
+    it('batteryEnergyAtEnd changes', () => {
       const testFixture = defaultSimpleTestSettingsForPartialStepFixture(
         {},
         {
