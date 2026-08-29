@@ -25,10 +25,7 @@ export const systemConfigSchema = {
   defaults: {
     name: '',
     // either 15 or 60
-    analysis_interval_minutes: 15,
-    // references to config node ids (strings) or inline objects
-    battery_ref: null,
-    grid_ref: null
+    analysis_interval_minutes: 15
   }
 }
 

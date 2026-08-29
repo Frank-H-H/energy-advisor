@@ -32,13 +32,13 @@ module.exports = function (RED) {
         if (node.systemConfigId) {
           const sysNode = RED.nodes.getNode(node.systemConfigId)
           if (sysNode) {
-            // sysNode has properties we stored on creation: battery_ref, grid_ref, analysis_interval_minutes
+            // sysNode has properties we stored on creation: battery_config, grid_ref, analysis_interval_minutes
             systemConfigObject = {
               analysis_interval_minutes: sysNode.analysis_interval_minutes
             }
-            // if battery_ref present, try to resolve referenced config node
-            if (sysNode.battery_ref) {
-              const batNode = RED.nodes.getNode(sysNode.battery_ref)
+            // if battery_config present, try to resolve referenced config node
+            if (sysNode.battery_config) {
+              const batNode = RED.nodes.getNode(sysNode.battery_config)
               if (batNode) {
                 batteryConfigObject = {
                   capacity_kwh: batNode.capacity_kwh,

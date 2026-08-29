@@ -14,7 +14,14 @@
     "lint": "eslint . --ext .js",
     "format": "prettier --write ."
   },
-  "keywords": ["energy","forecast","node-red","advisor","battery","pv"],
+  "keywords": [
+    "energy",
+    "forecast",
+    "node-red",
+    "advisor",
+    "battery",
+    "pv"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/Frank-H-H/energy-advisor.git"
