@@ -35,7 +35,7 @@ export function simulateTimestep({ state = {}, timestep, components = {} }) {
   timestep.expectedConsumptionPower = Number(
     timestep.expectedConsumptionPower || 0
   );
-  timestep.targetGridPoint = Number(timestep.targetGrid || 0);
+  timestep.gridTarget = Number(timestep.gridTarget || 0);
   timestep.prematureExportPower = Number(timestep.prematureExportPower || 0);
   timestep.extraConsumptionPower = Number(timestep.extraConsumptionPower || 0);
   timestep.extraConsumptionEndsAt = timestep.extraConsumptionEndsAt
@@ -206,8 +206,8 @@ export function simulateTimestep({ state = {}, timestep, components = {} }) {
       timestep.batteryEnergyAtEnd = timestep.batteryEnergyAtStart;
 
       // TODO: THIS WITH GRDID POINT IS UNTESTED
-      //timestep.exportedEnergy = Math.max(0, - timestep.targetGridPoint) * timestepFraction
-      //timestep.importedEnergy = Math.max(0, timestep.targetGridPoint) * timestepFraction
+      //timestep.exportedEnergy = Math.max(0, - timestep.gridTarget) * timestepFraction
+      //timestep.importedEnergy = Math.max(0, timestep.gridTarget) * timestepFraction
       timestep.exportedEnergy = 0;
       timestep.importedEnergy = 0;
       return;
@@ -314,9 +314,9 @@ export function simulateTimestep({ state = {}, timestep, components = {} }) {
     } else {
       timestep.batteryEnergyAtEnd = unconstrainedBatteryEnergyAtEnd;
       timestep.exportedEnergy =
-        Math.max(0, -timestep.targetGridPoint) * timestepFraction;
+        Math.max(0, -timestep.gridTarget) * timestepFraction;
       timestep.importedEnergy =
-        Math.max(0, timestep.targetGridPoint) * timestepFraction;
+        Math.max(0, timestep.gridTarget) * timestepFraction;
       //timestep.exportedEnergy = 0
       //timestep.importedEnergy = 0
     }
@@ -326,7 +326,7 @@ export function simulateTimestep({ state = {}, timestep, components = {} }) {
     var powerBalance =
       timestep.expectedProductionPower -
       timestep.expectedConsumptionPower +
-      timestep.targetGridPoint;
+      timestep.gridTarget;
     if (typeof timestep.prematureExportPower !== 'undefined') {
       powerBalance -= timestep.prematureExportPower;
     }
