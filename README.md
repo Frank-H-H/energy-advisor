@@ -1,5 +1,7 @@
 # Energy Advisor
 
+Current state: Still in the process of migrating my implementation based on multiple node-red subflows into a set of more generalized node implementations.
+
 [![CI](https://github.com/Frank-H-H/energy-advisor/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Frank-H-H/energy-advisor/actions/workflows/ci.yml)
 [![Codecov](https://img.shields.io/codecov/c/github/Frank-H-H/energy-advisor/main.svg)](https://codecov.io/gh/Frank-H-H/energy-advisor)
 [![npm version](https://img.shields.io/npm/v/energy-advisor.svg)](https://www.npmjs.com/package/energy-advisor)
@@ -8,13 +10,21 @@
 Decision-support library for residential energy systems: forecast and advisor engines with Node-RED adapters.
 
 This repository contains:
+
 - Core forecast and advisor engines (ESM) under `src/`
 - Node-RED adapter nodes under `nodes/`
 - Documentation and examples under `docs/`
 
 ## Vision
-Example forecast image (visual mock). Shows forecasted battery SOC, expected grid import + export, times of negative energy prices, extra loads like car charging
-![Example forecast image (visual mock)](docs/example-graph.png)
+
+Example forecast image.
+![Example forecast image (visual mock)](docs/example-graph.png). Shows forecasted battery SOC, expected grid import + export, times of negative energy prices, extra loads like car charging. Also preemptive counter-measures are computed:
+
+- Sell energy in advance of times with negative prices (useful for summertime)
+- TODO: buy energy in times with lowest prices (useful for wintertime)
+- TODO: trade energy (buy low, sell high)
+- TODO: compute start + stop times for extra loads
+- TODO: add support nodes to convert data into the expected timestep format
 
 <details>
 
@@ -237,10 +247,9 @@ apex_config:
   plotOptions:
     bar:
       columnWidth: 100%
-
 ```
-</details>
 
+</details>
 
 ---
 
@@ -260,10 +269,12 @@ apex_config:
 Since in early development, energy-advisor has not yet been published in npm.
 
 Prerequisites:
+
 - Node.js 18+
 - npm
 
 Developer flow (recommended)
+
 1. Clone the repo:
    git clone https://github.com/Frank-H-H/energy-advisor.git
    cd energy-advisor
@@ -272,16 +283,19 @@ Developer flow (recommended)
    npm install
 
 3. To run Node-RED using the local package (development mode):
+
    # From project root
+
    npm link
+
    # start Node-RED (my local windows machine)
+
    pm2 start ~/AppData/Roaming/npm/node_modules/node-red/red.js --name "node-red" --watch .
 
 4. Run tests:
    npm test
 
 ---
-
 
 ## Contributing
 
