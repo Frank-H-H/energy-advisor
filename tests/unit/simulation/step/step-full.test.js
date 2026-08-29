@@ -1,6 +1,6 @@
 // tests/unit/step-full.test.js
 import { describe, it, expect } from 'vitest'
-import { simulateTimestep } from '../../src/simulation/step.js'
+import { simulateTimestep } from '../../../../src/simulation/step.js'
 
 function makeInterval(startISO, endISO, values = {}) {
   const start = new Date(startISO)
