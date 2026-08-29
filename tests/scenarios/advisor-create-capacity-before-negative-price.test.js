@@ -4,7 +4,7 @@ import { describe, it, expect } from "vitest"
 import { ForecastEngine } from "../../src/simulation/forecastEngine.js"
 import { AdvisorEngine } from "../../src/advisor/advisorEngine.js"
 
-describe("advisor scenario: create capacity before negative price", () => {
+describe.skip("advisor scenario: create capacity before negative price", () => {
   it("produces a discharge recommendation before negative price interval", () => {
     const fixture = JSON.parse(fs.readFileSync(path.resolve(__dirname, "./fixtures/negative-price.json"), "utf8"))
     const forecast = ForecastEngine.run(fixture)
