@@ -1,87 +1,117 @@
-import { Battery } from '../components/battery.js';
+import { simulateTimeSeries } from './time-series.js';
 
 export class ForecastEngine {
-  /**
-   * Run a simple deterministic forecast simulation.
-   * input: { intervals: [ { start, end, durationMs, values: { consumption_kwh, pv_kwh, importPrice, exportPrice } } ], components: { battery: { ... } } }
-   * Returns: forecast intervals with calculated fields
-   */
-  static run(input) {
+  static run(input = {}) {
     const intervals = input.intervals || [];
-    const batteryCfg = input.components?.battery;
-    const battery = batteryCfg ? new Battery(batteryCfg) : null;
+    const components = input.components || {};
+    const initialBatteryEnergy = components.battery?.soc_kwh ?? 0;
 
-    const out = [];
-    for (const iv of intervals) {
-      const c = iv.values || {};
-      const consumption = Number(c.consumption_kwh ?? 0);
-      const pv = Number(c.pv_kwh ?? 0);
-      const importPrice = c.importPrice ?? null;
-      const exportPrice = c.exportPrice ?? null;
+    const timesteps = intervals.map((interval) => this.toTimestep(interval));
 
-      // Start with PV used for consumption
-      const pvForConsumption = Math.min(pv, consumption);
-      let remainingConsumption = consumption - pvForConsumption;
-      let pvSurplus = Math.max(0, pv - pvForConsumption);
+    const simulation = simulateTimeSeries({
+      state: {
+        batteryEnergyAtStart: initialBatteryEnergy,
+      },
+      timesteps,
+      components,
+    });
 
-      let batteryChargeKWh = 0;
-      let batteryDischargeKWh = 0;
-      let gridImportKWh = 0;
-      let gridExportKWh = 0;
+    return simulation.timesteps.map((timestep, index) =>
+      this.toForecastInterval(intervals[index], timestep)
+    );
+  }
 
-      // If battery exists, try to charge from surplus
-      if (battery && pvSurplus > 0) {
-        const { chargedKWh, sourceKWh } = battery.charge(pvSurplus);
-        batteryChargeKWh = chargedKWh;
-        pvSurplus -= sourceKWh - (sourceKWh - chargedKWh); // conservative
-        // any leftover PV after charging goes to export
-      }
+  static toTimestep(interval) {
+    const start = new Date(interval.start);
+    const end = new Date(interval.end);
+    const durationHours = (end.getTime() - start.getTime()) / 3600000;
 
-      // If consumption remains, try to discharge battery
-      if (battery && remainingConsumption > 0) {
-        const { dischargedKWh, deliveredKWh } = battery.discharge(
-          remainingConsumption / (battery?.dischargeEff ?? 1)
-        );
-        // battery.discharge expects requested pre-efficiency; deliveredKWh goes to consumption
-        const delivered = deliveredKWh;
-        batteryDischargeKWh = dischargedKWh;
-        remainingConsumption = Math.max(0, remainingConsumption - delivered);
-      }
-
-      // After battery interactions, remaining consumption is imported
-      if (remainingConsumption > 0) {
-        gridImportKWh = remainingConsumption;
-      }
-
-      // any remaining PV surplus becomes export
-      gridExportKWh = Math.max(
-        0,
-        pv - pvForConsumption - batteryChargeKWh / (battery?.chargeEff ?? 1)
-      );
-
-      // Energy accounting (simple)
-      const costs = (gridImportKWh || 0) * (importPrice ?? 0);
-      const revenues = (gridExportKWh || 0) * (exportPrice ?? 0);
-
-      out.push({
-        start: iv.start,
-        end: iv.end,
-        durationMs: iv.durationMs,
-        values: {
-          consumption_kwh: consumption,
-          pv_kwh: pv,
-          battery_soc_kwh: battery ? battery.soc : null,
-          battery_charge_kwh: batteryChargeKWh,
-          battery_discharge_kwh: batteryDischargeKWh,
-          grid_import_kwh: gridImportKWh,
-          grid_export_kwh: gridExportKWh,
-          importPrice,
-          exportPrice,
-          cost: costs,
-          revenue: revenues,
-        },
-      });
+    if (!Number.isFinite(durationHours) || durationHours <= 0) {
+      throw new Error('forecast interval must have a positive duration');
     }
-    return out;
+
+    const values = interval.values || {};
+
+    return {
+      start,
+      end,
+
+      expectedProductionPower: Number(values.pv_kwh ?? 0) / durationHours,
+
+      expectedConsumptionPower:
+        Number(values.consumption_kwh ?? 0) / durationHours,
+
+      gridTarget: Number(values.gridTarget ?? 0),
+
+      prematureExportPower: Number(values.prematureExportPower ?? 0),
+
+      extraConsumptionPower: Number(values.extraConsumptionPower ?? 0),
+
+      extraConsumptionEndsAt: values.extraConsumptionEndsAt
+        ? new Date(values.extraConsumptionEndsAt)
+        : undefined,
+
+      importPrice: values.importPrice ?? null,
+      exportPrice: values.exportPrice ?? null,
+    };
+  }
+
+  static toForecastInterval(interval, timestep) {
+    const values = interval.values || {};
+
+    const batteryEnergyAtStart = timestep.batteryEnergyAtStart ?? 0;
+
+    const batteryEnergyAtEnd =
+      timestep.batteryEnergyAtEnd ?? batteryEnergyAtStart;
+
+    const batteryChargeKWh = Math.max(
+      0,
+      batteryEnergyAtEnd - batteryEnergyAtStart
+    );
+
+    const batteryDischargeKWh = Math.max(
+      0,
+      batteryEnergyAtStart - batteryEnergyAtEnd
+    );
+
+    const gridImportKWh = timestep.importedEnergy ?? 0;
+
+    const gridExportKWh = timestep.exportedEnergy ?? 0;
+
+    const importPrice = values.importPrice ?? null;
+
+    const exportPrice = values.exportPrice ?? null;
+
+    return {
+      start: interval.start,
+      end: interval.end,
+
+      durationMs:
+        interval.durationMs ??
+        new Date(interval.end).getTime() - new Date(interval.start).getTime(),
+
+      values: {
+        consumption_kwh: Number(values.consumption_kwh ?? 0),
+
+        pv_kwh: Number(values.pv_kwh ?? 0),
+
+        battery_soc_kwh: batteryEnergyAtEnd,
+
+        battery_charge_kwh: batteryChargeKWh,
+
+        battery_discharge_kwh: batteryDischargeKWh,
+
+        grid_import_kwh: gridImportKWh,
+
+        grid_export_kwh: gridExportKWh,
+
+        importPrice,
+        exportPrice,
+
+        cost: gridImportKWh * (importPrice ?? 0),
+
+        revenue: gridExportKWh * (exportPrice ?? 0),
+      },
+    };
   }
 }

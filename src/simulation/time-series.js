@@ -1,12 +1,10 @@
 import { simulateTimestep } from './timestep.js';
 
 /**
- * Simulate a sequence of timesteps.
+ * Simulate a time series of consecutive timesteps.
  *
  * The battery state produced by one timestep becomes the starting battery
  * state of the following timestep.
- *
- * The input timesteps are simulated in their given order.
  *
  * @param {Object} options
  * @param {Object} options.state Initial simulation state.
@@ -14,7 +12,7 @@ import { simulateTimestep } from './timestep.js';
  * @param {Object} [options.components] Simulation component configuration.
  * @returns {{nextState: Object, timesteps: Array<Object>}}
  */
-export function simulateTimesteps({
+export function simulateTimeSeries({
   state = {},
   timesteps = [],
   components = {},
@@ -30,6 +28,7 @@ export function simulateTimesteps({
     });
 
     simulatedTimesteps.push(result.nextState);
+
     currentState = {
       ...currentState,
       batteryEnergyAtStart: result.nextState.batteryEnergyAtEnd,

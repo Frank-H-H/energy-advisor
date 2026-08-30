@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { simulateTimesteps } from '../../../src/simulation/timesteps.js';
+import { simulateTimeSeries } from '../../../src/simulation/time-series.js';
 
-describe('simulateTimesteps', () => {
+describe('simulateTimeSeries', () => {
   const components = {
     battery: {
       capacity_kwh: 10,
@@ -32,7 +32,7 @@ describe('simulateTimesteps', () => {
       },
     ];
 
-    const result = simulateTimesteps({
+    const result = simulateTimeSeries({
       state: {
         batteryEnergyAtStart: 0,
       },
@@ -54,7 +54,7 @@ describe('simulateTimesteps', () => {
       customValue: 'keep me',
     };
 
-    const result = simulateTimesteps({
+    const result = simulateTimeSeries({
       state,
       timesteps: [
         {
@@ -80,7 +80,7 @@ describe('simulateTimesteps', () => {
       customValue: 'unchanged',
     };
 
-    const result = simulateTimesteps({
+    const result = simulateTimeSeries({
       state,
       timesteps: [],
       components,
@@ -106,7 +106,7 @@ describe('simulateTimesteps', () => {
       gridTarget: 0,
     };
 
-    const result = simulateTimesteps({
+    const result = simulateTimeSeries({
       state: { batteryEnergyAtStart: 0 },
       timesteps: [first, second],
       components,
