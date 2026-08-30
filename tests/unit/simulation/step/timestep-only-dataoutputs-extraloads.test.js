@@ -5,68 +5,6 @@ import {
   defaultSimpleTestSettingsForFullStepFixture,
 } from '../../../helpers/simulation.js';
 
-describe.skip('extraConsumedEnergy calculations (15 min interval start 13:00)', () => {
-  it('ends before frame -> 0', () => {
-    const timestep = makeTimestep(
-      '2026-04-08T13:00:00.000Z',
-      '2026-04-08T13:15:00.000Z',
-      {
-        extraConsumptionPower: 2,
-        extraConsumptionEndsAt: new Date('2026-04-08T13:00:00.000Z'),
-      }
-    );
-    const state = { battery_soc_kwh: 43 };
-    const components = makeComponents();
-    const { outputs } = simulateTimestep({ state, interval, components });
-    expect(outputs.extraConsumedEnergy).toBeCloseTo(0, 5);
-  });
-
-  it('ends after frame -> 0.5 kWh (2 kW * 0.25 h)', () => {
-    const timestep = makeTimestep(
-      '2026-04-08T13:00:00.000Z',
-      '2026-04-08T13:15:00.000Z',
-      {
-        extraConsumptionPower: 2,
-        extraConsumptionEndsAt: new Date('2026-04-08T14:00:00.000Z'),
-      }
-    );
-    const state = { battery_soc_kwh: 43 };
-    const components = makeComponents();
-    const { outputs } = simulateTimestep({ state, interval, components });
-    expect(outputs.extraConsumedEnergy).toBeCloseTo(0.5, 5);
-  });
-
-  it('ends in frame at 13:06 -> 0.2 kWh (6 min)', () => {
-    const timestep = makeTimestep(
-      '2026-04-08T13:00:00.000Z',
-      '2026-04-08T13:15:00.000Z',
-      {
-        extraConsumptionPower: 2,
-        extraConsumptionEndsAt: new Date('2026-04-08T13:06:00.000Z'),
-      }
-    );
-    const state = { battery_soc_kwh: 43 };
-    const components = makeComponents();
-    const { outputs } = simulateTimestep({ state, interval, components });
-    expect(outputs.extraConsumedEnergy).toBeCloseTo(0.2, 5);
-  });
-
-  it('zero extraConsumptionPower yields 0', () => {
-    const timestep = makeTimestep(
-      '2026-04-08T13:00:00.000Z',
-      '2026-04-08T13:15:00.000Z',
-      {
-        extraConsumptionPower: 0,
-        extraConsumptionEndsAt: new Date('2026-04-08T14:00:00.000Z'),
-      }
-    );
-    const state = { battery_soc_kwh: 43 };
-    const components = makeComponents();
-    const { outputs } = simulateTimestep({ state, interval, components });
-    expect(outputs.extraConsumedEnergy).toBeCloseTo(0, 5);
-  });
-});
-
 describe('simulateTimestep - computation of extraConsumedEnergy', () => {
   describe('for partial current frame', () => {
     it('ends before frame', () => {

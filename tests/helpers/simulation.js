@@ -1,4 +1,4 @@
-import { assert, expect } from 'vitest';
+import { assert } from 'vitest';
 
 export function defaultSimpleTestSettingsForPartialStepFixture(
   extraStateValues,
