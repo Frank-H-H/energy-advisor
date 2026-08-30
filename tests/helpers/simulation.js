@@ -39,6 +39,7 @@ export function defaultSimpleTestSettingsForFullStepFixture(
 export function expectStandardNextStateAttributesPresent(timestep) {
   // isFinite verifies, that the attribute is defined, a number and not Infinity or NaN
   assert.isFinite(timestep.exportedEnergy);
+  assert.isFinite(timestep.importedEnergy);
   assert.isFinite(timestep.missedProduction);
   assert.isFinite(timestep.extraConsumedEnergy);
 }
