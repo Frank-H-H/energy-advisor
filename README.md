@@ -9,7 +9,7 @@ Migration tasks:
 - [x] Add node for advisories
 - [x] Add configuration nodes for battery, grid, whole system
 - [x] Add logic for single time step computation
-- [ ] Add tests for single time step computation
+- [x] Add tests for single time step computation
 - [ ] Add logic for iterating through the timesteps
 - [ ] Add tests for iterating
 - [ ] Add logic for advisory (currently called countermeasures)
