@@ -7,7 +7,7 @@ import {
 
 describe('simulateTimestep - computation of extraConsumedEnergy', () => {
   describe('for partial current frame', () => {
-    it('ends before frame', () => {
+    it('ends before frame -> 0', () => {
       const testFixture = defaultSimpleTestSettingsForPartialStepFixture(
         {},
         {
@@ -71,9 +71,25 @@ describe('simulateTimestep - computation of extraConsumedEnergy', () => {
         'extraLoad: 2.1 kW * (6/60)h = 0.21 kWh'
       ).toBeCloseTo(0.21, 6);
     });
+    it('zero consumption power yields 0', () => {
+      const testFixture = defaultSimpleTestSettingsForPartialStepFixture(
+        {},
+        {
+          extraConsumptionPower: 0,
+          extraConsumptionEndsAt: new Date('2026-04-08T14:00:00.000Z'),
+        }
+      );
+
+      const { nextState } = simulateTimestep(testFixture);
+
+      expect(
+        nextState.extraConsumedEnergy,
+        'extraLoad: 0 kW * (10/60)h = 0.35 kWh'
+      ).toBeCloseTo(0, 6);
+    });
   });
   describe('for full future frame', () => {
-    it('ends before frame', () => {
+    it('ends before frame -> 0', () => {
       const testFixture = defaultSimpleTestSettingsForFullStepFixture(
         {},
         {
@@ -120,6 +136,22 @@ describe('simulateTimestep - computation of extraConsumedEnergy', () => {
         nextState.extraConsumedEnergy,
         'extraLoad: 2.1 kW * (6/60)h = 0.21 kWh'
       ).toBeCloseTo(0.21, 6);
+    });
+    it('zero consumption power yields 0', () => {
+      const testFixture = defaultSimpleTestSettingsForFullStepFixture(
+        {},
+        {
+          extraConsumptionPower: 0,
+          extraConsumptionEndsAt: new Date('2026-04-08T14:00:00.000Z'),
+        }
+      );
+
+      const { nextState } = simulateTimestep(testFixture);
+
+      expect(
+        nextState.extraConsumedEnergy,
+        'extraLoad: 0 kW * (15/60)h = 0.525 kWh'
+      ).toBeCloseTo(0.0, 6);
     });
   });
 });
