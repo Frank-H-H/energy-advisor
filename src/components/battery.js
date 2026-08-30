@@ -1,12 +1,10 @@
 /**
- * Basic Battery model.
+ * Battery domain model.
  * capacity_kwh: kWh
  * soc_kwh: kWh (initial)
  * min_soc_kwh: kWh
  * max_charge_power_kw: kW
  * max_discharge_power_kw: kW
- * charge_efficiency: 0..1
- * discharge_efficiency: 0..1
  */
 
 export class Battery {
@@ -16,9 +14,7 @@ export class Battery {
     this.minSoc = Number(cfg.min_soc_kwh ?? 0)
     this.maxChargePower = Number(cfg.max_charge_power_kw ?? Infinity)
     this.maxDischargePower = Number(cfg.max_discharge_power_kw ?? Infinity)
-    this.chargeEff = Number(cfg.charge_efficiency ?? 1)
-    this.dischargeEff = Number(cfg.discharge_efficiency ?? 1)
-    // clamp
+
     if (this.soc > this.capacity) this.soc = this.capacity
     if (this.soc < this.minSoc) this.soc = this.minSoc
   }
@@ -31,24 +27,68 @@ export class Battery {
     return Math.max(0, this.soc - this.minSoc)
   }
 
-  // Attempt to charge by energy_kwh (before efficiencies). Returns actual charged kWh (into battery) and gridEnergyUsed (accounting for efficiency)
-  charge(energy_kwh) {
-    const chargeable = Math.min(energy_kwh * this.chargeEff, this.availableCapacityKWh())
-    // energy taken from grid/PV before efficiency
-    const energyFromSource = chargeable / this.chargeEff
-    this.soc += chargeable
-    if (this.soc > this.capacity) this.soc = this.capacity
-    return { chargedKWh: chargeable, sourceKWh: energyFromSource }
-  }
+  /**
+   * Apply a power for a relative duration in hours.
+   * Positive power charges, negative power discharges.
+   *
+   * The battery enforces its own power and SOC limits. Efficiencies are
+   * deliberately not modelled here.
+   */
+  applyPower(powerKw, durationHours) {
+    if (!Number.isFinite(powerKw)) {
+      throw new Error('powerKw must be finite')
+    }
+    if (!Number.isFinite(durationHours) || durationHours < 0) {
+      throw new Error('durationHours must be a finite number >= 0')
+    }
 
-  // Attempt to discharge requestedEnergy_kwh (battery output before efficiency). Returns {dischargedKWh, deliveredKWh}
-  discharge(requestedEnergy_kwh) {
-    const availableOut = this.availableDischargeKWh()
-    const discharged = Math.min(requestedEnergy_kwh, availableOut)
-    // energy delivered to load/grid after discharge efficiency
-    const delivered = discharged * this.dischargeEff
-    this.soc -= discharged
-    if (this.soc < this.minSoc) this.soc = this.minSoc
-    return { dischargedKWh: discharged, deliveredKWh: delivered }
+    const socAtStartKWh = this.soc
+    const result = {
+      requestedPowerKw: powerKw,
+      appliedPowerKw: 0,
+      requestedDurationHours: durationHours,
+      actualDurationHours: durationHours,
+      energyKWh: 0,
+      socAtStartKWh,
+      socAtEndKWh: this.soc,
+      reachedFullAtHours: null,
+      reachedEmptyAtHours: null,
+    }
+
+    if (durationHours === 0 || powerKw === 0) {
+      return result
+    }
+
+    const appliedPowerKw =
+      powerKw > 0
+        ? Math.min(powerKw, this.maxChargePower)
+        : Math.max(powerKw, -this.maxDischargePower)
+
+    result.appliedPowerKw = appliedPowerKw
+
+    if (appliedPowerKw > 0) {
+      const timeToFullHours =
+        this.availableCapacityKWh() / appliedPowerKw
+
+      if (timeToFullHours <= durationHours) {
+        result.actualDurationHours = timeToFullHours
+        result.reachedFullAtHours = timeToFullHours
+      }
+    } else if (appliedPowerKw < 0) {
+      const timeToEmptyHours =
+        this.availableDischargeKWh() / -appliedPowerKw
+
+      if (timeToEmptyHours <= durationHours) {
+        result.actualDurationHours = timeToEmptyHours
+        result.reachedEmptyAtHours = timeToEmptyHours
+      }
+    }
+
+    result.energyKWh = appliedPowerKw * result.actualDurationHours
+    this.soc += result.energyKWh
+    this.soc = Math.max(this.minSoc, Math.min(this.capacity, this.soc))
+    result.socAtEndKWh = this.soc
+
+    return result
   }
 }

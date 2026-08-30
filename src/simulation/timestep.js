@@ -1,3 +1,4 @@
+import { Battery } from '../components/battery.js';
 import {
   addMinutes,
   differenceInMinutes,
@@ -47,9 +48,6 @@ export function simulateTimestep({ state = {}, timestep, components = {} }) {
 
   const batterySpec = components.battery || {};
   const gridSpec = components.grid || {};
-  const CAPACITY = Number(batterySpec.capacity_kwh ?? 10);
-  const MAX_CHARGE = Number(batterySpec.max_charge_power_kw ?? Infinity);
-
   const MAX_EXPORT = Number(
     gridSpec.max_export_power_kw ?? gridSpec.KW_MAX_EXPORT_POWER ?? Infinity
   );
@@ -151,6 +149,10 @@ export function simulateTimestep({ state = {}, timestep, components = {} }) {
 
   function internalSimulateTimestep(timestep, continueDeeper) {
     const timestepFraction = getFractionOfHour(timestep);
+    const battery = new Battery({
+      ...batterySpec,
+      soc_kwh: timestep.batteryEnergyAtStart,
+    });
     timestep.timestepFraction = timestepFraction;
     const unconstrainedPowerBalance = getPowerBalance(timestep);
     timestep.unconstrainedPowerBalance = unconstrainedPowerBalance;
@@ -169,27 +171,26 @@ export function simulateTimestep({ state = {}, timestep, components = {} }) {
     } else {
       timestep.extraConsumedEnergy = 0;
     }
-    if (
-      unconstrainedPowerBalance > 0 &&
-      timestep.batteryEnergyAtStart >= CAPACITY
-    ) {
+    if (unconstrainedPowerBalance > 0 && battery.soc >= battery.capacity) {
       // charging, but already full
-      timestep.batteryEnergyAtEnd = CAPACITY;
+      timestep.batteryEnergyAtEnd = battery.capacity;
       timestep.exportedEnergy = constrainedPowerBalance * timestepFraction;
       timestep.importedEnergy = 0;
       return;
     }
-    if (unconstrainedPowerBalance < 0 && timestep.batteryEnergyAtStart <= 0) {
+    if (unconstrainedPowerBalance < 0 && battery.soc <= battery.minSoc) {
       // discharging, but already empty
-      timestep.batteryEnergyAtEnd = 0;
+      timestep.batteryEnergyAtEnd = battery.minSoc;
       timestep.exportedEnergy = 0;
       timestep.importedEnergy = -unconstrainedPowerBalance * timestepFraction;
       return;
     }
     // charging or discharging somewhere in between
-    let limitedBatteryChargePower = limitToBatteryCharge(
-      unconstrainedPowerBalance
+    const batteryResult = battery.applyPower(
+      unconstrainedPowerBalance,
+      timestepFraction
     );
+    const limitedBatteryChargePower = batteryResult.appliedPowerKw;
     timestep.limitedBatteryChargePower = limitedBatteryChargePower;
     timestep.missedProduction =
       Math.min(
@@ -212,17 +213,15 @@ export function simulateTimestep({ state = {}, timestep, components = {} }) {
       timestep.importedEnergy = 0;
       return;
     }
-    const realBatteryEnergyChange =
-      limitedBatteryChargePower * timestepFraction;
+    const realBatteryEnergyChange = batteryResult.energyKWh;
     timestep.realBatteryEnergyChange = realBatteryEnergyChange;
-    const unconstrainedBatteryEnergyAtEnd =
-      timestep.batteryEnergyAtStart + realBatteryEnergyChange;
+    const unconstrainedBatteryEnergyAtEnd = batteryResult.socAtEndKWh;
     timestep.unconstrainedBatteryEnergyAtEnd = unconstrainedBatteryEnergyAtEnd;
-    if (unconstrainedBatteryEnergyAtEnd >= CAPACITY) {
+    if (batteryResult.reachedFullAtHours !== null) {
       // charging to full
       if (!continueDeeper) {
-        timestep.batteryEnergyAtEnd = CAPACITY;
-        if (timestep.batteryEnergyAtStart < CAPACITY) {
+        timestep.batteryEnergyAtEnd = battery.capacity;
+        if (timestep.batteryEnergyAtStart < battery.capacity) {
           timestep.exportedEnergy =
             Math.max(0, unconstrainedPowerBalance - limitedBatteryChargePower) *
             timestepFraction;
@@ -232,13 +231,14 @@ export function simulateTimestep({ state = {}, timestep, components = {} }) {
         timestep.importedEnergy = 0;
         return;
       }
-      const missingChargeOnStart = CAPACITY - timestep.batteryEnergyAtStart;
+      const missingChargeOnStart =
+        battery.capacity - timestep.batteryEnergyAtStart;
       timestep.missingChargeOnStart = missingChargeOnStart;
       timestep.realBatteryEnergyChange = realBatteryEnergyChange;
       timestep.limitedBatteryChargePower = limitedBatteryChargePower;
       const timePointWhenFull = addMinutes(
         timestep.start,
-        (60.0 * missingChargeOnStart) / limitedBatteryChargePower
+        60.0 * batteryResult.reachedFullAtHours
       );
       timestep.timePointWhenFull = timePointWhenFull;
 
@@ -266,10 +266,10 @@ export function simulateTimestep({ state = {}, timestep, components = {} }) {
         firstTimestep.extraConsumedEnergy + secondTimestep.extraConsumedEnergy;
 
       timestep.batteryEnergyAtEnd = timestep.secondTimestep.batteryEnergyAtEnd;
-    } else if (unconstrainedBatteryEnergyAtEnd <= 0) {
+    } else if (batteryResult.reachedEmptyAtHours !== null) {
       // discharging to empty
       if (!continueDeeper) {
-        timestep.batteryEnergyAtEnd = 0;
+        timestep.batteryEnergyAtEnd = battery.minSoc;
         timestep.exportedEnergy = 0;
         if (timestep.batteryEnergyAtStart > 0) {
           timestep.importedEnergy =
@@ -283,7 +283,7 @@ export function simulateTimestep({ state = {}, timestep, components = {} }) {
 
       const timePointWhenEmpty = addMinutes(
         timestep.start,
-        (60.0 * timestep.batteryEnergyAtStart) / -limitedBatteryChargePower
+        60.0 * batteryResult.reachedEmptyAtHours
       );
       timestep.timePointWhenEmpty = timePointWhenEmpty;
 
@@ -342,16 +342,6 @@ export function simulateTimestep({ state = {}, timestep, components = {} }) {
   function getConstrainedPowerBalance(powerBalance) {
     if (powerBalance > MAX_EXPORT) {
       return MAX_EXPORT;
-    }
-    return powerBalance;
-  }
-
-  function limitToBatteryCharge(powerBalance) {
-    if (powerBalance > MAX_CHARGE) {
-      return MAX_CHARGE;
-    }
-    if (powerBalance < -MAX_CHARGE) {
-      return -MAX_CHARGE;
     }
     return powerBalance;
   }
