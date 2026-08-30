@@ -3,6 +3,7 @@ import { simulateTimestep } from '../../../../src/simulation/timestep.js';
 import {
   defaultSimpleTestSettingsForPartialStepFixture,
   defaultSimpleTestSettingsForFullStepFixture,
+  expectStandardNextStateAttributesPresent,
 } from '../../../helpers/simulation.js';
 
 describe('simulateTimestep - influence of single extra load only', () => {
@@ -22,6 +23,7 @@ describe('simulateTimestep - influence of single extra load only', () => {
         nextState.batteryEnergyAtEnd,
         'expected energy change = -2.1 kW * (10/60)h = -0.35 kWh'
       ).toBeCloseTo(19.65, 6);
+      expectStandardNextStateAttributesPresent(nextState);
     });
     it('batteryEnergyAtEnd cannot go below 0', () => {
       const testFixture = defaultSimpleTestSettingsForPartialStepFixture(
@@ -38,6 +40,7 @@ describe('simulateTimestep - influence of single extra load only', () => {
         nextState.batteryEnergyAtEnd,
         'batteryEnergyAtEnd capped at 0'
       ).toBeCloseTo(0, 6);
+      expectStandardNextStateAttributesPresent(nextState);
     });
   });
   describe('for partial current timestep, car is stopping in within timestep', () => {
@@ -56,6 +59,7 @@ describe('simulateTimestep - influence of single extra load only', () => {
         nextState.batteryEnergyAtEnd,
         'expected energy change = -2.1 kW * (6/60)h = -0.28 kWh'
       ).toBeCloseTo(19.72, 6);
+      expectStandardNextStateAttributesPresent(nextState);
     });
     it('batteryEnergyAtEnd cannot go below 0', () => {
       const testFixture = defaultSimpleTestSettingsForPartialStepFixture(
@@ -72,6 +76,7 @@ describe('simulateTimestep - influence of single extra load only', () => {
         nextState.batteryEnergyAtEnd,
         'batteryEnergyAtEnd capped at 0'
       ).toBeCloseTo(0, 6);
+      expectStandardNextStateAttributesPresent(nextState);
     });
   });
 
@@ -91,6 +96,7 @@ describe('simulateTimestep - influence of single extra load only', () => {
         nextState.batteryEnergyAtEnd,
         'expected energy change = -4 kW * 0.25 h = -1 kWh'
       ).toBeCloseTo(19, 6);
+      expectStandardNextStateAttributesPresent(nextState);
     });
     it('batteryEnergyAtEnd cannot go below 0', () => {
       const testFixture = defaultSimpleTestSettingsForFullStepFixture(
@@ -107,6 +113,7 @@ describe('simulateTimestep - influence of single extra load only', () => {
         nextState.batteryEnergyAtEnd,
         'batteryEnergyAtEnd capped at 0'
       ).toBeCloseTo(0, 6); // clamped to 0
+      expectStandardNextStateAttributesPresent(nextState);
     });
   });
 
@@ -126,6 +133,7 @@ describe('simulateTimestep - influence of single extra load only', () => {
         nextState.batteryEnergyAtEnd,
         'expected energy change = -3 kW * 5/60 h = -0.25 kWh'
       ).toBeCloseTo(19.75, 6);
+      expectStandardNextStateAttributesPresent(nextState);
     });
     it('batteryEnergyAtEnd cannot go below 0', () => {
       const testFixture = defaultSimpleTestSettingsForFullStepFixture(
@@ -142,6 +150,7 @@ describe('simulateTimestep - influence of single extra load only', () => {
         nextState.batteryEnergyAtEnd,
         'batteryEnergyAtEnd capped at 0'
       ).toBeCloseTo(0, 6); // clamped to 0
+      expectStandardNextStateAttributesPresent(nextState);
     });
   });
 });

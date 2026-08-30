@@ -1,3 +1,5 @@
+import { assert, expect } from 'vitest';
+
 export function defaultSimpleTestSettingsForPartialStepFixture(
   extraStateValues,
   extraTimestepValues
@@ -32,6 +34,11 @@ export function defaultSimpleTestSettingsForFullStepFixture(
     ),
     components: makeComponents({}),
   };
+}
+
+export function expectStandardNextStateAttributesPresent(timestep) {
+  // isFinite verifies, that the attribute is defined, a number and not Infinity or NaN
+  assert.isFinite(timestep.exportedEnergy);
 }
 
 export function makeTimestep(startISO, endISO, values = {}) {

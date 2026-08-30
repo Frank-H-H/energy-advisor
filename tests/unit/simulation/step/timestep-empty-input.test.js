@@ -3,6 +3,7 @@ import { simulateTimestep } from '../../../../src/simulation/timestep.js';
 import {
   defaultSimpleTestSettingsForPartialStepFixture,
   defaultSimpleTestSettingsForFullStepFixture,
+  expectStandardNextStateAttributesPresent,
 } from '../../../helpers/simulation.js';
 
 describe('simulateTimestep - no data at all', () => {
@@ -16,6 +17,7 @@ describe('simulateTimestep - no data at all', () => {
       const { nextState } = simulateTimestep(testFixture);
 
       expect(nextState.batteryEnergyAtEnd).toBeCloseTo(20, 6);
+      expectStandardNextStateAttributesPresent(nextState);
     });
   });
   describe('for full future frame', () => {
@@ -25,6 +27,7 @@ describe('simulateTimestep - no data at all', () => {
       const { nextState } = simulateTimestep(testFixture);
 
       expect(nextState.batteryEnergyAtEnd).toBeCloseTo(20, 6);
+      expectStandardNextStateAttributesPresent(nextState);
     });
   });
 });

@@ -3,6 +3,7 @@ import { simulateTimestep } from '../../../../src/simulation/timestep.js';
 import {
   defaultSimpleTestSettingsForPartialStepFixture,
   defaultSimpleTestSettingsForFullStepFixture,
+  expectStandardNextStateAttributesPresent,
 } from '../../../helpers/simulation.js';
 
 describe('simulateTimestep - influence of production only', () => {
@@ -21,6 +22,7 @@ describe('simulateTimestep - influence of production only', () => {
         nextState.batteryEnergyAtEnd,
         'expected energy change = 6 kW * (10/60)h = 1 kWh'
       ).toBeCloseTo(21, 6);
+      expectStandardNextStateAttributesPresent(nextState);
     });
     it('batteryEnergyAtEnd cannot exceed capacity (charge capped at capacity)', () => {
       const testFixture = defaultSimpleTestSettingsForPartialStepFixture(
@@ -38,6 +40,7 @@ describe('simulateTimestep - influence of production only', () => {
         nextState.batteryEnergyAtEnd,
         'batteryEnergyAtEnd capped at capacity: 6 kW * (10/60)h = 1 kWh (larger than missing 0.2)'
       ).toBeCloseTo(43, 6); // clamped to capacity
+      expectStandardNextStateAttributesPresent(nextState);
     });
   });
   describe('for full future frame', () => {
@@ -55,6 +58,7 @@ describe('simulateTimestep - influence of production only', () => {
         nextState.batteryEnergyAtEnd,
         'expected energy change = 4 kW * (15/60)h = 1 kWh'
       ).toBeCloseTo(21, 6);
+      expectStandardNextStateAttributesPresent(nextState);
     });
     it('batteryEnergyAtEnd cannot exceed capacity (charge capped at capacity)', () => {
       const testFixture = defaultSimpleTestSettingsForFullStepFixture(
@@ -70,6 +74,7 @@ describe('simulateTimestep - influence of production only', () => {
         nextState.batteryEnergyAtEnd,
         'batteryEnergyAtEnd capped at capacity: 6 kW * (15/60)h = 1 kWh (larger than missing 0.2)'
       ).toBeCloseTo(43, 6); // clamped to capacity
+      expectStandardNextStateAttributesPresent(nextState);
     });
   });
 });
