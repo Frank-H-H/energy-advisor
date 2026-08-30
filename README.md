@@ -10,8 +10,8 @@ Migration tasks:
 - [x] Add configuration nodes for battery, grid, whole system
 - [x] Add logic for single time step computation
 - [x] Add tests for single time step computation
-- [ ] Add logic for iterating through the timesteps
-- [ ] Add tests for iterating
+- [x] Add logic for iterating through the timesteps
+- [x] Add tests for iterating
 - [ ] Add logic for advisory (currently called countermeasures)
 - [ ] Add tests for advisory (currently called countermeasures)
 - [ ] Have the algorithms use the config objects for battery, grid, etc.

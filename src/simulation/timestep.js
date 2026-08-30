@@ -1,10 +1,10 @@
 import { Battery } from '../components/battery.js';
 import { PowerBalance } from '../components/power-balance.js';
 import { SimulationStepResult } from '../components/simulation-step-result.js';
+import { Timestep } from '../components/timestep.js';
 import {
   addMinutes,
   differenceInMinutes,
-  interval,
   isAfter,
   isBefore,
   isWithinInterval,
@@ -78,9 +78,7 @@ export function simulateTimestep({ state = {}, timestep, components = {} }) {
   if (timestepPartsToSimulate.length >= 1) {
     const result = timestepPartsToSimulate
       .map((part) => SimulationStepResult.fromTimestep(part))
-      .reduce(
-        (combined, part) => SimulationStepResult.combine(combined, part)
-      );
+      .reduce((combined, part) => SimulationStepResult.combine(combined, part));
     result.applyTo(timestep);
   } else {
     new SimulationStepResult({
@@ -123,10 +121,9 @@ export function simulateTimestep({ state = {}, timestep, components = {} }) {
     for (let index = 1; index < timePointsInThisFrame.length; index++) {
       const currentEnd = timePointsInThisFrame[index];
       if (!isBefore(timeToStart, currentStart)) {
-        timestepPartsToSimulate.push({
-          ...timestep,
-          ...interval(currentStart, currentEnd),
-        });
+        timestepPartsToSimulate.push(
+          Timestep.from(timestep).between(currentStart, currentEnd)
+        );
       }
       currentStart = currentEnd;
     }
@@ -228,14 +225,8 @@ export function simulateTimestep({ state = {}, timestep, components = {} }) {
       );
       timestep.timePointWhenFull = timePointWhenFull;
 
-      const firstTimestep = {
-        ...timestep,
-        ...interval(timestep.start, timePointWhenFull),
-      };
-      const secondTimestep = {
-        ...timestep,
-        ...interval(timePointWhenFull, timestep.end),
-      };
+      const [firstTimestep, secondTimestep] =
+        Timestep.from(timestep).splitAt(timePointWhenFull);
       firstTimestep.batteryEnergyAtStart = timestep.batteryEnergyAtStart;
       internalSimulateTimestep(firstTimestep, false);
       secondTimestep.batteryEnergyAtStart = firstTimestep.batteryEnergyAtEnd;
@@ -267,14 +258,8 @@ export function simulateTimestep({ state = {}, timestep, components = {} }) {
       );
       timestep.timePointWhenEmpty = timePointWhenEmpty;
 
-      const firstTimestep = {
-        ...timestep,
-        ...interval(timestep.start, timePointWhenEmpty),
-      };
-      const secondTimestep = {
-        ...timestep,
-        ...interval(timePointWhenEmpty, timestep.end),
-      };
+      const [firstTimestep, secondTimestep] =
+        Timestep.from(timestep).splitAt(timePointWhenEmpty);
       firstTimestep.batteryEnergyAtStart = timestep.batteryEnergyAtStart;
       internalSimulateTimestep(firstTimestep, false);
       secondTimestep.batteryEnergyAtStart = firstTimestep.batteryEnergyAtEnd;
