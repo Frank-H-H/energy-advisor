@@ -2,6 +2,23 @@
 
 Current state: Still in the process of migrating my implementation based on multiple node-red subflows into a set of more generalized node implementations.
 
+Migration tasks:
+ - [x] Setup repository
+ - [x] Add node for forecast
+ - [x] Add node for advisories
+ - [x] Add configuration nodes for battery, grid, whole system
+ - [x] Add logic for single time step computation
+ - [ ] Add tests for single time step computation
+ - [ ] Add logic for iterating through the timesteps
+ - [ ] Add tests for iterating
+ - [ ] Add logic for advisory (currently called countermeasures)
+ - [ ] Add tests for advisory (currently called countermeasures)
+ - [ ] Have the algorithms use the config objects for battery, grid, etc.
+ - [ ] Refactor! Introduce (or use existing) data objects like "Battery.charge(2)"
+ - [ ] Change advisory algorithm to support different advisory strategies
+ - [ ] Add examples to documentation
+ - [ ] Introduce helper nodes (maybe as a separate repository / module?) to prepare a time series
+
 [![CI](https://github.com/Frank-H-H/energy-advisor/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Frank-H-H/energy-advisor/actions/workflows/ci.yml)
 [![Codecov](https://img.shields.io/codecov/c/github/Frank-H-H/energy-advisor/main.svg)](https://codecov.io/gh/Frank-H-H/energy-advisor)
 [![npm version](https://img.shields.io/npm/v/energy-advisor.svg)](https://www.npmjs.com/package/energy-advisor)
@@ -256,6 +273,8 @@ apex_config:
 ## Features
 
 - Forecast engine to compute interval-based forecasts (based on consumption, PV, prices).
+  - Iterates through all provided timesteps. You can choose the accurracy (tested with 15 minutes)
+  - Dynamically splitting timesteps (when battery gets full during a timestep, we can't just handle this as a single step)
 - Advisor engine to propose actions (battery charge/discharge, grid import/export) to reduce cost or maximize revenue.
 - Node-RED nodes for easy integration into flows:
   - `energy-forecast` - run forecast engine
