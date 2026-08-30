@@ -1,4 +1,5 @@
 import { Battery } from '../components/battery.js';
+import { PowerBalance } from '../components/power-balance.js';
 import {
   addMinutes,
   differenceInMinutes,
@@ -323,20 +324,7 @@ export function simulateTimestep({ state = {}, timestep, components = {} }) {
   }
 
   function getPowerBalance(timestep) {
-    var powerBalance =
-      timestep.expectedProductionPower -
-      timestep.expectedConsumptionPower +
-      timestep.gridTarget;
-    if (typeof timestep.prematureExportPower !== 'undefined') {
-      powerBalance -= timestep.prematureExportPower;
-    }
-    if (
-      timestep.extraConsumptionPower &&
-      isBefore(timestep.start, timestep.extraConsumptionEndsAt)
-    ) {
-      powerBalance -= timestep.extraConsumptionPower;
-    }
-    return powerBalance;
+    return PowerBalance.fromTimestep(timestep).powerKw;
   }
 
   function getConstrainedPowerBalance(powerBalance) {
