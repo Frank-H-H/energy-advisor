@@ -1,46 +1,45 @@
 /**
- * A concrete action proposed by the advisor. Actions describe what an
- * external executor may do; they never execute the change themselves.
+ * An action in an advisor Plan. Actions are descriptions for an external
+ * executor; the advisor never executes them.
+ *
+ * Currently the only supported action type is `set-grid-target`.
  */
 export class Action {
   constructor({
-    timestamp,
-    durationMs,
-    component,
     type,
-    energyKwh,
-    powerKw,
+    start,
+    end,
+    gridTargetPowerKw,
     reason,
     expectedBenefit,
-    priority = 0,
     confidence = 0,
-    resource,
-    exclusive = true,
   }) {
-    if (!timestamp) throw new Error('Action.timestamp is required')
-    if (!component) throw new Error('Action.component is required')
-    if (!type) throw new Error('Action.type is required')
-    if (!Number.isFinite(durationMs) || durationMs <= 0) {
-      throw new Error('Action.durationMs must be a positive finite number')
+    if (type !== 'set-grid-target') {
+      throw new Error('Action.type must be set-grid-target');
     }
-    if (energyKwh !== undefined && (!Number.isFinite(energyKwh) || energyKwh < 0)) {
-      throw new Error('Action.energyKwh must be a non-negative finite number')
+    if (!start) throw new Error('Action.start is required');
+    if (!end) throw new Error('Action.end is required');
+
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+    if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
+      throw new Error('Action.start and Action.end must be valid dates');
     }
-    if (powerKw !== undefined && (!Number.isFinite(powerKw) || powerKw < 0)) {
-      throw new Error('Action.powerKw must be a non-negative finite number')
+    if (startDate >= endDate)
+      throw new Error('Action.start must be before Action.end');
+    if (!Number.isFinite(gridTargetPowerKw)) {
+      throw new Error('Action.gridTargetPowerKw must be a finite number');
+    }
+    if (!Number.isFinite(confidence) || confidence < 0 || confidence > 1) {
+      throw new Error('Action.confidence must be between 0 and 1');
     }
 
-    this.timestamp = timestamp
-    this.durationMs = durationMs
-    this.component = component
-    this.type = type
-    if (energyKwh !== undefined) this.energyKwh = energyKwh
-    if (powerKw !== undefined) this.powerKw = powerKw
-    if (reason !== undefined) this.reason = reason
-    if (expectedBenefit !== undefined) this.expectedBenefit = expectedBenefit
-    this.priority = priority
-    this.confidence = confidence
-    this.resource = resource ?? component
-    this.exclusive = exclusive
+    this.type = type;
+    this.start = startDate;
+    this.end = endDate;
+    this.gridTargetPowerKw = gridTargetPowerKw;
+    if (reason !== undefined) this.reason = reason;
+    if (expectedBenefit !== undefined) this.expectedBenefit = expectedBenefit;
+    this.confidence = confidence;
   }
 }

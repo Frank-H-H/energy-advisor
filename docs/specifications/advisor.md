@@ -9,30 +9,40 @@ Purpose: analyze a simulation TimeSeries and produce a Plan containing actionabl
 - Each Strategy analyzes the same TimeSeries independently and creates a strategy plan containing ActionProposals.
 - The Advisor combines all strategy plans into one Plan and resolves conflicts between proposals.
 - The Advisor does not execute actions and does not modify the TimeSeries.
-- Device control (for example changing a grid target, curtailing PV, charging/discharging a battery, or switching a device) happens outside this repository.
+- Device control happens outside this repository.
+
+## TimeSeries
+
+A Strategy consumes the TimeSeries produced by the simulation. A timestep is identified by its `start` and `end` timestamps. Strategies must not mutate the TimeSeries.
+
+Power values use `kW` in property names and energy values use `kWh` where the unit is part of the domain property name. The canonical grid target is `gridTargetPowerKw`: negative means export, zero means neither import nor export, and positive means import.
+
+## Strategy
+
+A Strategy analyzes a TimeSeries and creates a strategy plan. A Strategy does not execute Actions and does not modify the TimeSeries.
 
 ## Action
 
-An Action is an instruction for an external executor. It uses explicit units where applicable:
+An Action is an instruction for an external executor. The currently supported Action type is `set-grid-target`.
 
-- `timestamp` (ISO timestamp)
-- `durationMs` (milliseconds)
-- `component` (string)
-- `type` (string)
-- `energyKwh` (kWh, optional)
-- `powerKw` (kW, optional)
-- `reason` (machine-readable identifier)
-- `expectedBenefit` (object, optional)
-- `priority` (number)
+It contains:
+
+- `type` (`set-grid-target`)
+- `start` (ISO-compatible timestamp)
+- `end` (ISO-compatible timestamp)
+- `gridTargetPowerKw` (kW; negative = export, positive = import)
+- `reason` (optional machine-readable identifier)
+- `expectedBenefit` (optional object)
 - `confidence` (0..1)
 
-Actions may declare a `resource`. Exclusive actions on the same resource must not overlap.
+The Action is only a description. It is not executed by the Advisor.
 
 ## ActionProposal
 
 A Strategy does not directly decide the final Plan. It creates `ActionProposal` objects containing:
 
 - `strategyId`
+- `priority` (number; higher priority wins conflicts)
 - `action`
 
 The Advisor may accept or reject a proposal when consolidating plans.

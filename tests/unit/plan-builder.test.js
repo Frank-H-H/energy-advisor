@@ -1,63 +1,87 @@
-import { describe, expect, it } from 'vitest'
-import { Action } from '../../src/advisor/action.js'
-import { ActionProposal } from '../../src/advisor/action-proposal.js'
-import { PlanBuilder } from '../../src/advisor/plan-builder.js'
+import { describe, expect, it } from 'vitest';
+import { Action } from '../../src/advisor/action.js';
+import { ActionProposal } from '../../src/advisor/action-proposal.js';
+import { PlanBuilder } from '../../src/advisor/plan-builder.js';
 
-function proposal(strategyId, type, priority = 50) {
+function proposal(strategyId, start, end, gridTargetPowerKw, priority = 50) {
   return new ActionProposal({
     strategyId,
+    priority,
     action: new Action({
-      timestamp: '2026-01-01T00:00:00.000Z',
-      durationMs: 15 * 60 * 1000,
-      component: 'battery',
-      type,
-      energyKwh: 1,
-      priority,
+      type: 'set-grid-target',
+      start,
+      end,
+      gridTargetPowerKw,
       confidence: 1,
-      resource: 'battery',
-      exclusive: true,
     }),
-  })
+  });
 }
 
 describe('PlanBuilder', () => {
   it('combines actions from multiple strategies', () => {
     const result = new PlanBuilder().build([
-      { strategyId: 'buy-cheap', proposals: [proposal('buy-cheap', 'charge-battery')] },
-      { strategyId: 'sell-expensive', proposals: [
-        new ActionProposal({
-          strategyId: 'sell-expensive',
-          action: new Action({
-            timestamp: '2026-01-01T01:00:00.000Z',
-            durationMs: 15 * 60 * 1000,
-            component: 'battery',
-            type: 'discharge-battery',
-            energyKwh: 1,
-            priority: 50,
-            confidence: 1,
-            resource: 'battery',
-            exclusive: true,
-          }),
-        }),
-      ] },
-    ])
+      {
+        strategyId: 'buy-cheap',
+        proposals: [
+          proposal(
+            'buy-cheap',
+            '2026-01-01T00:00:00Z',
+            '2026-01-01T00:15:00Z',
+            5
+          ),
+        ],
+      },
+      {
+        strategyId: 'sell-expensive',
+        proposals: [
+          proposal(
+            'sell-expensive',
+            '2026-01-01T01:00:00Z',
+            '2026-01-01T01:15:00Z',
+            -5
+          ),
+        ],
+      },
+    ]);
 
-    expect(result.actions.map((action) => action.type)).toEqual([
-      'charge-battery',
-      'discharge-battery',
-    ])
-  })
+    expect(result.actions).toHaveLength(2);
+    expect(result.actions.map((action) => action.gridTargetPowerKw)).toEqual([
+      5, -5,
+    ]);
+  });
 
-  it('rejects a lower-priority action that conflicts for an exclusive resource', () => {
+  it('rejects a lower-priority overlapping action', () => {
     const result = new PlanBuilder().build([
-      { strategyId: 'low', proposals: [proposal('low', 'charge-battery', 10)] },
-      { strategyId: 'high', proposals: [proposal('high', 'discharge-battery', 90)] },
-    ])
+      {
+        strategyId: 'low',
+        proposals: [
+          proposal(
+            'low',
+            '2026-01-01T00:00:00Z',
+            '2026-01-01T00:15:00Z',
+            5,
+            10
+          ),
+        ],
+      },
+      {
+        strategyId: 'high',
+        proposals: [
+          proposal(
+            'high',
+            '2026-01-01T00:05:00Z',
+            '2026-01-01T00:20:00Z',
+            -5,
+            90
+          ),
+        ],
+      },
+    ]);
 
-    expect(result.actions).toHaveLength(1)
-    expect(result.actions[0].type).toBe('discharge-battery')
-    expect(result.rejectedProposals).toHaveLength(1)
-    expect(result.rejectedProposals[0].reason).toBe('RESOURCE_CONFLICT')
-    expect(result.rejectedProposals[0].proposal.strategyId).toBe('low')
-  })
-})
+    expect(result.actions).toHaveLength(1);
+    expect(result.actions[0].gridTargetPowerKw).toBe(-5);
+    expect(result.rejectedProposals).toHaveLength(1);
+    expect(result.rejectedProposals[0].reason).toBe('ACTION_CONFLICT');
+    expect(result.rejectedProposals[0].proposal.strategyId).toBe('low');
+  });
+});
