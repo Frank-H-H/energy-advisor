@@ -51,23 +51,23 @@ export class PrematureExportStrategy extends Strategy {
       const values = timestep.values ?? {};
       const importPricePerKwh = Number(
         values.importPricePerKwh ??
-          values.importPrice ??
+          values.importPricePerKwh ??
           timestep.importPricePerKwh ??
-          timestep.importPrice ??
+          timestep.importPricePerKwh ??
           0
       );
       const gridTargetPowerKw = Number(
         values.gridTargetPowerKw ??
           timestep.gridTargetPowerKw ??
-          values.gridTarget ??
-          timestep.gridTarget ??
+          values.gridTargetPowerKw ??
+          timestep.gridTargetPowerKw ??
           0
       );
       const exportedEnergyKwh = Number(
         values.exportedEnergyKwh ??
           values.grid_export_kwh ??
           timestep.exportedEnergyKwh ??
-          timestep.exportedEnergy ??
+          timestep.exportedEnergyKwh ??
           0
       );
 

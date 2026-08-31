@@ -36,7 +36,7 @@ describe('energy-advisor Node-RED adapter', () => {
           start: '2026-01-01T00:00:00Z',
           end: '2026-01-01T00:15:00Z',
           values: {
-            importPrice: 0.2,
+            importPricePerKwh: 0.2,
             grid_export_kwh: 0,
             gridTargetPowerKw: 0,
           },
@@ -45,7 +45,7 @@ describe('energy-advisor Node-RED adapter', () => {
           start: '2026-01-01T00:15:00Z',
           end: '2026-01-01T00:30:00Z',
           values: {
-            importPrice: -0.1,
+            importPricePerKwh: -0.1,
             grid_export_kwh: 2,
             gridTargetPowerKw: -1,
           },

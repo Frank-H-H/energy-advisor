@@ -7,38 +7,38 @@ import {
   expectStandardNextStateAttributesPresent,
 } from '../../../helpers/simulation.js';
 
-describe('simulateTimestep takes additionalExport as countermeasure into account', () => {
+describe('simulateTimestep takes additionalExport as action into account', () => {
   describe('for partial current frame', () => {
-    it('batteryEnergyAtEnd changes', () => {
+    it('batteryEnergyAtEndKwh changes', () => {
       const testFixture = defaultSimpleTestSettingsForPartialStepFixture(
         {},
         {
-          prematureExportPower: 6,
+          prematureExportPowerKw: 6,
         }
       );
 
       const { nextState } = simulateTimestep(testFixture);
 
       expect(
-        nextState.batteryEnergyAtEnd,
+        nextState.batteryEnergyAtEndKwh,
         'expected energy change = 6 kW * (10/60)h = -1 kWh'
       ).toBeCloseTo(19, 6);
       expectStandardNextStateAttributesPresent(nextState);
     });
   });
   describe('for full future frame', () => {
-    it('batteryEnergyAtEnd changes', () => {
+    it('batteryEnergyAtEndKwh changes', () => {
       const testFixture = defaultSimpleTestSettingsForFullStepFixture(
         {},
         {
-          prematureExportPower: 6,
+          prematureExportPowerKw: 6,
         }
       );
 
       const { nextState } = simulateTimestep(testFixture);
 
       expect(
-        nextState.batteryEnergyAtEnd,
+        nextState.batteryEnergyAtEndKwh,
         'expected energy change = 6 kW * (15/60)h = 1.5 kWh'
       ).toBeCloseTo(18.5, 6);
       expectStandardNextStateAttributesPresent(nextState);

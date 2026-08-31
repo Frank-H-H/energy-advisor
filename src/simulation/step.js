@@ -7,7 +7,7 @@
  * - inputs are power values (kW) and converted to energy (kWh) using interval duration
  * - respects battery power limits and SOC bounds
  * - splits the interval into sub-parts when the battery fills or empties during the interval
- * - computes exportedEnergy, importedEnergy, missedProduction, extraConsumedEnergy and resulting SOC
+ * - computes exportedEnergyKwh, importedEnergyKwh, missedProductionEnergyKwh, extraConsumedEnergyKwh and resulting SOC
  *
  * Signature:
  *   simulateTimestep({ state, interval, components, options })
@@ -22,23 +22,23 @@ export function simulateTimestep({ state = {}, interval, components = {} }) {
 
   // normalize inputs
   const vals = interval.values || {};
-  const expectedProductionPower = Number(
-    vals.expectedProductionPower ?? vals.expectedProduction ?? 0
+  const expectedProductionPowerKw = Number(
+    vals.expectedProductionPowerKw ?? 0
   );
-  const expectedConsumptionPower = Number(
-    vals.expectedConsumptionPower ?? vals.expectedConsumption ?? 0
+  const expectedConsumptionPowerKw = Number(
+    vals.expectedConsumptionPowerKw ?? 0
   );
-  const targetGridPoint = Number(vals.targetGridPoint ?? vals.targetGrid ?? 0);
-  const prematureExportPower = Number(vals.prematureExportPower ?? 0);
-  const extraConsumptionPower = Number(
-    vals.extraConsumptionPower ?? vals.extraConsumption ?? 0
+  const gridTargetPowerKw = Number(vals.gridTargetPowerKw ?? 0);
+  const prematureExportPowerKw = Number(vals.prematureExportPowerKw ?? 0);
+  const extraConsumptionPowerKw = Number(
+    vals.extraConsumptionPowerKw ?? vals.extraConsumption ?? 0
   );
   const extraConsumptionEndsAt = vals.extraConsumptionEndsAt
     ? new Date(vals.extraConsumptionEndsAt)
     : undefined;
 
-  const importPrice = vals.importPrice ?? null;
-  const exportPrice = vals.exportPrice ?? null;
+  const importPricePerKwh = vals.importPricePerKwh ?? null;
+  const exportPricePerKwh = vals.exportPricePerKwh ?? null;
 
   const batterySpec = components.battery || {};
   const gridSpec = components.grid || {};
@@ -53,7 +53,7 @@ export function simulateTimestep({ state = {}, interval, components = {} }) {
 
   let socStart = Number(
     state.battery_soc_kwh ??
-      state.batteryChargeAtStart ??
+      state.batteryEnergyAtStartKwh ??
       batterySpec.soc_kwh ??
       0
   );
@@ -63,17 +63,17 @@ export function simulateTimestep({ state = {}, interval, components = {} }) {
 
   function getPowerBalance(iv) {
     let powerBalance =
-      expectedProductionPower - expectedConsumptionPower + targetGridPoint;
-    if (prematureExportPower) powerBalance -= prematureExportPower;
+      expectedProductionPowerKw - expectedConsumptionPowerKw + gridTargetPowerKw;
+    if (prematureExportPowerKw) powerBalance -= prematureExportPowerKw;
     if (
-      extraConsumptionPower &&
+      extraConsumptionPowerKw &&
       extraConsumptionEndsAt &&
       new Date(iv.start) < extraConsumptionEndsAt
     ) {
-      powerBalance -= extraConsumptionPower;
-    } else if (extraConsumptionPower && !extraConsumptionEndsAt) {
+      powerBalance -= extraConsumptionPowerKw;
+    } else if (extraConsumptionPowerKw && !extraConsumptionEndsAt) {
       // no end specified -> assume it applies
-      powerBalance -= extraConsumptionPower;
+      powerBalance -= extraConsumptionPowerKw;
     }
     return powerBalance;
   }
@@ -90,19 +90,19 @@ export function simulateTimestep({ state = {}, interval, components = {} }) {
   }
 
   function getExtraConsumedEnergyForInterval(iv) {
-    if (!extraConsumptionPower || extraConsumptionPower === 0) return 0;
+    if (!extraConsumptionPowerKw || extraConsumptionPowerKw === 0) return 0;
     const ivStart = new Date(iv.start).getTime();
     const ivEnd = new Date(iv.end).getTime();
     if (!extraConsumptionEndsAt)
-      return (extraConsumptionPower * (ivEnd - ivStart)) / 3600000;
+      return (extraConsumptionPowerKw * (ivEnd - ivStart)) / 3600000;
     const extraEnd = extraConsumptionEndsAt.getTime();
     if (extraEnd <= ivStart) return 0;
     const effectiveEnd = Math.min(ivEnd, extraEnd);
-    return (extraConsumptionPower * (effectiveEnd - ivStart)) / 3600000;
+    return (extraConsumptionPowerKw * (effectiveEnd - ivStart)) / 3600000;
   }
 
   // recursive simulation of potentially-split interval
-  function simulateInterval(iv, batteryChargeAtStart, continueDeeper = true) {
+  function simulateInterval(iv, batteryEnergyAtStartKwh, continueDeeper = true) {
     const ivStart = new Date(iv.start);
     const ivEnd = new Date(iv.end);
     const ivDurationH = toHours(ivEnd.getTime() - ivStart.getTime());
@@ -112,37 +112,37 @@ export function simulateTimestep({ state = {}, interval, components = {} }) {
       unconstrainedPowerBalance
     );
 
-    // initial missedProduction estimate (will be overwritten later based on limitedBatteryChargePower)
-    let missedProduction =
+    // initial missedProductionEnergyKwh estimate (will be overwritten later based on limitedBatteryChargePower)
+    let missedProductionEnergyKwh =
       Math.min(
-        expectedProductionPower,
+        expectedProductionPowerKw,
         Math.max(0, unconstrainedPowerBalance - constrainedPowerBalance)
       ) * ivDurationH;
 
     const extraConsumed = getExtraConsumedEnergyForInterval(iv);
 
     // quick full/empty short-circuits
-    if (unconstrainedPowerBalance > 0 && batteryChargeAtStart >= CAPACITY) {
+    if (unconstrainedPowerBalance > 0 && batteryEnergyAtStartKwh >= CAPACITY) {
       // charging but battery already full
-      const exportedEnergy = constrainedPowerBalance * ivDurationH;
+      const exportedEnergyKwh = constrainedPowerBalance * ivDurationH;
       return {
-        batteryChargeAtEnd: CAPACITY,
-        exportedEnergy,
-        importedEnergy: 0,
-        missedProduction,
-        extraConsumedEnergy: extraConsumed,
+        batteryEnergyAtEndKwh: CAPACITY,
+        exportedEnergyKwh,
+        importedEnergyKwh: 0,
+        missedProductionEnergyKwh,
+        extraConsumedEnergyKwh: extraConsumed,
       };
     }
 
-    if (unconstrainedPowerBalance < 0 && batteryChargeAtStart <= MIN_SOC) {
+    if (unconstrainedPowerBalance < 0 && batteryEnergyAtStartKwh <= MIN_SOC) {
       // discharging but battery empty (or <= min)
-      const importedEnergy = -unconstrainedPowerBalance * ivDurationH;
+      const importedEnergyKwh = -unconstrainedPowerBalance * ivDurationH;
       return {
-        batteryChargeAtEnd: MIN_SOC,
-        exportedEnergy: 0,
-        importedEnergy,
-        missedProduction: 0,
-        extraConsumedEnergy: extraConsumed,
+        batteryEnergyAtEndKwh: MIN_SOC,
+        exportedEnergyKwh: 0,
+        importedEnergyKwh,
+        missedProductionEnergyKwh: 0,
+        extraConsumedEnergyKwh: extraConsumed,
       };
     }
 
@@ -151,10 +151,10 @@ export function simulateTimestep({ state = {}, interval, components = {} }) {
       unconstrainedPowerBalance
     );
 
-    // recompute missedProduction considering battery taking limitedBatteryChargePower
-    missedProduction =
+    // recompute missedProductionEnergyKwh considering battery taking limitedBatteryChargePower
+    missedProductionEnergyKwh =
       Math.min(
-        expectedProductionPower,
+        expectedProductionPowerKw,
         Math.max(
           0,
           unconstrainedPowerBalance -
@@ -166,41 +166,41 @@ export function simulateTimestep({ state = {}, interval, components = {} }) {
     if (limitedBatteryChargePower === 0) {
       // battery does not change
       return {
-        batteryChargeAtEnd: batteryChargeAtStart,
-        exportedEnergy: 0,
-        importedEnergy: 0,
-        missedProduction,
-        extraConsumedEnergy: extraConsumed,
+        batteryEnergyAtEndKwh: batteryEnergyAtStartKwh,
+        exportedEnergyKwh: 0,
+        importedEnergyKwh: 0,
+        missedProductionEnergyKwh,
+        extraConsumedEnergyKwh: extraConsumed,
       };
     }
 
     // energy change if battery charged/discharged at limited power for full iv
     const realBatteryEnergyChange = limitedBatteryChargePower * ivDurationH;
     const unconstrainedBatteryChargeAtEnd =
-      batteryChargeAtStart + realBatteryEnergyChange;
+      batteryEnergyAtStartKwh + realBatteryEnergyChange;
 
     // battery would fill during interval
     if (unconstrainedBatteryChargeAtEnd >= CAPACITY) {
       if (!continueDeeper) {
         // approximate: clamp and attribute remainder to export
-        let exportedEnergy = 0;
-        if (batteryChargeAtStart < CAPACITY) {
-          exportedEnergy =
+        let exportedEnergyKwh = 0;
+        if (batteryEnergyAtStartKwh < CAPACITY) {
+          exportedEnergyKwh =
             Math.max(0, unconstrainedPowerBalance - limitedBatteryChargePower) *
             ivDurationH;
         } else {
-          exportedEnergy = constrainedPowerBalance * ivDurationH;
+          exportedEnergyKwh = constrainedPowerBalance * ivDurationH;
         }
         return {
-          batteryChargeAtEnd: CAPACITY,
-          exportedEnergy,
-          importedEnergy: 0,
-          missedProduction,
-          extraConsumedEnergy: extraConsumed,
+          batteryEnergyAtEndKwh: CAPACITY,
+          exportedEnergyKwh,
+          importedEnergyKwh: 0,
+          missedProductionEnergyKwh,
+          extraConsumedEnergyKwh: extraConsumed,
         };
       }
 
-      const missingChargeOnStart = CAPACITY - batteryChargeAtStart;
+      const missingChargeOnStart = CAPACITY - batteryEnergyAtStartKwh;
       // time (hours) until full at limitedBatteryChargePower kW => hoursToFull = missingChargeOnStart / limitedBatteryChargePower
       const hoursToFull = missingChargeOnStart / limitedBatteryChargePower;
       const msToFull = hoursToFull * 3600000;
@@ -210,81 +210,81 @@ export function simulateTimestep({ state = {}, interval, components = {} }) {
       const firstIv = { start: ivStart, end: timePointWhenFull };
       const secondIv = { start: timePointWhenFull, end: ivEnd };
 
-      const first = simulateInterval(firstIv, batteryChargeAtStart, false);
+      const first = simulateInterval(firstIv, batteryEnergyAtStartKwh, false);
       const second = simulateInterval(
         secondIv,
-        first.batteryChargeAtEnd,
+        first.batteryEnergyAtEndKwh,
         false
       );
 
       return {
-        batteryChargeAtEnd: second.batteryChargeAtEnd,
-        exportedEnergy: first.exportedEnergy + second.exportedEnergy,
-        importedEnergy: first.importedEnergy + second.importedEnergy,
-        missedProduction: first.missedProduction + second.missedProduction,
-        extraConsumedEnergy:
-          first.extraConsumedEnergy + second.extraConsumedEnergy,
+        batteryEnergyAtEndKwh: second.batteryEnergyAtEndKwh,
+        exportedEnergyKwh: first.exportedEnergyKwh + second.exportedEnergyKwh,
+        importedEnergyKwh: first.importedEnergyKwh + second.importedEnergyKwh,
+        missedProductionEnergyKwh: first.missedProductionEnergyKwh + second.missedProductionEnergyKwh,
+        extraConsumedEnergyKwh:
+          first.extraConsumedEnergyKwh + second.extraConsumedEnergyKwh,
       };
     }
 
     // battery would empty during the interval
     if (unconstrainedBatteryChargeAtEnd <= MIN_SOC) {
       if (!continueDeeper) {
-        let importedEnergy = 0;
-        if (batteryChargeAtStart > MIN_SOC) {
-          importedEnergy =
+        let importedEnergyKwh = 0;
+        if (batteryEnergyAtStartKwh > MIN_SOC) {
+          importedEnergyKwh =
             Math.max(0, unconstrainedPowerBalance - limitedBatteryChargePower) *
             ivDurationH;
         } else {
-          importedEnergy = 0 - unconstrainedBatteryChargeAtEnd;
+          importedEnergyKwh = 0 - unconstrainedBatteryChargeAtEnd;
         }
         return {
-          batteryChargeAtEnd: MIN_SOC,
-          exportedEnergy: 0,
-          importedEnergy,
-          missedProduction,
-          extraConsumedEnergy: extraConsumed,
+          batteryEnergyAtEndKwh: MIN_SOC,
+          exportedEnergyKwh: 0,
+          importedEnergyKwh,
+          missedProductionEnergyKwh,
+          extraConsumedEnergyKwh: extraConsumed,
         };
       }
 
       const hoursToEmpty =
-        (batteryChargeAtStart - MIN_SOC) / -limitedBatteryChargePower;
+        (batteryEnergyAtStartKwh - MIN_SOC) / -limitedBatteryChargePower;
       const msToEmpty = hoursToEmpty * 3600000;
       const timePointWhenEmpty = new Date(ivStart.getTime() + msToEmpty);
 
       const firstIv = { start: ivStart, end: timePointWhenEmpty };
       const secondIv = { start: timePointWhenEmpty, end: ivEnd };
 
-      const first = simulateInterval(firstIv, batteryChargeAtStart, false);
+      const first = simulateInterval(firstIv, batteryEnergyAtStartKwh, false);
       const second = simulateInterval(
         secondIv,
-        first.batteryChargeAtEnd,
+        first.batteryEnergyAtEndKwh,
         false
       );
 
       return {
-        batteryChargeAtEnd: second.batteryChargeAtEnd,
-        exportedEnergy: first.exportedEnergy + second.exportedEnergy,
-        importedEnergy: first.importedEnergy + second.importedEnergy,
-        missedProduction: first.missedProduction + second.missedProduction,
-        extraConsumedEnergy:
-          first.extraConsumedEnergy + second.extraConsumedEnergy,
+        batteryEnergyAtEndKwh: second.batteryEnergyAtEndKwh,
+        exportedEnergyKwh: first.exportedEnergyKwh + second.exportedEnergyKwh,
+        importedEnergyKwh: first.importedEnergyKwh + second.importedEnergyKwh,
+        missedProductionEnergyKwh: first.missedProductionEnergyKwh + second.missedProductionEnergyKwh,
+        extraConsumedEnergyKwh:
+          first.extraConsumedEnergyKwh + second.extraConsumedEnergyKwh,
       };
     }
 
     // battery stays within bounds for full interval
-    const batteryChargeAtEnd = unconstrainedBatteryChargeAtEnd;
+    const batteryEnergyAtEndKwh = unconstrainedBatteryChargeAtEnd;
 
-    // determine export/import resulting from targetGridPoint when battery handles charging/discharging
-    const exportedEnergy = Math.max(0, -targetGridPoint) * ivDurationH;
-    const importedEnergy = Math.max(0, targetGridPoint) * ivDurationH;
+    // determine export/import resulting from gridTargetPowerKw when battery handles charging/discharging
+    const exportedEnergyKwh = Math.max(0, -gridTargetPowerKw) * ivDurationH;
+    const importedEnergyKwh = Math.max(0, gridTargetPowerKw) * ivDurationH;
 
     return {
-      batteryChargeAtEnd,
-      exportedEnergy,
-      importedEnergy,
-      missedProduction,
-      extraConsumedEnergy: extraConsumed,
+      batteryEnergyAtEndKwh,
+      exportedEnergyKwh,
+      importedEnergyKwh,
+      missedProductionEnergyKwh,
+      extraConsumedEnergyKwh: extraConsumed,
     };
   }
 
@@ -301,30 +301,30 @@ export function simulateTimestep({ state = {}, interval, components = {} }) {
     end: interval.end,
     durationMs:
       new Date(interval.end).getTime() - new Date(interval.start).getTime(),
-    exportedEnergy: Number((result.exportedEnergy ?? 0).toFixed(12)),
-    importedEnergy: Number((result.importedEnergy ?? 0).toFixed(12)),
-    missedProduction: Number((result.missedProduction ?? 0).toFixed(12)),
-    extraConsumedEnergy: Number((result.extraConsumedEnergy ?? 0).toFixed(12)),
+    exportedEnergyKwh: Number((result.exportedEnergyKwh ?? 0).toFixed(12)),
+    importedEnergyKwh: Number((result.importedEnergyKwh ?? 0).toFixed(12)),
+    missedProductionEnergyKwh: Number((result.missedProductionEnergyKwh ?? 0).toFixed(12)),
+    extraConsumedEnergyKwh: Number((result.extraConsumedEnergyKwh ?? 0).toFixed(12)),
     battery_charge_kwh: Number(
-      result.batteryChargeAtEnd > socStart
-        ? (result.batteryChargeAtEnd - socStart).toFixed(12)
+      result.batteryEnergyAtEndKwh > socStart
+        ? (result.batteryEnergyAtEndKwh - socStart).toFixed(12)
         : 0
     ),
     battery_discharge_kwh: Number(
-      result.batteryChargeAtEnd < socStart
-        ? (socStart - result.batteryChargeAtEnd).toFixed(12)
+      result.batteryEnergyAtEndKwh < socStart
+        ? (socStart - result.batteryEnergyAtEndKwh).toFixed(12)
         : 0
     ),
     battery_soc_kwh: Number(
-      (result.batteryChargeAtEnd ?? socStart).toFixed(12)
+      (result.batteryEnergyAtEndKwh ?? socStart).toFixed(12)
     ),
-    importPrice,
-    exportPrice,
+    importPricePerKwh,
+    exportPricePerKwh,
     cost: Number(
-      ((result.importedEnergy ?? 0) * (importPrice ?? 0)).toFixed(12)
+      ((result.importedEnergyKwh ?? 0) * (importPricePerKwh ?? 0)).toFixed(12)
     ),
     revenue: Number(
-      ((result.exportedEnergy ?? 0) * (exportPrice ?? 0)).toFixed(12)
+      ((result.exportedEnergyKwh ?? 0) * (exportPricePerKwh ?? 0)).toFixed(12)
     ),
   };
 

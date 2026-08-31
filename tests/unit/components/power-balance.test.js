@@ -8,9 +8,9 @@ describe('PowerBalance domain model', () => {
 
   it('calculates production minus consumption plus grid target', () => {
     const balance = PowerBalance.fromTimestep({
-      expectedProductionPower: 8,
-      expectedConsumptionPower: 3,
-      gridTarget: -1,
+      expectedProductionPowerKw: 8,
+      expectedConsumptionPowerKw: 3,
+      gridTargetPowerKw: -1,
       start,
       end,
     })
@@ -20,10 +20,10 @@ describe('PowerBalance domain model', () => {
 
   it('subtracts premature export power', () => {
     const balance = PowerBalance.fromTimestep({
-      expectedProductionPower: 8,
-      expectedConsumptionPower: 3,
-      gridTarget: 0,
-      prematureExportPower: 2,
+      expectedProductionPowerKw: 8,
+      expectedConsumptionPowerKw: 3,
+      gridTargetPowerKw: 0,
+      prematureExportPowerKw: 2,
       start,
       end,
     })
@@ -33,10 +33,10 @@ describe('PowerBalance domain model', () => {
 
   it('subtracts extra consumption while it is active', () => {
     const balance = PowerBalance.fromTimestep({
-      expectedProductionPower: 8,
-      expectedConsumptionPower: 3,
-      gridTarget: 0,
-      extraConsumptionPower: 2,
+      expectedProductionPowerKw: 8,
+      expectedConsumptionPowerKw: 3,
+      gridTargetPowerKw: 0,
+      extraConsumptionPowerKw: 2,
       extraConsumptionEndsAt: beforeEnd,
       start,
       end,
@@ -47,10 +47,10 @@ describe('PowerBalance domain model', () => {
 
   it('does not subtract extra consumption after it has ended', () => {
     const balance = PowerBalance.fromTimestep({
-      expectedProductionPower: 8,
-      expectedConsumptionPower: 3,
-      gridTarget: 0,
-      extraConsumptionPower: 2,
+      expectedProductionPowerKw: 8,
+      expectedConsumptionPowerKw: 3,
+      gridTargetPowerKw: 0,
+      extraConsumptionPowerKw: 2,
       extraConsumptionEndsAt: start,
       start,
       end,
@@ -61,9 +61,9 @@ describe('PowerBalance domain model', () => {
 
   it('returns a negative balance when consumption exceeds supply', () => {
     const balance = PowerBalance.fromTimestep({
-      expectedProductionPower: 2,
-      expectedConsumptionPower: 7,
-      gridTarget: 0,
+      expectedProductionPowerKw: 2,
+      expectedConsumptionPowerKw: 7,
+      gridTargetPowerKw: 0,
       start,
       end,
     })
@@ -73,9 +73,9 @@ describe('PowerBalance domain model', () => {
 
   it('does not alter the timestep', () => {
     const timestep = {
-      expectedProductionPower: 8,
-      expectedConsumptionPower: 3,
-      gridTarget: 1,
+      expectedProductionPowerKw: 8,
+      expectedConsumptionPowerKw: 3,
+      gridTargetPowerKw: 1,
       start,
       end,
     }

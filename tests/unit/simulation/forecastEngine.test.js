@@ -71,8 +71,8 @@ describe('ForecastEngine', () => {
           values: {
             consumption_kwh: 3,
             pv_kwh: 0,
-            importPrice: 0.3,
-            exportPrice: 0.1,
+            importPricePerKwh: 0.3,
+            exportPricePerKwh: 0.1,
           },
         },
       ],

@@ -6,106 +6,106 @@ import {
   expectStandardNextStateAttributesPresent,
 } from '../../../helpers/simulation.js';
 
-describe('simulateTimestep - influence of gridTarget only', () => {
+describe('simulateTimestep - influence of gridTargetPowerKw only', () => {
   describe('for partial current frame', () => {
-    it('batteryEnergyAtEnd changes', () => {
+    it('batteryEnergyAtEndKwh changes', () => {
       const testFixture = defaultSimpleTestSettingsForPartialStepFixture(
         {},
         {
-          gridTarget: 0.6,
+          gridTargetPowerKw: 0.6,
         }
       );
 
       const { nextState } = simulateTimestep(testFixture);
 
       expect(
-        nextState.batteryEnergyAtEnd,
+        nextState.batteryEnergyAtEndKwh,
         'expected energy change = 0.6 kW * (10/60)h = 0.1 kWh'
       ).toBeCloseTo(20.1, 6);
       expectStandardNextStateAttributesPresent(nextState);
     });
-    it('batteryEnergyAtEnd cannot exceed capacity (charge capped at capacity)', () => {
+    it('batteryEnergyAtEndKwh cannot exceed capacity (charge capped at capacity)', () => {
       const testFixture = defaultSimpleTestSettingsForPartialStepFixture(
         {
-          batteryEnergyAtStart: 42.8,
+          batteryEnergyAtStartKwh: 42.8,
         },
         {
-          gridTarget: 6,
+          gridTargetPowerKw: 6,
         }
       );
 
       const { nextState } = simulateTimestep(testFixture);
 
       expect(
-        nextState.batteryEnergyAtEnd,
-        'batteryEnergyAtEnd capped at capacity: 6 kW * (10/60)h = 1 kWh (larger than missing 0.2)'
+        nextState.batteryEnergyAtEndKwh,
+        'batteryEnergyAtEndKwh capped at capacity: 6 kW * (10/60)h = 1 kWh (larger than missing 0.2)'
       ).toBeCloseTo(43, 6); // clamped to capacity
       expectStandardNextStateAttributesPresent(nextState);
     });
-    it('batteryEnergyAtEnd cannot go below 0', () => {
+    it('batteryEnergyAtEndKwh cannot go below 0', () => {
       const testFixture = defaultSimpleTestSettingsForPartialStepFixture(
-        { batteryEnergyAtStart: 0.2 },
+        { batteryEnergyAtStartKwh: 0.2 },
         {
-          gridTarget: -6,
+          gridTargetPowerKw: -6,
         }
       );
 
       const { nextState } = simulateTimestep(testFixture);
 
       expect(
-        nextState.batteryEnergyAtEnd,
-        'batteryEnergyAtEnd capped at 0: 6 kW * (10/60)h = 1 kWh (larger than remaining 0.2)'
+        nextState.batteryEnergyAtEndKwh,
+        'batteryEnergyAtEndKwh capped at 0: 6 kW * (10/60)h = 1 kWh (larger than remaining 0.2)'
       ).toBeCloseTo(0, 6); // clamped to 0
       expectStandardNextStateAttributesPresent(nextState);
     });
   });
 
   describe('for full future frame', () => {
-    it('batteryEnergyAtEnd changes', () => {
+    it('batteryEnergyAtEndKwh changes', () => {
       const testFixture = defaultSimpleTestSettingsForFullStepFixture(
         {},
         {
-          gridTarget: 0.4,
+          gridTargetPowerKw: 0.4,
         }
       );
 
       const { nextState } = simulateTimestep(testFixture);
 
       expect(
-        nextState.batteryEnergyAtEnd,
+        nextState.batteryEnergyAtEndKwh,
         'expected energy change = 0.4 kW * (15/60)h = 1 kWh'
       ).toBeCloseTo(20.1, 6);
       expectStandardNextStateAttributesPresent(nextState);
     });
-    it('batteryEnergyAtEnd cannot exceed capacity (charge capped at capacity)', () => {
+    it('batteryEnergyAtEndKwh cannot exceed capacity (charge capped at capacity)', () => {
       const testFixture = defaultSimpleTestSettingsForFullStepFixture(
-        { batteryEnergyAtStart: 42.8 },
+        { batteryEnergyAtStartKwh: 42.8 },
         {
-          gridTarget: 4,
+          gridTargetPowerKw: 4,
         }
       );
 
       const { nextState } = simulateTimestep(testFixture);
 
       expect(
-        nextState.batteryEnergyAtEnd,
-        'batteryEnergyAtEnd capped at capacity: 6 kW * (15/60)h = 1 kWh (larger than missing 0.2)'
+        nextState.batteryEnergyAtEndKwh,
+        'batteryEnergyAtEndKwh capped at capacity: 6 kW * (15/60)h = 1 kWh (larger than missing 0.2)'
       ).toBeCloseTo(43, 6); // clamped to capacity
       expectStandardNextStateAttributesPresent(nextState);
     });
-    it('batteryEnergyAtEnd cannot go below 0', () => {
+    it('batteryEnergyAtEndKwh cannot go below 0', () => {
       const testFixture = defaultSimpleTestSettingsForFullStepFixture(
-        { batteryEnergyAtStart: 0.2 },
+        { batteryEnergyAtStartKwh: 0.2 },
         {
-          gridTarget: -6,
+          gridTargetPowerKw: -6,
         }
       );
 
       const { nextState } = simulateTimestep(testFixture);
 
       expect(
-        nextState.batteryEnergyAtEnd,
-        'batteryEnergyAtEnd capped at capacity: 6 kW * (15/60)h = 1 kWh (larger than remaining 0.2)'
+        nextState.batteryEnergyAtEndKwh,
+        'batteryEnergyAtEndKwh capped at capacity: 6 kW * (15/60)h = 1 kWh (larger than remaining 0.2)'
       ).toBeCloseTo(0, 6); // clamped to 0
       expectStandardNextStateAttributesPresent(nextState);
     });

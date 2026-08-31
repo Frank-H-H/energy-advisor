@@ -31,7 +31,7 @@ export function simulateTimeSeries({
 
     currentState = {
       ...currentState,
-      batteryEnergyAtStart: result.nextState.batteryEnergyAtEnd,
+      batteryEnergyAtStartKwh: result.nextState.batteryEnergyAtEndKwh,
     };
   }
 

@@ -19,37 +19,37 @@ describe('simulateTimeSeries', () => {
       {
         start: new Date('2026-01-01T00:00:00Z'),
         end: new Date('2026-01-01T01:00:00Z'),
-        expectedProductionPower: 4,
-        expectedConsumptionPower: 0,
-        gridTarget: 0,
+        expectedProductionPowerKw: 4,
+        expectedConsumptionPowerKw: 0,
+        gridTargetPowerKw: 0,
       },
       {
         start: new Date('2026-01-01T01:00:00Z'),
         end: new Date('2026-01-01T02:00:00Z'),
-        expectedProductionPower: 4,
-        expectedConsumptionPower: 0,
-        gridTarget: 0,
+        expectedProductionPowerKw: 4,
+        expectedConsumptionPowerKw: 0,
+        gridTargetPowerKw: 0,
       },
     ];
 
     const result = simulateTimeSeries({
       state: {
-        batteryEnergyAtStart: 0,
+        batteryEnergyAtStartKwh: 0,
       },
       timesteps,
       components,
     });
 
     expect(result.timesteps).toHaveLength(2);
-    expect(result.timesteps[0].batteryEnergyAtEnd).toBe(4);
-    expect(result.timesteps[1].batteryEnergyAtStart).toBe(4);
-    expect(result.timesteps[1].batteryEnergyAtEnd).toBe(8);
-    expect(result.nextState.batteryEnergyAtStart).toBe(8);
+    expect(result.timesteps[0].batteryEnergyAtEndKwh).toBe(4);
+    expect(result.timesteps[1].batteryEnergyAtStartKwh).toBe(4);
+    expect(result.timesteps[1].batteryEnergyAtEndKwh).toBe(8);
+    expect(result.nextState.batteryEnergyAtStartKwh).toBe(8);
   });
 
   it('preserves the input state apart from the propagated battery state', () => {
     const state = {
-      batteryEnergyAtStart: 2,
+      batteryEnergyAtStartKwh: 2,
       time: new Date('2026-01-01T00:00:00Z'),
       customValue: 'keep me',
     };
@@ -60,23 +60,23 @@ describe('simulateTimeSeries', () => {
         {
           start: new Date('2026-01-01T00:00:00Z'),
           end: new Date('2026-01-01T01:00:00Z'),
-          expectedProductionPower: 0,
-          expectedConsumptionPower: 1,
-          gridTarget: 0,
+          expectedProductionPowerKw: 0,
+          expectedConsumptionPowerKw: 1,
+          gridTargetPowerKw: 0,
         },
       ],
       components,
     });
 
-    expect(state.batteryEnergyAtStart).toBe(2);
+    expect(state.batteryEnergyAtStartKwh).toBe(2);
     expect(result.nextState.customValue).toBe('keep me');
     expect(result.nextState.time).toEqual(state.time);
-    expect(result.nextState.batteryEnergyAtStart).toBe(1);
+    expect(result.nextState.batteryEnergyAtStartKwh).toBe(1);
   });
 
   it('returns the initial battery state when there are no timesteps', () => {
     const state = {
-      batteryEnergyAtStart: 3,
+      batteryEnergyAtStartKwh: 3,
       customValue: 'unchanged',
     };
 
@@ -94,26 +94,26 @@ describe('simulateTimeSeries', () => {
     const first = {
       start: new Date('2026-01-01T01:00:00Z'),
       end: new Date('2026-01-01T02:00:00Z'),
-      expectedProductionPower: 2,
-      expectedConsumptionPower: 0,
-      gridTarget: 0,
+      expectedProductionPowerKw: 2,
+      expectedConsumptionPowerKw: 0,
+      gridTargetPowerKw: 0,
     };
     const second = {
       start: new Date('2026-01-01T00:00:00Z'),
       end: new Date('2026-01-01T01:00:00Z'),
-      expectedProductionPower: 3,
-      expectedConsumptionPower: 0,
-      gridTarget: 0,
+      expectedProductionPowerKw: 3,
+      expectedConsumptionPowerKw: 0,
+      gridTargetPowerKw: 0,
     };
 
     const result = simulateTimeSeries({
-      state: { batteryEnergyAtStart: 0 },
+      state: { batteryEnergyAtStartKwh: 0 },
       timesteps: [first, second],
       components,
     });
 
-    expect(result.timesteps[0].batteryEnergyAtEnd).toBe(2);
-    expect(result.timesteps[1].batteryEnergyAtStart).toBe(2);
-    expect(result.timesteps[1].batteryEnergyAtEnd).toBe(5);
+    expect(result.timesteps[0].batteryEnergyAtEndKwh).toBe(2);
+    expect(result.timesteps[1].batteryEnergyAtStartKwh).toBe(2);
+    expect(result.timesteps[1].batteryEnergyAtEndKwh).toBe(5);
   });
 });

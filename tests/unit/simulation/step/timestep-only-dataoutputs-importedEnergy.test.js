@@ -5,28 +5,28 @@ import {
   defaultSimpleTestSettingsForFullStepFixture,
 } from '../../../helpers/simulation.js';
 
-describe('simulateTimestep - computation of importedEnergy', () => {
+describe('simulateTimestep - computation of importedEnergyKwh', () => {
   describe('for partial current frame', () => {
     it('when battery is empty', () => {
       const testFixture = defaultSimpleTestSettingsForPartialStepFixture(
-        { batteryEnergyAtStart: 0 },
+        { batteryEnergyAtStartKwh: 0 },
         {
-          expectedConsumptionPower: 2.1,
+          expectedConsumptionPowerKw: 2.1,
         }
       );
 
       const { nextState } = simulateTimestep(testFixture);
 
       expect(
-        nextState.importedEnergy,
+        nextState.importedEnergyKwh,
         'imported: 2.1 kW * (10/60)h = 0.35 kWh'
       ).toBeCloseTo(0.35, 6);
     });
     it('when battery gets empty', () => {
       const testFixture = defaultSimpleTestSettingsForPartialStepFixture(
-        { batteryEnergyAtStart: 0.14 },
+        { batteryEnergyAtStartKwh: 0.14 },
         {
-          expectedConsumptionPower: 2.1,
+          expectedConsumptionPowerKw: 2.1,
         }
       );
 
@@ -34,7 +34,7 @@ describe('simulateTimestep - computation of importedEnergy', () => {
 
       // battery empty after 4 minutes
       expect(
-        nextState.importedEnergy,
+        nextState.importedEnergyKwh,
         'imported: 2.1 kW * (6/60)h = 0.21 kWh'
       ).toBeCloseTo(0.21, 6);
     });
@@ -42,36 +42,36 @@ describe('simulateTimestep - computation of importedEnergy', () => {
       const testFixture = defaultSimpleTestSettingsForPartialStepFixture(
         {},
         {
-          expectedConsumptionPower: 2.1,
+          expectedConsumptionPowerKw: 2.1,
         }
       );
 
       const { nextState } = simulateTimestep(testFixture);
 
-      expect(nextState.importedEnergy).toBeCloseTo(0, 6);
+      expect(nextState.importedEnergyKwh).toBeCloseTo(0, 6);
     });
   });
   describe('for full future frame', () => {
     it('when battery is empty', () => {
       const testFixture = defaultSimpleTestSettingsForFullStepFixture(
-        { batteryEnergyAtStart: 0 },
+        { batteryEnergyAtStartKwh: 0 },
         {
-          expectedConsumptionPower: 2.1,
+          expectedConsumptionPowerKw: 2.1,
         }
       );
 
       const { nextState } = simulateTimestep(testFixture);
 
       expect(
-        nextState.importedEnergy,
+        nextState.importedEnergyKwh,
         'imported: 2.1 kW * (15/60)h = 0.525 kWh'
       ).toBeCloseTo(0.525, 6);
     });
     it('when battery gets empty', () => {
       const testFixture = defaultSimpleTestSettingsForFullStepFixture(
-        { batteryEnergyAtStart: 0.14 },
+        { batteryEnergyAtStartKwh: 0.14 },
         {
-          expectedConsumptionPower: 2.1,
+          expectedConsumptionPowerKw: 2.1,
         }
       );
 
@@ -79,7 +79,7 @@ describe('simulateTimestep - computation of importedEnergy', () => {
 
       // battery empty after 4 minutes
       expect(
-        nextState.importedEnergy,
+        nextState.importedEnergyKwh,
         'imported: 2.1 kW * (11/60)h = 0.385 kWh'
       ).toBeCloseTo(0.385, 6);
     });
@@ -87,13 +87,13 @@ describe('simulateTimestep - computation of importedEnergy', () => {
       const testFixture = defaultSimpleTestSettingsForFullStepFixture(
         {},
         {
-          expectedConsumptionPower: 2.1,
+          expectedConsumptionPowerKw: 2.1,
         }
       );
 
       const { nextState } = simulateTimestep(testFixture);
 
-      expect(nextState.importedEnergy).toBeCloseTo(0, 6);
+      expect(nextState.importedEnergyKwh).toBeCloseTo(0, 6);
     });
   });
 });

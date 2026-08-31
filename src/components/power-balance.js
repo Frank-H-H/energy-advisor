@@ -13,19 +13,19 @@ export class PowerBalance {
 
   static fromTimestep(timestep) {
     let powerBalance =
-      timestep.expectedProductionPower -
-      timestep.expectedConsumptionPower +
-      timestep.gridTarget
+      timestep.expectedProductionPowerKw -
+      timestep.expectedConsumptionPowerKw +
+      timestep.gridTargetPowerKw
 
-    if (typeof timestep.prematureExportPower !== 'undefined') {
-      powerBalance -= timestep.prematureExportPower
+    if (typeof timestep.prematureExportPowerKw !== 'undefined') {
+      powerBalance -= timestep.prematureExportPowerKw
     }
 
     if (
-      timestep.extraConsumptionPower &&
+      timestep.extraConsumptionPowerKw &&
       isBefore(timestep.start, timestep.extraConsumptionEndsAt)
     ) {
-      powerBalance -= timestep.extraConsumptionPower
+      powerBalance -= timestep.extraConsumptionPowerKw
     }
 
     return new PowerBalance(powerBalance)

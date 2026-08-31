@@ -8,7 +8,7 @@ import {
 
 describe('simulateTimestep - no data at all', () => {
   describe('for partial current frame', () => {
-    it('no change in batteryEnergyAtEnd', () => {
+    it('no change in batteryEnergyAtEndKwh', () => {
       const testFixture = defaultSimpleTestSettingsForPartialStepFixture(
         {},
         {}
@@ -16,17 +16,17 @@ describe('simulateTimestep - no data at all', () => {
 
       const { nextState } = simulateTimestep(testFixture);
 
-      expect(nextState.batteryEnergyAtEnd).toBeCloseTo(20, 6);
+      expect(nextState.batteryEnergyAtEndKwh).toBeCloseTo(20, 6);
       expectStandardNextStateAttributesPresent(nextState);
     });
   });
   describe('for full future frame', () => {
-    it('no change in batteryEnergyAtEnd', () => {
+    it('no change in batteryEnergyAtEndKwh', () => {
       const testFixture = defaultSimpleTestSettingsForFullStepFixture({}, {});
 
       const { nextState } = simulateTimestep(testFixture);
 
-      expect(nextState.batteryEnergyAtEnd).toBeCloseTo(20, 6);
+      expect(nextState.batteryEnergyAtEndKwh).toBeCloseTo(20, 6);
       expectStandardNextStateAttributesPresent(nextState);
     });
   });

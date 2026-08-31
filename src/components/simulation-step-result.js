@@ -6,26 +6,26 @@
  */
 export class SimulationStepResult {
   constructor({
-    batteryEnergyAtEnd = 0,
-    exportedEnergy = 0,
-    importedEnergy = 0,
-    missedProduction = 0,
-    extraConsumedEnergy = 0,
+    batteryEnergyAtEndKwh = 0,
+    exportedEnergyKwh = 0,
+    importedEnergyKwh = 0,
+    missedProductionEnergyKwh = 0,
+    extraConsumedEnergyKwh = 0,
   } = {}) {
-    this.batteryEnergyAtEnd = batteryEnergyAtEnd;
-    this.exportedEnergy = exportedEnergy;
-    this.importedEnergy = importedEnergy;
-    this.missedProduction = missedProduction;
-    this.extraConsumedEnergy = extraConsumedEnergy;
+    this.batteryEnergyAtEndKwh = batteryEnergyAtEndKwh;
+    this.exportedEnergyKwh = exportedEnergyKwh;
+    this.importedEnergyKwh = importedEnergyKwh;
+    this.missedProductionEnergyKwh = missedProductionEnergyKwh;
+    this.extraConsumedEnergyKwh = extraConsumedEnergyKwh;
   }
 
   static fromTimestep(timestep) {
     return new SimulationStepResult({
-      batteryEnergyAtEnd: timestep.batteryEnergyAtEnd,
-      exportedEnergy: timestep.exportedEnergy,
-      importedEnergy: timestep.importedEnergy,
-      missedProduction: timestep.missedProduction,
-      extraConsumedEnergy: timestep.extraConsumedEnergy,
+      batteryEnergyAtEndKwh: timestep.batteryEnergyAtEndKwh,
+      exportedEnergyKwh: timestep.exportedEnergyKwh,
+      importedEnergyKwh: timestep.importedEnergyKwh,
+      missedProductionEnergyKwh: timestep.missedProductionEnergyKwh,
+      extraConsumedEnergyKwh: timestep.extraConsumedEnergyKwh,
     });
   }
 
@@ -33,21 +33,21 @@ export class SimulationStepResult {
     return new SimulationStepResult({
       // The end state of consecutive intervals is the end state of the
       // second interval.
-      batteryEnergyAtEnd: second.batteryEnergyAtEnd,
-      exportedEnergy: first.exportedEnergy + second.exportedEnergy,
-      importedEnergy: first.importedEnergy + second.importedEnergy,
-      missedProduction: first.missedProduction + second.missedProduction,
-      extraConsumedEnergy:
-        first.extraConsumedEnergy + second.extraConsumedEnergy,
+      batteryEnergyAtEndKwh: second.batteryEnergyAtEndKwh,
+      exportedEnergyKwh: first.exportedEnergyKwh + second.exportedEnergyKwh,
+      importedEnergyKwh: first.importedEnergyKwh + second.importedEnergyKwh,
+      missedProductionEnergyKwh: first.missedProductionEnergyKwh + second.missedProductionEnergyKwh,
+      extraConsumedEnergyKwh:
+        first.extraConsumedEnergyKwh + second.extraConsumedEnergyKwh,
     });
   }
 
   applyTo(timestep) {
-    timestep.batteryEnergyAtEnd = this.batteryEnergyAtEnd;
-    timestep.exportedEnergy = this.exportedEnergy;
-    timestep.importedEnergy = this.importedEnergy;
-    timestep.missedProduction = this.missedProduction;
-    timestep.extraConsumedEnergy = this.extraConsumedEnergy;
+    timestep.batteryEnergyAtEndKwh = this.batteryEnergyAtEndKwh;
+    timestep.exportedEnergyKwh = this.exportedEnergyKwh;
+    timestep.importedEnergyKwh = this.importedEnergyKwh;
+    timestep.missedProductionEnergyKwh = this.missedProductionEnergyKwh;
+    timestep.extraConsumedEnergyKwh = this.extraConsumedEnergyKwh;
     return timestep;
   }
 }

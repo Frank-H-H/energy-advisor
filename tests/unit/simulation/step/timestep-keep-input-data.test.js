@@ -12,20 +12,20 @@ describe('simulateTimestep keeps input data', () => {
     const testFixture = defaultSimpleTestSettingsForPartialStepFixture(
       {},
       {
-        expectedProductionPower: 6,
-        expectedConsumptionPower: 3,
-        gridTarget: 0.6,
-        extraConsumptionPower: 2.1,
+        expectedProductionPowerKw: 6,
+        expectedConsumptionPowerKw: 3,
+        gridTargetPowerKw: 0.6,
+        extraConsumptionPowerKw: 2.1,
         extraConsumptionEndsAt: new Date('2026-04-08T14:00:00.000Z'),
         someExtraAttribute: 'someValue',
       }
     );
     const { nextState } = simulateTimestep(testFixture);
 
-    expect(nextState.expectedProductionPower).toBeCloseTo(6);
-    expect(nextState.expectedConsumptionPower).toBeCloseTo(3);
-    expect(nextState.gridTarget).toBeCloseTo(0.6);
-    expect(nextState.extraConsumptionPower).toBeCloseTo(2.1);
+    expect(nextState.expectedProductionPowerKw).toBeCloseTo(6);
+    expect(nextState.expectedConsumptionPowerKw).toBeCloseTo(3);
+    expect(nextState.gridTargetPowerKw).toBeCloseTo(0.6);
+    expect(nextState.extraConsumptionPowerKw).toBeCloseTo(2.1);
     expect(nextState.extraConsumptionEndsAt).toBeCloseTo(
       new Date('2026-04-08T14:00:00.000Z')
     );
@@ -37,20 +37,20 @@ describe('simulateTimestep keeps input data', () => {
     const testFixture = defaultSimpleTestSettingsForFullStepFixture(
       {},
       {
-        expectedProductionPower: 6,
-        expectedConsumptionPower: 3,
-        gridTarget: 0.6,
-        extraConsumptionPower: 2.1,
+        expectedProductionPowerKw: 6,
+        expectedConsumptionPowerKw: 3,
+        gridTargetPowerKw: 0.6,
+        extraConsumptionPowerKw: 2.1,
         extraConsumptionEndsAt: new Date('2026-04-08T14:00:00.000Z'),
         someExtraAttribute: 'someValue',
       }
     );
     const { nextState } = simulateTimestep(testFixture);
 
-    expect(nextState.expectedProductionPower).toBeCloseTo(6);
-    expect(nextState.expectedConsumptionPower).toBeCloseTo(3);
-    expect(nextState.gridTarget).toBeCloseTo(0.6);
-    expect(nextState.extraConsumptionPower).toBeCloseTo(2.1);
+    expect(nextState.expectedProductionPowerKw).toBeCloseTo(6);
+    expect(nextState.expectedConsumptionPowerKw).toBeCloseTo(3);
+    expect(nextState.gridTargetPowerKw).toBeCloseTo(0.6);
+    expect(nextState.extraConsumptionPowerKw).toBeCloseTo(2.1);
     expect(nextState.extraConsumptionEndsAt).toBeCloseTo(
       new Date('2026-04-08T14:00:00.000Z')
     );

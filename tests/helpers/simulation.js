@@ -6,7 +6,7 @@ export function defaultSimpleTestSettingsForPartialStepFixture(
 ) {
   return {
     state: makeState('2026-04-08T12:05:00.000Z', {
-      batteryEnergyAtStart: 20,
+      batteryEnergyAtStartKwh: 20,
       ...extraStateValues,
     }),
     timestep: makeTimestep(
@@ -24,7 +24,7 @@ export function defaultSimpleTestSettingsForFullStepFixture(
 ) {
   return {
     state: makeState('2026-04-08T12:00:00.000Z', {
-      batteryEnergyAtStart: 20,
+      batteryEnergyAtStartKwh: 20,
       ...extraStateValues,
     }),
     timestep: makeTimestep(
@@ -38,11 +38,11 @@ export function defaultSimpleTestSettingsForFullStepFixture(
 
 export function expectStandardNextStateAttributesPresent(timestep) {
   // isFinite verifies, that the attribute is defined, a number and not Infinity or NaN
-  assert.isFinite(timestep.exportedEnergy);
-  assert.isFinite(timestep.importedEnergy);
-  assert.isFinite(timestep.missedProduction);
-  assert.isFinite(timestep.extraConsumedEnergy);
-  assert.isFinite(timestep.prematureExportPower);
+  assert.isFinite(timestep.exportedEnergyKwh);
+  assert.isFinite(timestep.importedEnergyKwh);
+  assert.isFinite(timestep.missedProductionEnergyKwh);
+  assert.isFinite(timestep.extraConsumedEnergyKwh);
+  assert.isFinite(timestep.prematureExportPowerKw);
 }
 
 export function makeTimestep(startISO, endISO, values = {}) {

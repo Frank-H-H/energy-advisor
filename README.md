@@ -12,10 +12,10 @@ Migration tasks:
 - [x] Add tests for single time step computation
 - [x] Add logic for iterating through the timesteps
 - [x] Add tests for iterating
-- [ ] Add logic for advisory (currently called countermeasures)
-- [ ] Add tests for advisory (currently called countermeasures)
+- [x] Add logic for advisory (currently called actions)
+- [x] Add tests for advisory (currently called actions)
 - [ ] Have the algorithms use the config objects for battery, grid, etc.
-- [ ] Migrate from single extraConsumedEnergy to extraLoads
+- [ ] Migrate from single extraConsumedEnergyKwh to extraLoads
 - [ ] Refactor! Introduce (or use existing) data objects like "Battery.charge(2)"
 - [ ] Change advisory algorithm to support different advisory strategies
 - [ ] Add examples to documentation
@@ -116,10 +116,10 @@ series:
       return entity.attributes.simulationdata.map((entry) => {
         const start = entry.interval.start
         if(now > start) {
-          const emulatedStartValue = entry.batteryChargeAtStart - (entry.batteryChargeAtEnd - entry.batteryChargeAtStart) * (60 - now.getMinutes()) / 60
+          const emulatedStartValue = entry.batteryEnergyAtStartKwh - (entry.batteryEnergyAtEndKwh - entry.batteryEnergyAtStartKwh) * (60 - now.getMinutes()) / 60
           return [start, emulatedStartValue / 43.52 * 100 || 0];
         } else {
-          return [start, entry.batteryChargeAtStart / 43.52 * 100 || 0];
+          return [start, entry.batteryEnergyAtStartKwh / 43.52 * 100 || 0];
         }
       });
     color_threshold:
@@ -147,10 +147,10 @@ series:
       return entity.attributes.simulationdata.map((entry) => {
         const start = entry.interval.start
         if(now > start) {
-          const emulatedStartValue = entry.batteryChargeAtStart - (entry.batteryChargeAtEnd - entry.batteryChargeAtStart) * (60 - now.getMinutes()) / 60
+          const emulatedStartValue = entry.batteryEnergyAtStartKwh - (entry.batteryEnergyAtEndKwh - entry.batteryEnergyAtStartKwh) * (60 - now.getMinutes()) / 60
           return [start, emulatedStartValue / 43.52 * 100];
         } else {
-          return [start, entry.batteryChargeAtStart / 43.52 * 100];
+          return [start, entry.batteryEnergyAtStartKwh / 43.52 * 100];
         }
       });
     color_threshold:
@@ -176,7 +176,7 @@ series:
     data_generator: |
       const now = new Date();
       return entity.attributes.simulationdata.map((entry) => {
-        return [entry.interval.start, - entry.prematureExportPower];
+        return [entry.interval.start, - entry.prematureExportPowerKw];
       });
     color_threshold:
       - value: 0
@@ -201,7 +201,7 @@ series:
     opacity: 0.3
     data_generator: |
       return entity.attributes.simulationdata.map((entry) => {
-        return [entry.interval.start, (entry.importedEnergy - entry.exportedEnergy) * 4 - entry.prematureExportPower];
+        return [entry.interval.start, (entry.importedEnergyKwh - entry.exportedEnergyKwh) * 4 - entry.prematureExportPowerKw];
       });
     color_threshold:
       - value: -7.4
@@ -227,7 +227,7 @@ series:
     stroke_dash: 3
     data_generator: |
       return entity.attributes.simulationdata.map((entry) => {
-        return [entry.interval.start, entry.extraConsumedEnergy * 4];
+        return [entry.interval.start, entry.extraConsumedEnergyKwh * 4];
       });
     color_threshold:
       - value: 0
@@ -252,7 +252,7 @@ series:
     stroke_dash: 2
     data_generator: |
       return entity.attributes.simulationdata.map((entry) => {
-        return [entry.interval.start, (entry.batteryChargeAtEnd - entry.batteryChargeAtStart) * 4];
+        return [entry.interval.start, (entry.batteryEnergyAtEndKwh - entry.batteryEnergyAtStartKwh) * 4];
       });
     color_threshold:
       - value: -0.01

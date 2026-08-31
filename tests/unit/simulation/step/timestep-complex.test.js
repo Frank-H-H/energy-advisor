@@ -13,10 +13,10 @@ describe('simulateTimestep - complex scenarios', () => {
       const testFixture = defaultSimpleTestSettingsForPartialStepFixture(
         {},
         {
-          expectedProductionPower: 6,
-          expectedConsumptionPower: 3,
-          gridTarget: 0.6,
-          extraConsumptionPower: 2.1,
+          expectedProductionPowerKw: 6,
+          expectedConsumptionPowerKw: 3,
+          gridTargetPowerKw: 0.6,
+          extraConsumptionPowerKw: 2.1,
           extraConsumptionEndsAt: new Date('2026-04-08T14:00:00.000Z'),
         }
       );
@@ -28,7 +28,7 @@ describe('simulateTimestep - complex scenarios', () => {
       // + 0.10    # target grid point of 10 minutes
       // - 0.35     # car loading of 10 minutes
       expect(
-        nextState.batteryEnergyAtEnd,
+        nextState.batteryEnergyAtEndKwh,
         'expected energy change = 20 + 1 - 0.5 + 0.1 - 0.35 = '
       ).toBeCloseTo(20.25);
       expectStandardNextStateAttributesPresent(nextState);
@@ -38,10 +38,10 @@ describe('simulateTimestep - complex scenarios', () => {
       const testFixture = defaultSimpleTestSettingsForFullStepFixture(
         {},
         {
-          expectedProductionPower: 6,
-          expectedConsumptionPower: 3,
-          gridTarget: 0.6,
-          extraConsumptionPower: 2.1,
+          expectedProductionPowerKw: 6,
+          expectedConsumptionPowerKw: 3,
+          gridTargetPowerKw: 0.6,
+          extraConsumptionPowerKw: 2.1,
           extraConsumptionEndsAt: new Date('2026-04-08T14:00:00.000Z'),
         }
       );
@@ -53,7 +53,7 @@ describe('simulateTimestep - complex scenarios', () => {
       // + 0.15    # grid point
       // - 0.525     # extra consumption
       expect(
-        nextState.batteryEnergyAtEnd,
+        nextState.batteryEnergyAtEndKwh,
         'expected energy change = 20 + 1.5 - 0.75 + 0.15 - 0.525 = 20.375'
       ).toBeCloseTo(20.375);
       expectStandardNextStateAttributesPresent(nextState);

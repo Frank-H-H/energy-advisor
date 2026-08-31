@@ -5,13 +5,13 @@ import {
   defaultSimpleTestSettingsForFullStepFixture,
 } from '../../../helpers/simulation.js';
 
-describe('simulateTimestep - computation of exportedEnergy', () => {
+describe('simulateTimestep - computation of exportedEnergyKwh', () => {
   describe('for partial current frame', () => {
     it('when battery is full', () => {
       const testFixture = defaultSimpleTestSettingsForPartialStepFixture(
-        { batteryEnergyAtStart: 43 },
+        { batteryEnergyAtStartKwh: 43 },
         {
-          expectedProductionPower: 10,
+          expectedProductionPowerKw: 10,
         }
       );
 
@@ -20,15 +20,15 @@ describe('simulateTimestep - computation of exportedEnergy', () => {
       // grid feed in is limited to 7 kW
       // so we have exactly 10 minutes of 7 kW export
       expect(
-        nextState.exportedEnergy,
+        nextState.exportedEnergyKwh,
         'exported: 7 kW * (10/60)h = 1.16 kWh'
       ).toBeCloseTo(1.1666666, 6);
     });
     it('when battery gets full', () => {
       const testFixture = defaultSimpleTestSettingsForPartialStepFixture(
-        { batteryEnergyAtStart: 42.6 },
+        { batteryEnergyAtStartKwh: 42.6 },
         {
-          expectedProductionPower: 10,
+          expectedProductionPowerKw: 10,
         }
       );
 
@@ -39,41 +39,41 @@ describe('simulateTimestep - computation of exportedEnergy', () => {
       // after that, grid feed in is limited to 7 kW
       // so we have exactly 7 minutes of 7 kW export: 0.7
       expect(
-        nextState.exportedEnergy,
+        nextState.exportedEnergyKwh,
         'exported: 2 kW * (3/60)h + 7 kW * (7/60)h = 0.916666 kWh'
       ).toBeCloseTo(0.9166666, 6);
     });
     it('when battery is empty', () => {
       const testFixture = defaultSimpleTestSettingsForPartialStepFixture(
-        { batteryEnergyAtStart: 0 },
+        { batteryEnergyAtStartKwh: 0 },
         {
-          expectedConsumptionPower: 10,
+          expectedConsumptionPowerKw: 10,
         }
       );
 
       const { nextState } = simulateTimestep(testFixture);
 
-      expect(nextState.exportedEnergy).toBeCloseTo(0, 6);
+      expect(nextState.exportedEnergyKwh).toBeCloseTo(0, 6);
     });
     it('when battery gets empty', () => {
       const testFixture = defaultSimpleTestSettingsForPartialStepFixture(
-        { batteryEnergyAtStart: 0.4 },
+        { batteryEnergyAtStartKwh: 0.4 },
         {
-          expectedConsumptionPower: 10,
+          expectedConsumptionPowerKw: 10,
         }
       );
 
       const { nextState } = simulateTimestep(testFixture);
 
-      expect(nextState.exportedEnergy).toBeCloseTo(0, 6);
+      expect(nextState.exportedEnergyKwh).toBeCloseTo(0, 6);
     });
   });
   describe('for full future frame', () => {
     it('when battery is full', () => {
       const testFixture = defaultSimpleTestSettingsForFullStepFixture(
-        { batteryEnergyAtStart: 43 },
+        { batteryEnergyAtStartKwh: 43 },
         {
-          expectedProductionPower: 10,
+          expectedProductionPowerKw: 10,
         }
       );
 
@@ -82,15 +82,15 @@ describe('simulateTimestep - computation of exportedEnergy', () => {
       // grid feed in is limited to 7 kW
       // so we have exactly 15 minutes of 7 kW export
       expect(
-        nextState.exportedEnergy,
+        nextState.exportedEnergyKwh,
         'exported: 7 kW * (15/60)h = 1.75 kWh'
       ).toBeCloseTo(1.75, 6);
     });
     it('when battery gets full', () => {
       const testFixture = defaultSimpleTestSettingsForFullStepFixture(
-        { batteryEnergyAtStart: 42.6 },
+        { batteryEnergyAtStartKwh: 42.6 },
         {
-          expectedProductionPower: 10,
+          expectedProductionPowerKw: 10,
         }
       );
 
@@ -102,33 +102,33 @@ describe('simulateTimestep - computation of exportedEnergy', () => {
       // after that, grid feed in is limited to 7 kW
       // so we have exactly 12 minutes of 7 kW export
       expect(
-        nextState.exportedEnergy,
+        nextState.exportedEnergyKwh,
         'exported: 2 kW * (3/60)h + 7 kW * (6/60)h = 1.5 kWh'
       ).toBeCloseTo(1.5, 6);
     });
     it('when battery is empty', () => {
       const testFixture = defaultSimpleTestSettingsForFullStepFixture(
-        { batteryEnergyAtStart: 0 },
+        { batteryEnergyAtStartKwh: 0 },
         {
-          expectedConsumptionPower: 10,
+          expectedConsumptionPowerKw: 10,
         }
       );
 
       const { nextState } = simulateTimestep(testFixture);
 
-      expect(nextState.exportedEnergy).toBeCloseTo(0, 6);
+      expect(nextState.exportedEnergyKwh).toBeCloseTo(0, 6);
     });
     it('when battery gets empty', () => {
       const testFixture = defaultSimpleTestSettingsForFullStepFixture(
-        { batteryEnergyAtStart: 0.4 },
+        { batteryEnergyAtStartKwh: 0.4 },
         {
-          expectedConsumptionPower: 10,
+          expectedConsumptionPowerKw: 10,
         }
       );
 
       const { nextState } = simulateTimestep(testFixture);
 
-      expect(nextState.exportedEnergy).toBeCloseTo(0, 6);
+      expect(nextState.exportedEnergyKwh).toBeCloseTo(0, 6);
     });
   });
 });

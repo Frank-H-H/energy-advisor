@@ -4,7 +4,7 @@ Purpose: define the inputs and outputs for the ForecastEngine.
 
 Inputs:
 - intervals: ordered array of regular intervals with start,end,durationMs and values object
-  - values may include: consumption_kwh, pv_kwh, importPrice, exportPrice
+  - values may include: consumption_kwh, pv_kwh, importPricePerKwh, exportPricePerKwh
 - components: optional components (battery etc.)
 
 Outputs (per interval): values include at least:

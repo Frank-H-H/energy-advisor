@@ -5,13 +5,13 @@ import {
   defaultSimpleTestSettingsForFullStepFixture,
 } from '../../../helpers/simulation.js';
 
-describe('simulateTimestep - computation of extraConsumedEnergy', () => {
+describe('simulateTimestep - computation of extraConsumedEnergyKwh', () => {
   describe('for partial current frame', () => {
     it('ends before frame -> 0', () => {
       const testFixture = defaultSimpleTestSettingsForPartialStepFixture(
         {},
         {
-          extraConsumptionPower: 2.1,
+          extraConsumptionPowerKw: 2.1,
           extraConsumptionEndsAt: new Date('2026-04-08T12:00:00.000Z'),
         }
       );
@@ -19,7 +19,7 @@ describe('simulateTimestep - computation of extraConsumedEnergy', () => {
       const { nextState } = simulateTimestep(testFixture);
 
       expect(
-        nextState.extraConsumedEnergy,
+        nextState.extraConsumedEnergyKwh,
         'extraLoad: already stopped'
       ).toBeCloseTo(0, 6);
     });
@@ -27,7 +27,7 @@ describe('simulateTimestep - computation of extraConsumedEnergy', () => {
       const testFixture = defaultSimpleTestSettingsForPartialStepFixture(
         {},
         {
-          extraConsumptionPower: 2.1,
+          extraConsumptionPowerKw: 2.1,
           extraConsumptionEndsAt: new Date('2026-04-08T14:00:00.000Z'),
         }
       );
@@ -35,7 +35,7 @@ describe('simulateTimestep - computation of extraConsumedEnergy', () => {
       const { nextState } = simulateTimestep(testFixture);
 
       expect(
-        nextState.extraConsumedEnergy,
+        nextState.extraConsumedEnergyKwh,
         'extraLoad: 2.1 kW * (10/60)h = 0.35 kWh'
       ).toBeCloseTo(0.35, 6);
     });
@@ -43,7 +43,7 @@ describe('simulateTimestep - computation of extraConsumedEnergy', () => {
       const testFixture = defaultSimpleTestSettingsForPartialStepFixture(
         {},
         {
-          extraConsumptionPower: 2.1,
+          extraConsumptionPowerKw: 2.1,
           extraConsumptionEndsAt: new Date('2026-04-08T12:04:00.000Z'),
         }
       );
@@ -51,7 +51,7 @@ describe('simulateTimestep - computation of extraConsumedEnergy', () => {
       const { nextState } = simulateTimestep(testFixture);
 
       expect(
-        nextState.extraConsumedEnergy,
+        nextState.extraConsumedEnergyKwh,
         'extraLoad: already stopped'
       ).toBeCloseTo(0, 6);
     });
@@ -59,7 +59,7 @@ describe('simulateTimestep - computation of extraConsumedEnergy', () => {
       const testFixture = defaultSimpleTestSettingsForPartialStepFixture(
         {},
         {
-          extraConsumptionPower: 2.1,
+          extraConsumptionPowerKw: 2.1,
           extraConsumptionEndsAt: new Date('2026-04-08T12:11:00.000Z'),
         }
       );
@@ -67,7 +67,7 @@ describe('simulateTimestep - computation of extraConsumedEnergy', () => {
       const { nextState } = simulateTimestep(testFixture);
 
       expect(
-        nextState.extraConsumedEnergy,
+        nextState.extraConsumedEnergyKwh,
         'extraLoad: 2.1 kW * (6/60)h = 0.21 kWh'
       ).toBeCloseTo(0.21, 6);
     });
@@ -75,7 +75,7 @@ describe('simulateTimestep - computation of extraConsumedEnergy', () => {
       const testFixture = defaultSimpleTestSettingsForPartialStepFixture(
         {},
         {
-          extraConsumptionPower: 0,
+          extraConsumptionPowerKw: 0,
           extraConsumptionEndsAt: new Date('2026-04-08T14:00:00.000Z'),
         }
       );
@@ -83,7 +83,7 @@ describe('simulateTimestep - computation of extraConsumedEnergy', () => {
       const { nextState } = simulateTimestep(testFixture);
 
       expect(
-        nextState.extraConsumedEnergy,
+        nextState.extraConsumedEnergyKwh,
         'extraLoad: 0 kW * (10/60)h = 0.35 kWh'
       ).toBeCloseTo(0, 6);
     });
@@ -93,7 +93,7 @@ describe('simulateTimestep - computation of extraConsumedEnergy', () => {
       const testFixture = defaultSimpleTestSettingsForFullStepFixture(
         {},
         {
-          extraConsumptionPower: 2.1,
+          extraConsumptionPowerKw: 2.1,
           extraConsumptionEndsAt: new Date('2026-04-08T13:00:00.000Z'),
         }
       );
@@ -101,7 +101,7 @@ describe('simulateTimestep - computation of extraConsumedEnergy', () => {
       const { nextState } = simulateTimestep(testFixture);
 
       expect(
-        nextState.extraConsumedEnergy,
+        nextState.extraConsumedEnergyKwh,
         'extraLoad: already stopped'
       ).toBeCloseTo(0, 6);
     });
@@ -109,7 +109,7 @@ describe('simulateTimestep - computation of extraConsumedEnergy', () => {
       const testFixture = defaultSimpleTestSettingsForFullStepFixture(
         {},
         {
-          extraConsumptionPower: 2.1,
+          extraConsumptionPowerKw: 2.1,
           extraConsumptionEndsAt: new Date('2026-04-08T14:00:00.000Z'),
         }
       );
@@ -117,7 +117,7 @@ describe('simulateTimestep - computation of extraConsumedEnergy', () => {
       const { nextState } = simulateTimestep(testFixture);
 
       expect(
-        nextState.extraConsumedEnergy,
+        nextState.extraConsumedEnergyKwh,
         'extraLoad: 2.1 kW * (15/60)h = 0.525 kWh'
       ).toBeCloseTo(0.525, 6);
     });
@@ -125,7 +125,7 @@ describe('simulateTimestep - computation of extraConsumedEnergy', () => {
       const testFixture = defaultSimpleTestSettingsForFullStepFixture(
         {},
         {
-          extraConsumptionPower: 2.1,
+          extraConsumptionPowerKw: 2.1,
           extraConsumptionEndsAt: new Date('2026-04-08T13:06:00.000Z'),
         }
       );
@@ -133,7 +133,7 @@ describe('simulateTimestep - computation of extraConsumedEnergy', () => {
       const { nextState } = simulateTimestep(testFixture);
 
       expect(
-        nextState.extraConsumedEnergy,
+        nextState.extraConsumedEnergyKwh,
         'extraLoad: 2.1 kW * (6/60)h = 0.21 kWh'
       ).toBeCloseTo(0.21, 6);
     });
@@ -141,7 +141,7 @@ describe('simulateTimestep - computation of extraConsumedEnergy', () => {
       const testFixture = defaultSimpleTestSettingsForFullStepFixture(
         {},
         {
-          extraConsumptionPower: 0,
+          extraConsumptionPowerKw: 0,
           extraConsumptionEndsAt: new Date('2026-04-08T14:00:00.000Z'),
         }
       );
@@ -149,7 +149,7 @@ describe('simulateTimestep - computation of extraConsumedEnergy', () => {
       const { nextState } = simulateTimestep(testFixture);
 
       expect(
-        nextState.extraConsumedEnergy,
+        nextState.extraConsumedEnergyKwh,
         'extraLoad: 0 kW * (15/60)h = 0.525 kWh'
       ).toBeCloseTo(0.0, 6);
     });

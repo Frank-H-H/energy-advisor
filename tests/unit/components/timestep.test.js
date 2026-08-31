@@ -19,14 +19,14 @@ describe('Timestep', () => {
     const source = {
       start,
       end,
-      expectedProductionPower: 5,
+      expectedProductionPowerKw: 5,
     };
 
     const timestep = Timestep.from(source);
 
     expect(timestep.start).toEqual(start);
     expect(timestep.end).toEqual(end);
-    expect(timestep.expectedProductionPower).toBe(5);
+    expect(timestep.expectedProductionPowerKw).toBe(5);
   });
 
   it('creates an interval between two points inside the timestep', () => {

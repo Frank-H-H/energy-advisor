@@ -10,17 +10,17 @@ import {
 describe.skip('Forecast / run integration using simulateTimestep sequentially', () => {
   it('runs current (10min) then future (15min) intervals and aggregates results', () => {
     const A = makeInterval('2026-04-08T12:05:00.000Z', '2026-04-08T12:15:00.000Z', {
-      expectedProductionPower: 6,
-      expectedConsumptionPower: 3,
-      targetGridPoint: 0.6,
-      extraConsumptionPower: 2.1,
+      expectedProductionPowerKw: 6,
+      expectedConsumptionPowerKw: 3,
+      gridTargetPowerKw: 0.6,
+      extraConsumptionPowerKw: 2.1,
       extraConsumptionEndsAt: new Date('2026-04-08T14:00:00.000Z')
     })
     const B = makeInterval('2026-04-08T13:00:00.000Z', '2026-04-08T13:15:00.000Z', {
-      expectedProductionPower: 6,
-      expectedConsumptionPower: 3,
-      targetGridPoint: 0.6,
-      extraConsumptionPower: 2,
+      expectedProductionPowerKw: 6,
+      expectedConsumptionPowerKw: 3,
+      gridTargetPowerKw: 0.6,
+      extraConsumptionPowerKw: 2,
       extraConsumptionEndsAt: new Date('2026-04-08T14:00:00.000Z')
     })
 
@@ -38,8 +38,8 @@ describe.skip('Forecast / run integration using simulateTimestep sequentially', 
     expect(s2.battery_soc_kwh).toBeCloseTo(20.65, 6)
 
     // aggregated exported energy equals sum of individual exports
-    const exportedSum = Number((r1.outputs.exportedEnergy + r2.outputs.exportedEnergy).toFixed(9))
-    expect(exportedSum).toBeCloseTo(Number((r1.outputs.exportedEnergy + r2.outputs.exportedEnergy).toFixed(9)), 9)
+    const exportedSum = Number((r1.outputs.exportedEnergyKwh + r2.outputs.exportedEnergyKwh).toFixed(9))
+    expect(exportedSum).toBeCloseTo(Number((r1.outputs.exportedEnergyKwh + r2.outputs.exportedEnergyKwh).toFixed(9)), 9)
 
     // battery delta across both intervals equals sum of per-interval applied battery changes
     const totalDelta = s2.battery_soc_kwh - s0.battery_soc_kwh
@@ -49,8 +49,8 @@ describe.skip('Forecast / run integration using simulateTimestep sequentially', 
 
   it('energy delta per interval matches nextState - startState invariant', () => {
     const interval = makeInterval('2026-04-08T13:00:00.000Z', '2026-04-08T13:15:00.000Z', {
-      expectedProductionPower: 4,
-      expectedConsumptionPower: 2
+      expectedProductionPowerKw: 4,
+      expectedConsumptionPowerKw: 2
     })
     const components = makeComponents()
     const s0 = { battery_soc_kwh: 10 }

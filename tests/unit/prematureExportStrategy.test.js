@@ -3,7 +3,7 @@ import { PrematureExportStrategy } from '../../src/advisor/strategies/prematureE
 
 function timestep(
   startMinute,
-  importPrice,
+  importPricePerKwh,
   exportedEnergyKwh,
   gridTargetPowerKw = 0
 ) {
@@ -15,7 +15,7 @@ function timestep(
     start: start.toISOString(),
     end: end.toISOString(),
     values: {
-      importPrice,
+      importPricePerKwh,
       grid_export_kwh: exportedEnergyKwh,
       gridTargetPowerKw,
     },
@@ -89,12 +89,12 @@ describe('PrematureExportStrategy', () => {
       {
         start: '2026-01-01T00:00:00Z',
         end: '2026-01-01T00:30:00Z',
-        values: { importPrice: 0.2, grid_export_kwh: 0 },
+        values: { importPricePerKwh: 0.2, grid_export_kwh: 0 },
       },
       {
         start: '2026-01-01T00:30:00Z',
         end: '2026-01-01T01:00:00Z',
-        values: { importPrice: -0.1, grid_export_kwh: 2 },
+        values: { importPricePerKwh: -0.1, grid_export_kwh: 2 },
       },
     ];
 
