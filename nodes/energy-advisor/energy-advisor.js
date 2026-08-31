@@ -12,15 +12,35 @@ module.exports = function (RED) {
     node.on('input', async function (msg) {
       try {
         const core = await import(coreUrl)
-        const AdvisorEngine = core.AdvisorEngine
-        const forecast = msg.payload
-        if (!Array.isArray(forecast)) {
-          node.error('Invalid input: msg.payload must be a forecast array (from energy-forecast)')
+        const PrematureExportStrategy = core.PrematureExportStrategy
+
+        const simulationIntervals = msg.simulationIntervals || msg.payload
+        if (!Array.isArray(simulationIntervals)) {
+          node.error(
+            'Invalid input: msg.simulationIntervals or msg.payload must be an array of simulation intervals'
+          )
           return
         }
-        // optional components can be passed in msg.components
-        const recs = AdvisorEngine.run({ forecast, components: msg.components })
-        node.send({ payload: recs })
+
+        const strategy = new PrematureExportStrategy({
+          maxExportPowerKw:
+            config.maxExportPowerKw === '' || config.maxExportPowerKw === undefined
+              ? 7.46
+              : Number(config.maxExportPowerKw),
+          intervalMinutes:
+            config.intervalMinutes === '' || config.intervalMinutes === undefined
+              ? 15
+              : Number(config.intervalMinutes),
+        })
+
+        const result = strategy.run(simulationIntervals)
+
+        msg.simulationIntervals = result.simulationIntervals
+        msg.payload = result.simulationIntervals
+        msg.remainingEnergyToExport = result.remainingEnergyToExport
+        msg.totalPlannedPrematureExports = result.totalPlannedPrematureExports
+
+        node.send(msg)
       } catch (err) {
         node.error(err && err.stack ? err.stack : String(err))
       }
