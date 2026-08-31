@@ -1,137 +1,117 @@
-import { Strategy } from '../strategy.js';
+import { Action } from '../action.js'
+import { ActionProposal } from '../action-proposal.js'
+import { Strategy } from '../strategy.js'
 
-const DEFAULT_MAX_EXPORT_POWER_KW = 7.46;
-const DEFAULT_INTERVAL_MINUTES = 15;
+const DEFAULT_MAX_EXPORT_POWER_KW = 7.46
+const DEFAULT_INTERVAL_MINUTES = 15
 
 /**
  * Plans premature exports so that energy that would otherwise be exported
- * during negative-price intervals can be exported during earlier intervals
- * with a non-negative price.
+ * during negative-price periods can be exported during earlier periods with
+ * a non-negative import price.
  */
 export class PrematureExportStrategy extends Strategy {
   constructor({
     maxExportPowerKw = DEFAULT_MAX_EXPORT_POWER_KW,
     intervalMinutes = DEFAULT_INTERVAL_MINUTES,
+    priority = 50,
   } = {}) {
-    super();
-
-    if (!Number.isFinite(maxExportPowerKw) || maxExportPowerKw < 0) {
-      throw new Error('maxExportPowerKw must be a non-negative finite number');
-    }
-    if (!Number.isFinite(intervalMinutes) || intervalMinutes <= 0) {
-      throw new Error('intervalMinutes must be a positive finite number');
-    }
-
-    this.maxExportPowerKw = maxExportPowerKw;
-    this.intervalMinutes = intervalMinutes;
+    super()
+    validatePositiveOrZero(maxExportPowerKw, 'maxExportPowerKw')
+    validatePositive(intervalMinutes, 'intervalMinutes')
+    this.maxExportPowerKw = maxExportPowerKw
+    this.intervalMinutes = intervalMinutes
+    this.priority = priority
   }
 
-  run(simulationIntervals, options = {}) {
-    if (!Array.isArray(simulationIntervals)) {
-      throw new Error('simulationIntervals must be an array');
-    }
+  get id() {
+    return 'premature-export'
+  }
 
-    const maxExportPowerKw = options.maxExportPowerKw ?? this.maxExportPowerKw;
-    const intervalMinutes = options.intervalMinutes ?? this.intervalMinutes;
+  createPlan(timeSeries, options = {}) {
+    if (!Array.isArray(timeSeries)) throw new Error('timeSeries must be an array')
 
-    if (!Number.isFinite(maxExportPowerKw) || maxExportPowerKw < 0) {
-      throw new Error('maxExportPowerKw must be a non-negative finite number');
-    }
-    if (!Number.isFinite(intervalMinutes) || intervalMinutes <= 0) {
-      throw new Error('intervalMinutes must be a positive finite number');
-    }
+    const maxExportPowerKw = options.maxExportPowerKw ?? this.maxExportPowerKw
+    const intervalMinutes = options.intervalMinutes ?? this.intervalMinutes
+    const priority = options.priority ?? this.priority
+    validatePositiveOrZero(maxExportPowerKw, 'maxExportPowerKw')
+    validatePositive(intervalMinutes, 'intervalMinutes')
 
-    const intervals = simulationIntervals.map((interval) => ({
-      ...interval,
-      values: interval.values ? { ...interval.values } : interval.values,
-    }));
+    const intervalHours = intervalMinutes / 60
+    let remainingExportEnergyKwh = 0
+    const proposals = []
 
-    let remainingEnergyToExport = 0;
-    let totalPlannedPrematureExports = 0;
-    const intervalHours = intervalMinutes / 60;
+    for (let index = timeSeries.length - 1; index >= 0; index -= 1) {
+      const timestep = timeSeries[index]
+      const values = timestep.values ?? {}
+      const importPricePerKwh = Number(values.importPrice ?? timestep.importPrice ?? 0)
+      const gridTargetPowerKw = Number(values.gridTargetPowerKw ?? values.gridTarget ?? timestep.gridTarget ?? 0)
+      const exportedEnergyKwh = Number(
+        values.grid_export_kwh ?? values.exportedEnergyKwh ?? timestep.exportedEnergyKwh ?? timestep.exportedEnergy ?? 0
+      )
 
-    for (let index = intervals.length - 1; index >= 0; index--) {
-      const currentFrame = intervals[index];
-      const electricityPrice = getValue(
-        currentFrame,
-        'electricityPrice',
-        'importPrice'
-      );
-      const targetGridPoint = Number(
-        getValue(currentFrame, 'targetGridPoint', 'gridTarget') ?? 0
-      );
-      const exportedEnergy = Number(
-        getValue(currentFrame, 'exportedEnergy', 'grid_export_kwh') ?? 0
-      );
-
-      if (electricityPrice < 0) {
-        // Keep the configured target grid export and move only the excess
-        // into an earlier, non-negative-price interval.
-        const allowedEnergyToExport = -targetGridPoint * intervalHours;
-        remainingEnergyToExport += Math.max(
-          0,
-          exportedEnergy - allowedEnergyToExport
-        );
-
-        setValue(currentFrame, 'prematureExportPower', 0);
-        setValue(currentFrame, 'extraEnergyToGetRidOf', 0);
-      } else if (remainingEnergyToExport > 0) {
-        const additionalExportPower = maxExportPowerKw;
-        const energyThisInterval = additionalExportPower * intervalHours;
-        const extraEnergyToGetRidOf = Math.min(
-          remainingEnergyToExport,
-          energyThisInterval
-        );
-
-        setValue(currentFrame, 'additionalExportPower', additionalExportPower);
-        setValue(currentFrame, 'extraEnergyToGetRidOf', extraEnergyToGetRidOf);
-
-        // Preserve the semantics of the existing algorithm: this field is
-        // a power value, even though the remaining amount is tracked in kWh.
-        setValue(
-          currentFrame,
-          'prematureExportPower',
-          Math.min(remainingEnergyToExport, additionalExportPower)
-        );
-
-        remainingEnergyToExport = Math.max(
-          0,
-          remainingEnergyToExport - extraEnergyToGetRidOf
-        );
-        totalPlannedPrematureExports += extraEnergyToGetRidOf;
-      } else {
-        setValue(currentFrame, 'prematureExportPower', 0);
-        setValue(currentFrame, 'extraEnergyToGetRidOf', 0);
+      if (importPricePerKwh < 0) {
+        const allowedExportEnergyKwh = Math.max(0, -gridTargetPowerKw) * intervalHours
+        remainingExportEnergyKwh += Math.max(0, exportedEnergyKwh - allowedExportEnergyKwh)
+        continue
       }
 
-      setValue(
-        currentFrame,
-        'remainingEnergyToExport',
-        remainingEnergyToExport
-      );
+      if (remainingExportEnergyKwh <= 0) continue
+
+      const actionEnergyKwh = Math.min(
+        remainingExportEnergyKwh,
+        maxExportPowerKw * intervalHours
+      )
+      if (actionEnergyKwh <= 0) continue
+
+      proposals.push(
+        new ActionProposal({
+          strategyId: this.id,
+          action: new Action({
+            timestamp: new Date(timestep.start).toISOString(),
+            durationMs: getDurationMs(timestep, intervalMinutes),
+            component: 'grid',
+            type: 'export-energy',
+            energyKwh: actionEnergyKwh,
+            powerKw: maxExportPowerKw,
+            reason: 'AVOID_NEGATIVE_EXPORT_PRICE',
+            expectedBenefit: {
+              type: 'avoided-negative-price-export',
+              estimatedEnergyKwh: actionEnergyKwh,
+            },
+            priority,
+            confidence: 1,
+            resource: 'grid-export',
+            exclusive: true,
+          }),
+        })
+      )
+
+      remainingExportEnergyKwh = Math.max(0, remainingExportEnergyKwh - actionEnergyKwh)
     }
 
     return {
-      simulationIntervals: intervals,
-      remainingEnergyToExport,
-      totalPlannedPrematureExports,
-    };
+      strategyId: this.id,
+      proposals,
+      remainingExportEnergyKwh,
+      totalPlannedExportEnergyKwh: proposals.reduce(
+        (sum, proposal) => sum + proposal.action.energyKwh,
+        0
+      ),
+    }
   }
 }
 
-function getValue(frame, directProperty, valueProperty) {
-  if (frame[directProperty] !== undefined) {
-    return frame[directProperty];
-  }
-  if (frame[valueProperty] !== undefined) {
-    return frame[valueProperty];
-  }
-  return frame.values?.[valueProperty];
+function getDurationMs(timestep, intervalMinutes) {
+  if (Number.isFinite(timestep.durationMs) && timestep.durationMs > 0) return timestep.durationMs
+  const durationMs = new Date(timestep.end).getTime() - new Date(timestep.start).getTime()
+  return durationMs > 0 ? durationMs : intervalMinutes * 60 * 1000
 }
 
-function setValue(frame, property, value) {
-  frame[property] = value;
-  if (frame.values) {
-    frame.values[property] = value;
-  }
+function validatePositiveOrZero(value, name) {
+  if (!Number.isFinite(value) || value < 0) throw new Error(`${name} must be a non-negative finite number`)
+}
+
+function validatePositive(value, name) {
+  if (!Number.isFinite(value) || value <= 0) throw new Error(`${name} must be a positive finite number`)
 }

@@ -1,16 +1,16 @@
 /**
- * Strategy contract for energy optimization.
+ * Base contract for energy optimization strategies.
  *
- * A strategy receives an ordered list of simulation intervals and returns
- * a new list with its optimization/countermeasure fields applied.
+ * A strategy receives the TimeSeries produced by the simulation and creates
+ * a strategy plan containing ActionProposals. It never changes the
+ * TimeSeries and never executes an action.
  */
 export class Strategy {
-  /**
-   * @param {Array<object>} simulationIntervals
-   * @param {object} [options]
-   * @returns {Array<object>}
-   */
-  run(simulationIntervals, options = {}) {
-    throw new Error('Strategy.run() must be implemented by a concrete strategy')
+  get id() {
+    throw new Error('Strategy.id must be implemented by a concrete strategy')
+  }
+
+  createPlan(_timeSeries, _options = {}) {
+    throw new Error('Strategy.createPlan() must be implemented by a concrete strategy')
   }
 }

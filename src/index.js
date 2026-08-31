@@ -1,4 +1,8 @@
-export { ForecastEngine } from "./simulation/forecastEngine.js"
-export { AdvisorEngine } from "./advisor/advisorEngine.js"
-export { Strategy } from "./advisor/strategy.js"
-export { PrematureExportStrategy } from "./advisor/strategies/prematureExportStrategy.js"
+export { ForecastEngine } from './simulation/forecastEngine.js'
+export { AdvisorEngine } from './advisor/advisorEngine.js'
+export { Strategy } from './advisor/strategy.js'
+export { Action } from './advisor/action.js'
+export { ActionProposal } from './advisor/action-proposal.js'
+export { Plan } from './advisor/plan.js'
+export { PlanBuilder } from './advisor/plan-builder.js'
+export { PrematureExportStrategy } from './advisor/strategies/prematureExportStrategy.js'

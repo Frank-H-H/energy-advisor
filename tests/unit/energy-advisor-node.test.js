@@ -1,9 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { EventEmitter } from 'node:events'
 import energyAdvisorNode from '../../nodes/energy-advisor/energy-advisor.js'
 
 describe('energy-advisor Node-RED adapter', () => {
-  it('runs the premature export strategy and forwards the message', async () => {
+  it('runs the configured active strategies and forwards the Plan', async () => {
     const sent = []
     const errors = []
     const inputHandlers = []
@@ -25,23 +24,29 @@ describe('energy-advisor Node-RED adapter', () => {
     }
 
     energyAdvisorNode(RED)
-
     const node = {}
-    RED.constructor.call(node, {
-      maxExportPowerKw: '',
-      intervalMinutes: '',
-    })
+    RED.constructor.call(node, { strategies: 'premature-export' })
 
     await inputHandlers[0]({
-      simulationIntervals: [
-        { importPrice: 0.2, exportedEnergy: 0, gridTarget: 0 },
-        { importPrice: -0.1, exportedEnergy: 2, gridTarget: -1 },
+      payload: [
+        {
+          start: '2026-01-01T00:00:00Z',
+          end: '2026-01-01T00:15:00Z',
+          durationMs: 900000,
+          values: { importPrice: 0.2, grid_export_kwh: 0, gridTargetPowerKw: 0 },
+        },
+        {
+          start: '2026-01-01T00:15:00Z',
+          end: '2026-01-01T00:30:00Z',
+          durationMs: 900000,
+          values: { importPrice: -0.1, grid_export_kwh: 2, gridTargetPowerKw: -1 },
+        },
       ],
     })
 
     expect(errors).toHaveLength(0)
     expect(sent).toHaveLength(1)
-    expect(sent[0].totalPlannedPrematureExports).toBeCloseTo(1.75, 10)
-    expect(sent[0].simulationIntervals[0].prematureExportPower).toBe(1.75)
+    expect(sent[0].payload.actions).toHaveLength(1)
+    expect(sent[0].payload.actions[0].energyKwh).toBeCloseTo(1.75, 10)
   })
 })

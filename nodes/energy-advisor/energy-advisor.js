@@ -12,39 +12,44 @@ module.exports = function (RED) {
     node.on('input', async function (msg) {
       try {
         const core = await import(coreUrl)
-        const PrematureExportStrategy = core.PrematureExportStrategy
-
-        const simulationIntervals = msg.simulationIntervals || msg.payload
-        if (!Array.isArray(simulationIntervals)) {
-          node.error(
-            'Invalid input: msg.simulationIntervals or msg.payload must be an array of simulation intervals'
-          )
+        const timeSeries = msg.timeSeries || msg.payload
+        if (!Array.isArray(timeSeries)) {
+          node.error('Invalid input: msg.timeSeries or msg.payload must be an array')
           return
         }
 
-        const strategy = new PrematureExportStrategy({
-          maxExportPowerKw:
-            config.maxExportPowerKw === '' || config.maxExportPowerKw === undefined
-              ? 7.46
-              : Number(config.maxExportPowerKw),
-          intervalMinutes:
-            config.intervalMinutes === '' || config.intervalMinutes === undefined
-              ? 15
-              : Number(config.intervalMinutes),
+        const strategyIds = (config.strategies || 'premature-export')
+          .split(',')
+          .map((id) => id.trim())
+          .filter(Boolean)
+
+        const strategies = strategyIds.map((id) => {
+          switch (id) {
+            case 'premature-export':
+              return new core.PrematureExportStrategy({
+                maxExportPowerKw:
+                  config.maxExportPowerKw === '' || config.maxExportPowerKw === undefined
+                    ? 7.46
+                    : Number(config.maxExportPowerKw),
+                intervalMinutes:
+                  config.intervalMinutes === '' || config.intervalMinutes === undefined
+                    ? 15
+                    : Number(config.intervalMinutes),
+              })
+            default:
+              throw new Error(`Unknown advisor strategy: ${id}`)
+          }
         })
 
-        const result = strategy.run(simulationIntervals)
-
-        msg.simulationIntervals = result.simulationIntervals
-        msg.payload = result.simulationIntervals
-        msg.remainingEnergyToExport = result.remainingEnergyToExport
-        msg.totalPlannedPrematureExports = result.totalPlannedPrematureExports
-
+        const plan = core.AdvisorEngine.run({ timeSeries, strategies })
+        msg.payload = plan
+        msg.plan = plan
         node.send(msg)
       } catch (err) {
         node.error(err && err.stack ? err.stack : String(err))
       }
     })
   }
+
   RED.nodes.registerType('energy-advisor', EnergyAdvisorNode)
 }
