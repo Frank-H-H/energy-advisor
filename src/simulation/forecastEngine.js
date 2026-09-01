@@ -34,76 +34,64 @@ export class ForecastEngine {
     return {
       start,
       end,
-      productionPowerKw: Number(interval.energy?.productionPowerKw ?? 0),
-      consumptionPowerKw: Number(interval.energy?.consumptionPowerKw ?? 0),
+      productionPowerKw: Number(interval.solar?.productionPowerKw ?? 0),
+      consumptionPowerKw: Number(interval.load?.consumptionPowerKw ?? 0),
       gridTargetPowerKw: Number(interval.grid?.targetPowerKw ?? 0),
-      prematureExportPowerKw: Number(interval.grid?.prematureExportPowerKw ?? 0),
-      extraConsumptionPowerKw: Number(interval.loads?.extraPowerKw ?? 0),
-      extraConsumptionEndsAt: interval.loads?.extraEndsAt
-        ? new Date(interval.loads.extraEndsAt)
+      extraConsumptionPowerKw: Number(interval.load?.extraPowerKw ?? 0),
+      extraConsumptionEndsAt: interval.load?.extraEndsAt
+        ? new Date(interval.load.extraEndsAt)
         : undefined,
-      importPricePerKwh: interval.price?.buyPerKwh ?? null,
-      exportPricePerKwh: interval.price?.sellPerKwh ?? null,
+      importPricePerKwh: interval.grid?.buyPerKwh ?? null,
+      exportPricePerKwh: interval.grid?.sellPerKwh ?? null,
     };
   }
 
   static toForecastInterval(interval, timestep) {
     const batteryEnergyAtStartKwh = timestep.batteryEnergyAtStartKwh ?? 0;
-
     const batteryEnergyAtEndKwh =
       timestep.batteryEnergyAtEndKwh ?? batteryEnergyAtStartKwh;
-
-    const batteryChargeKWh = Math.max(
+    const batteryChargeKwh = Math.max(
       0,
       batteryEnergyAtEndKwh - batteryEnergyAtStartKwh
     );
-
-    const batteryDischargeKWh = Math.max(
+    const batteryDischargeKwh = Math.max(
       0,
       batteryEnergyAtStartKwh - batteryEnergyAtEndKwh
     );
-
-    const gridImportKWh = timestep.importedEnergyKwh ?? 0;
-
-    const gridExportKWh = timestep.exportedEnergyKwh ?? 0;
-
-    const importPricePerKwh = interval.price?.buyPerKwh ?? null;
-
-    const exportPricePerKwh = interval.price?.sellPerKwh ?? null;
+    const gridImportKwh = timestep.importedEnergyKwh ?? 0;
+    const gridExportKwh = timestep.exportedEnergyKwh ?? 0;
+    const buyPerKwh = interval.grid?.buyPerKwh ?? null;
+    const sellPerKwh = interval.grid?.sellPerKwh ?? null;
 
     return {
       start: interval.start,
       end: interval.end,
-
       durationMs:
         interval.durationMs ??
         new Date(interval.end).getTime() - new Date(interval.start).getTime(),
-
-      values: {
-        consumption_kwh: Number(interval.consumptionPowerKw ?? 0) *
-          (new Date(interval.end).getTime() - new Date(interval.start).getTime()) /
-          3600000,
-
-        pv_kwh: Number(interval.productionPowerKw ?? 0) *
-          (new Date(interval.end).getTime() - new Date(interval.start).getTime()) /
-          3600000,
-
-        battery_soc_kwh: batteryEnergyAtEndKwh,
-
-        battery_charge_kwh: batteryChargeKWh,
-
-        battery_discharge_kwh: batteryDischargeKWh,
-
-        grid_import_kwh: gridImportKWh,
-
-        grid_export_kwh: gridExportKWh,
-
-        importPricePerKwh,
-        exportPricePerKwh,
-
-        cost: gridImportKWh * (importPricePerKwh ?? 0),
-
-        revenue: gridExportKWh * (exportPricePerKwh ?? 0),
+      solar: {
+        productionPowerKw: Number(interval.solar?.productionPowerKw ?? 0),
+        missedProductionKwh: timestep.missedProductionEnergyKwh ?? 0,
+      },
+      load: {
+        consumptionPowerKw: Number(interval.load?.consumptionPowerKw ?? 0),
+        extraConsumptionKwh: timestep.extraConsumedEnergyKwh ?? 0,
+      },
+      battery: {
+        energyKwh: batteryEnergyAtEndKwh,
+        chargeKwh: batteryChargeKwh,
+        dischargeKwh: batteryDischargeKwh,
+      },
+      grid: {
+        targetPowerKw: Number(interval.grid?.targetPowerKw ?? 0),
+        importKwh: gridImportKwh,
+        exportKwh: gridExportKwh,
+        buyPerKwh,
+        sellPerKwh,
+      },
+      economics: {
+        cost: gridImportKwh * (buyPerKwh ?? 0),
+        revenue: gridExportKwh * (sellPerKwh ?? 0),
       },
     };
   }

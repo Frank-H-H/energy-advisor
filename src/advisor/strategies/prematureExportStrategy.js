@@ -48,28 +48,9 @@ export class PrematureExportStrategy extends Strategy {
 
     for (let index = timeSeries.length - 1; index >= 0; index -= 1) {
       const timestep = timeSeries[index];
-      const values = timestep.values ?? {};
-      const importPricePerKwh = Number(
-        values.importPricePerKwh ??
-          values.importPricePerKwh ??
-          timestep.importPricePerKwh ??
-          timestep.importPricePerKwh ??
-          0
-      );
-      const gridTargetPowerKw = Number(
-        values.gridTargetPowerKw ??
-          timestep.gridTargetPowerKw ??
-          values.gridTargetPowerKw ??
-          timestep.gridTargetPowerKw ??
-          0
-      );
-      const exportedEnergyKwh = Number(
-        values.exportedEnergyKwh ??
-          values.grid_export_kwh ??
-          timestep.exportedEnergyKwh ??
-          timestep.exportedEnergyKwh ??
-          0
-      );
+      const buyPerKwh = Number(timestep.grid?.buyPerKwh ?? 0);
+      const gridTargetPowerKw = Number(timestep.grid?.targetPowerKw ?? 0);
+      const gridExportKwh = Number(timestep.grid?.exportKwh ?? 0);
 
       const start = new Date(timestep.start);
       const end = new Date(timestep.end);
@@ -77,13 +58,13 @@ export class PrematureExportStrategy extends Strategy {
       const effectiveDurationHours =
         durationHours > 0 ? durationHours : intervalMinutes / 60;
 
-      if (importPricePerKwh < 0) {
+      if (buyPerKwh < 0) {
         // gridTargetPowerKw < 0 means export.
         const allowedExportEnergyKwh =
           Math.max(0, -gridTargetPowerKw) * effectiveDurationHours;
         remainingExportEnergyKwh += Math.max(
           0,
-          exportedEnergyKwh - allowedExportEnergyKwh
+          gridExportKwh - allowedExportEnergyKwh
         );
         continue;
       }

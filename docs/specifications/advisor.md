@@ -13,9 +13,15 @@ Purpose: analyze a simulation TimeSeries and produce a Plan containing actionabl
 
 ## TimeSeries
 
-A Strategy consumes the TimeSeries produced by the simulation. A timestep is identified by its `start` and `end` timestamps. Strategies must not mutate the TimeSeries.
+A Strategy consumes the TimeSeries produced by the ForecastEngine directly. A timestep is identified by its `start` and `end` timestamps and groups values by domain component:
 
-Power values use `kW` in property names and energy values use `kWh` where the unit is part of the domain property name. The canonical grid target is `gridTargetPowerKw`: negative means export, zero means neither import nor export, and positive means import.
+- `solar.productionPowerKw`, `solar.missedProductionKwh`
+- `load.consumptionPowerKw`, `load.extraConsumptionKwh`
+- `battery.energyKwh`, `battery.chargeKwh`, `battery.dischargeKwh`
+- `grid.targetPowerKw`, `grid.importKwh`, `grid.exportKwh`, `grid.buyPerKwh`, `grid.sellPerKwh`
+- `economics.cost`, `economics.revenue`
+
+Strategies must not mutate the TimeSeries. Power values use `kW` in property names and energy values use `kWh`. The canonical grid target is `grid.targetPowerKw`: negative means export, zero means neither import nor export, and positive means import.
 
 ## Strategy
 

@@ -24,8 +24,28 @@
     Multiple strategies can be activated by entering their IDs separated by commas.
   </p>
   <h4>Input</h4>
-  <pre>msg.timeSeries</pre>
-  <p><code>msg.payload</code> is accepted as a fallback.</p>
+  <p>
+    The node consumes the TimeSeries emitted by <code>energy-forecast</code>.
+    <code>msg.payload</code> can therefore be passed directly from the Forecast node;
+    <code>msg.timeSeries</code> is also accepted.
+  </p>
+  <pre>[
+  {
+    "start": "2026-08-29T12:00:00Z",
+    "end": "2026-08-29T12:15:00Z",
+    "solar": { "productionPowerKw": 4.2, "missedProductionKwh": 0 },
+    "load": { "consumptionPowerKw": 1.8, "extraConsumptionKwh": 0 },
+    "battery": { "energyKwh": 21.6, "chargeKwh": 0.6, "dischargeKwh": 0 },
+    "grid": {
+      "targetPowerKw": 0,
+      "importKwh": 0,
+      "exportKwh": 0,
+      "buyPerKwh": 0.32,
+      "sellPerKwh": 0.08
+    },
+    "economics": { "cost": 0, "revenue": 0 }
+  }
+]</pre>
   <h4>Output</h4>
   <pre>msg.payload = { actions, strategyPlans, rejectedProposals }</pre>
   <p>Actions are proposals for external execution. This node does not control devices.</p>

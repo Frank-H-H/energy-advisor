@@ -1,12 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { PrematureExportStrategy } from '../../src/advisor/strategies/prematureExportStrategy.js';
 
-function timestep(
-  startMinute,
-  importPricePerKwh,
-  exportedEnergyKwh,
-  gridTargetPowerKw = 0
-) {
+function timestep(startMinute, buyPerKwh, exportKwh, targetPowerKw = 0) {
   const start = new Date(
     `2026-01-01T00:${String(startMinute).padStart(2, '0')}:00Z`
   );
@@ -14,10 +9,10 @@ function timestep(
   return {
     start: start.toISOString(),
     end: end.toISOString(),
-    values: {
-      importPricePerKwh,
-      grid_export_kwh: exportedEnergyKwh,
-      gridTargetPowerKw,
+    grid: {
+      buyPerKwh,
+      exportKwh,
+      targetPowerKw,
     },
   };
 }
@@ -89,12 +84,12 @@ describe('PrematureExportStrategy', () => {
       {
         start: '2026-01-01T00:00:00Z',
         end: '2026-01-01T00:30:00Z',
-        values: { importPricePerKwh: 0.2, grid_export_kwh: 0 },
+        grid: { buyPerKwh: 0.2, exportKwh: 0, targetPowerKw: 0 },
       },
       {
         start: '2026-01-01T00:30:00Z',
         end: '2026-01-01T01:00:00Z',
-        values: { importPricePerKwh: -0.1, grid_export_kwh: 2 },
+        grid: { buyPerKwh: -0.1, exportKwh: 2, targetPowerKw: 0 },
       },
     ];
 

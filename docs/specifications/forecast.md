@@ -1,45 +1,72 @@
 # Forecast specification
 
-Purpose: define the inputs and outputs for the ForecastEngine.
+Purpose: define the external input of the ForecastEngine and the TimeSeries it produces for downstream consumers such as the Advisor.
 
 ## Inputs
 
 The input object contains:
 
-- `intervals`: ordered array of non-overlapping intervals
+- `intervals`: ordered array of non-overlapping forecast intervals
 - `state`: optional current simulation state
   - `state.batteryEnergyKwh`: current battery energy in kWh; takes precedence over the configured battery `soc_kwh`
 - `components`: optional simulation components (battery, grid, etc.)
 
-Each forecast interval contains the time range and logically grouped input data:
+Each forecast interval contains only external forecasts and constraints:
 
 - `start`: interval start timestamp
 - `end`: interval end timestamp
-- `energy.productionPowerKw`: expected PV production power in kW
-- `energy.consumptionPowerKw`: expected consumption power in kW
+- `solar.productionPowerKw`: expected PV production power in kW
+- `load.consumptionPowerKw`: expected normal consumption power in kW
+- `load.extraPowerKw`: optional additional consumption power in kW
+- `load.extraEndsAt`: optional end timestamp for the additional consumption
 - `grid.targetPowerKw`: desired grid exchange in kW (`< 0` export, `0` neutral, `> 0` import)
-- `price.buyPerKwh`: electricity purchase price per kWh
-- `price.sellPerKwh`: electricity selling price per kWh
-- `grid.prematureExportPowerKw`: optional additional export power in kW
-- `loads.extraPowerKw`: optional additional consumption power in kW
-- `loads.extraEndsAt`: optional end timestamp for the additional consumption
+- `grid.buyPerKwh`: electricity purchase price per kWh
+- `grid.sellPerKwh`: electricity selling price per kWh
 
-Power values are passed to the simulation in kW. The ForecastEngine no longer converts interval input energy values from kWh to kW. Energy values are calculated by the simulation from the interval duration.
+A forecast interval intentionally has no `battery.energyKwh`. Calculating the battery energy for every timestep is a responsibility of the ForecastEngine. Only the initial battery energy is supplied once through `state.batteryEnergyKwh`.
+
+Power values are passed to the simulation in kW. Energy values are calculated by the simulation from the interval duration.
 
 ## Outputs
 
-The ForecastEngine returns one result per input interval. The result currently keeps the established `values` output structure and includes at least:
+The ForecastEngine returns a TimeSeries containing one result per input interval. The result is grouped by the component where values occur and is directly consumable by the Advisor:
 
-- `consumption_kwh` (kWh)
-- `pv_kwh` (kWh)
-- `battery_soc_kwh` (kWh)
-- `battery_charge_kwh` (kWh)
-- `battery_discharge_kwh` (kWh)
-- `grid_import_kwh` (kWh)
-- `grid_export_kwh` (kWh)
-- `cost` (currency)
-- `revenue` (currency)
+```js
+{
+  start,
+  end,
+  durationMs,
+  solar: {
+    productionPowerKw,
+    missedProductionKwh
+  },
+  load: {
+    consumptionPowerKw,
+    extraConsumptionKwh
+  },
+  battery: {
+    energyKwh,
+    chargeKwh,
+    dischargeKwh
+  },
+  grid: {
+    targetPowerKw,
+    importKwh,
+    exportKwh,
+    buyPerKwh,
+    sellPerKwh
+  },
+  economics: {
+    cost,
+    revenue
+  }
+}
+```
+
+`battery.energyKwh` is the battery energy at the end of the interval. `battery.chargeKwh` and `battery.dischargeKwh` describe the energy charged or discharged during the interval.
+
+The ForecastEngine does not emit a `values` wrapper. It also does not expose `prematureExportPowerKw`; premature export is an Advisor decision represented by an Action, not a forecast input.
 
 ## Rationale
 
-The input model groups related data under `energy`, `grid`, `price`, and `loads`. Power values use the same terminology as the simulation and are passed directly in kW. There is no intermediate `values` object and no forecast-specific `pv_kwh`/`consumption_kwh` input conversion.
+The external Forecast input contains causes and constraints. The Forecast output additionally contains calculated states and results. Grouping data under `solar`, `load`, `battery`, `grid`, and `economics` makes ownership explicit and lets the Advisor consume the Forecast TimeSeries without renaming fields or converting units.
