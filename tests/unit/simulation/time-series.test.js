@@ -116,4 +116,30 @@ describe('simulateTimeSeries', () => {
     expect(result.timesteps[1].batteryEnergyAtStartKwh).toBe(2);
     expect(result.timesteps[1].batteryEnergyAtEndKwh).toBe(5);
   });
+  it('preserves sub-minute battery-full timing when splitting a timestep', () => {
+    const timestep = {
+      start: new Date('2026-01-01T00:00:00.000Z'),
+      end: new Date('2026-01-01T00:15:00.000Z'),
+      productionPowerKw: 7.2,
+      consumptionPowerKw: 0,
+      gridTargetPowerKw: 0,
+    };
+
+    const result = simulateTimeSeries({
+      state: { batteryEnergyAtStartKwh: 43.8 },
+      timesteps: [timestep],
+      components: {
+        battery: {
+          capacity_kwh: 44,
+          max_charge_power_kw: 7.2,
+          max_discharge_power_kw: 7.2,
+        },
+        grid: { max_export_power_kw: 10 },
+      },
+    });
+
+    expect(result.timesteps[0].batteryEnergyAtEndKwh).toBe(44);
+    expect(result.timesteps[0].exportedEnergyKwh).toBeCloseTo(1.6, 10);
+  });
+
 });

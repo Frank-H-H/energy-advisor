@@ -3,8 +3,8 @@ import { PowerBalance } from '../components/power-balance.js';
 import { SimulationStepResult } from '../components/simulation-step-result.js';
 import { Timestep } from '../components/timestep.js';
 import {
-  addMinutes,
-  differenceInMinutes,
+  addMilliseconds,
+  differenceInMilliseconds,
   isAfter,
   isBefore,
   isWithinInterval,
@@ -219,9 +219,9 @@ export function simulateTimestep({ state = {}, timestep, components = {} }) {
       timestep.missingChargeOnStart = missingChargeOnStart;
       timestep.realBatteryEnergyChange = realBatteryEnergyChange;
       timestep.limitedBatteryChargePower = limitedBatteryChargePower;
-      const timePointWhenFull = addMinutes(
+      const timePointWhenFull = addMilliseconds(
         timestep.start,
-        60.0 * batteryResult.reachedFullAtHours
+        3600000.0 * batteryResult.reachedFullAtHours
       );
       timestep.timePointWhenFull = timePointWhenFull;
 
@@ -252,9 +252,9 @@ export function simulateTimestep({ state = {}, timestep, components = {} }) {
         return;
       }
 
-      const timePointWhenEmpty = addMinutes(
+      const timePointWhenEmpty = addMilliseconds(
         timestep.start,
-        60.0 * batteryResult.reachedEmptyAtHours
+        3600000.0 * batteryResult.reachedEmptyAtHours
       );
       timestep.timePointWhenEmpty = timePointWhenEmpty;
 
@@ -293,8 +293,11 @@ export function simulateTimestep({ state = {}, timestep, components = {} }) {
   }
 
   function getFractionOfHour(timestep) {
-    const remainingMinutes = differenceInMinutes(timestep.end, timestep.start);
-    return remainingMinutes / 60;
+    const remainingMilliseconds = differenceInMilliseconds(
+      timestep.end,
+      timestep.start
+    );
+    return remainingMilliseconds / 3600000;
   }
 
   function cleanTimesteps(timesteps) {

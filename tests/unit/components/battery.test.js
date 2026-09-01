@@ -41,6 +41,20 @@ describe('Battery domain model', () => {
     expect(result.socAtEndKWh).toBe(5);
   });
 
+  it('reports fractional hours when the battery becomes full within a minute', () => {
+    const battery = new Battery({
+      capacity_kwh: 44,
+      soc_kwh: 43.8,
+      max_charge_power_kw: 7.2,
+    });
+
+    const result = battery.applyPower(7.2, 0.25);
+
+    expect(result.reachedFullAtHours).toBeCloseTo(0.2 / 7.2, 12);
+    expect(result.actualDurationHours).toBeCloseTo(0.2 / 7.2, 12);
+    expect(result.socAtEndKWh).toBe(44);
+  });
+
   it('stops charging when the battery becomes full', () => {
     const battery = new Battery({
       capacity_kwh: 10,
