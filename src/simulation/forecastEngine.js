@@ -4,7 +4,8 @@ export class ForecastEngine {
   static run(input = {}) {
     const intervals = input.intervals || [];
     const components = input.components || {};
-    const initialBatteryEnergy = components.battery?.soc_kwh ?? 0;
+    const initialBatteryEnergy =
+      input.state?.batteryEnergyKwh ?? components.battery?.soc_kwh ?? 0;
 
     const timesteps = intervals.map((interval) => this.toTimestep(interval));
 

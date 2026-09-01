@@ -5,6 +5,8 @@ Purpose: define the inputs and outputs for the ForecastEngine.
 Inputs:
 - intervals: ordered array of regular intervals with start,end,durationMs and values object
   - values may include: consumption_kwh, pv_kwh, importPricePerKwh, exportPricePerKwh
+- state: optional current simulation state
+  - state.batteryEnergyKwh: current battery energy in kWh; takes precedence over the configured battery soc_kwh
 - components: optional components (battery etc.)
 
 Outputs (per interval): values include at least:

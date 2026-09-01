@@ -44,6 +44,25 @@ describe('ForecastEngine', () => {
     expect(result[1].values.battery_soc_kwh).toBe(8);
   });
 
+  it('uses the battery energy from the input state as the initial simulation state', () => {
+    const result = ForecastEngine.run({
+      state: { batteryEnergyKwh: 6 },
+      intervals: [
+        {
+          start: '2026-01-01T00:00:00Z',
+          end: '2026-01-01T01:00:00Z',
+          values: {
+            consumption_kwh: 0,
+            pv_kwh: 1,
+          },
+        },
+      ],
+      components,
+    });
+
+    expect(result[0].values.battery_soc_kwh).toBe(7);
+  });
+
   it('converts interval energy to timestep power', () => {
     const result = ForecastEngine.run({
       intervals: [

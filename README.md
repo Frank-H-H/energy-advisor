@@ -315,10 +315,10 @@ Developer flow (recommended)
    pm2 start ~/AppData/Roaming/npm/node_modules/node-red/red.js --name "node-red" --watch .
    ```
 
-   or
+   or for debugging via visual studio code:
 
    ```
-   pm2 start ${HOME}/AppData/Roaming/npm/node_modules/node-red/red.js --name "node-red" --watch .
+   node red
    ```
 
 4. Run tests:

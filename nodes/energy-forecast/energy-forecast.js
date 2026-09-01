@@ -75,7 +75,7 @@ module.exports = function (RED) {
         const ForecastEngine = core.ForecastEngine;
 
         // prepare a copy of the input and attach components if we have config
-        const inputCopy = { ...input };
+        const inputCopy = { ...input, state: msg.state };
         if (systemConfigObject || batteryConfigObject || gridConfigObject) {
           inputCopy.components = schemas.mapSystemConfigToComponents(
             systemConfigObject || {},
