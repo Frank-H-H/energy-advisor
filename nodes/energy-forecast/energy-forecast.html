@@ -42,7 +42,7 @@
   "state": {
     "batteryEnergyKwh": 21
   },
-  "intervals": [
+  "timeSeries": [
     {
       "start": "2026-08-29T12:00:00Z",
       "end": "2026-08-29T12:15:00Z",
@@ -61,20 +61,20 @@
   ]
 }</pre>
 
-  <h4>Intervals</h4>
+  <h4>TimeSeries</h4>
 
   <p>
-    Each interval contains external forecasts and constraints. Battery energy
+    Each timestep contains external forecasts and constraints. Battery energy
     is intentionally not part of an interval input; the Forecast node computes
     it from <code>state.batteryEnergyKwh</code> and the simulated energy flow.
   </p>
 
   <dl>
     <dt><code>start</code></dt>
-    <dd>Start of the forecast interval.</dd>
+    <dd>Start of the forecast timestep.</dd>
 
     <dt><code>end</code></dt>
-    <dd>End of the forecast interval.</dd>
+    <dd>End of the forecast timestep.</dd>
 
     <dt><code>solar.productionPowerKw</code></dt>
     <dd>Expected PV production in <b>kW</b>.</dd>

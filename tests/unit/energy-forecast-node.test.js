@@ -7,7 +7,7 @@ import { ForecastEngine } from '../../src/simulation/forecastEngine.js'
 describe.skip('energy-forecast node mapping', () => {
   it('maps inline system config into components and ForecastEngine uses them', async () => {
     const fixture = {
-      intervals: [
+      timeSeries: [
         { start: '2026-01-01T00:00:00Z', end: '2026-01-01T01:00:00Z', durationMs: 3600000, solar: { productionPowerKw: 2 }, load: { consumptionPowerKw: 1 } }
       ]
     }
@@ -30,7 +30,7 @@ describe.skip('energy-forecast node mapping', () => {
     // if you added the runForecast helper ESM function at src/nodes/energy-forecast-runtime.js
     if (typeof runForecast === 'function') {
       const fixture = {
-        intervals: [
+        timeSeries: [
           { start: '2026-01-01T00:00:00Z', end: '2026-01-01T00:15:00Z', durationMs: 900000, solar: { productionPowerKw: 4 }, load: { consumptionPowerKw: 0.8 } }
         ]
       }

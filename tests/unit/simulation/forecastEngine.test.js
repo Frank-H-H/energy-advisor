@@ -14,9 +14,9 @@ describe('ForecastEngine', () => {
     },
   };
 
-  it('uses time-series simulation for consecutive forecast intervals', () => {
+  it('uses time-series simulation for consecutive forecast timesteps', () => {
     const result = ForecastEngine.run({
-      intervals: [
+      timeSeries: [
         {
           start: '2026-01-01T00:00:00Z',
           end: '2026-01-01T01:00:00Z',
@@ -41,7 +41,7 @@ describe('ForecastEngine', () => {
   it('uses the battery energy from the input state as the initial simulation state', () => {
     const result = ForecastEngine.run({
       state: { batteryEnergyKwh: 6 },
-      intervals: [
+      timeSeries: [
         {
           start: '2026-01-01T00:00:00Z',
           end: '2026-01-01T01:00:00Z',
@@ -55,9 +55,25 @@ describe('ForecastEngine', () => {
     expect(result[0].battery.energyKwh).toBe(7);
   });
 
+  it('does not use the configured battery SOC as the initial state fallback', () => {
+    const result = ForecastEngine.run({
+      timeSeries: [
+        {
+          start: '2026-01-01T00:00:00Z',
+          end: '2026-01-01T01:00:00Z',
+          solar: { productionPowerKw: 1 },
+          load: { consumptionPowerKw: 0 },
+        },
+      ],
+      components,
+    });
+
+    expect(result[0].battery.energyKwh).toBe(1);
+  });
+
   it('uses interval power directly', () => {
     const result = ForecastEngine.run({
-      intervals: [
+      timeSeries: [
         {
           start: '2026-01-01T00:00:00Z',
           end: '2026-01-01T00:15:00Z',
@@ -75,7 +91,7 @@ describe('ForecastEngine', () => {
   it('returns a domain-grouped TimeSeries that can be consumed by the advisor', () => {
     const result = ForecastEngine.run({
       state: { batteryEnergyKwh: 2 },
-      intervals: [
+      timeSeries: [
         {
           start: '2026-01-01T00:00:00Z',
           end: '2026-01-01T01:00:00Z',
@@ -105,7 +121,7 @@ describe('ForecastEngine', () => {
 
   it('calculates cost from simulated grid import', () => {
     const result = ForecastEngine.run({
-      intervals: [
+      timeSeries: [
         {
           start: '2026-01-01T00:00:00Z',
           end: '2026-01-01T01:00:00Z',
@@ -132,10 +148,10 @@ describe('ForecastEngine', () => {
     expect(result[0].economics.revenue).toBe(0);
   });
 
-  it('rejects intervals without a positive duration', () => {
+  it('rejects timesteps without a positive duration', () => {
     expect(() =>
       ForecastEngine.run({
-        intervals: [
+        timeSeries: [
           {
             start: '2026-01-01T00:00:00Z',
             end: '2026-01-01T00:00:00Z',
@@ -145,6 +161,6 @@ describe('ForecastEngine', () => {
         ],
         components,
       })
-    ).toThrow('forecast interval must have a positive duration');
+    ).toThrow('forecast timestep must have a positive duration');
   });
 });

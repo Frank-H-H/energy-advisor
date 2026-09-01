@@ -26,11 +26,10 @@ module.exports = function (RED) {
         const input = msg[inputField];
         if (
           !input ||
-          (!Array.isArray(input.intervals) &&
-            !Array.isArray((input || {}).intervals))
+          !Array.isArray(input.timeSeries)
         ) {
           node.error(
-            'Invalid input: msg.' + inputField + '.intervals required (array)'
+            'Invalid input: msg.' + inputField + '.timeSeries required (array)'
           );
           return;
         }

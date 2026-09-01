@@ -1,10 +1,37 @@
 {
-  "intervals": [
-    { "start": "2026-01-01T00:00:00Z", "end": "2026-01-01T00:15:00Z", "durationMs": 900000, "energy": { "consumptionPowerKw": 4, "productionPowerKw": 0 }, "price": { "buyPerKwh": 0.2, "sellPerKwh": 0.08 } },
-    { "start": "2026-01-01T00:15:00Z", "end": "2026-01-01T00:30:00Z", "durationMs": 900000, "energy": { "consumptionPowerKw": 2, "productionPowerKw": 12 }, "price": { "buyPerKwh": 0.1, "sellPerKwh": 0.08 } },
-    { "start": "2026-01-01T00:30:00Z", "end": "2026-01-01T00:45:00Z", "durationMs": 900000, "energy": { "consumptionPowerKw": 4, "productionPowerKw": 0 }, "price": { "buyPerKwh": -0.05, "sellPerKwh": 0.08 } }
+  "timeSeries": [
+    {
+      "start": "2026-01-01T00:00:00Z",
+      "end": "2026-01-01T00:15:00Z",
+      "durationMs": 900000,
+      "solar": { "productionPowerKw": 0 },
+      "load": { "consumptionPowerKw": 4 },
+      "grid": { "buyPerKwh": 0.2, "sellPerKwh": 0.08, "targetPowerKw": 0 }
+    },
+    {
+      "start": "2026-01-01T00:15:00Z",
+      "end": "2026-01-01T00:30:00Z",
+      "durationMs": 900000,
+      "solar": { "productionPowerKw": 12 },
+      "load": { "consumptionPowerKw": 2 },
+      "grid": { "buyPerKwh": 0.1, "sellPerKwh": 0.08, "targetPowerKw": 0 }
+    },
+    {
+      "start": "2026-01-01T00:30:00Z",
+      "end": "2026-01-01T00:45:00Z",
+      "durationMs": 900000,
+      "solar": { "productionPowerKw": 0 },
+      "load": { "consumptionPowerKw": 4 },
+      "grid": { "buyPerKwh": -0.05, "sellPerKwh": 0.08, "targetPowerKw": 0 }
+    }
   ],
   "components": {
-    "battery": { "capacity_kwh": 5, "soc_kwh": 4, "min_soc_kwh": 0, "charge_efficiency": 0.95, "discharge_efficiency": 0.95 }
+    "battery": {
+      "capacity_kwh": 5,
+      "soc_kwh": 4,
+      "min_soc_kwh": 0,
+      "charge_efficiency": 0.95,
+      "discharge_efficiency": 0.95
+    }
   }
 }

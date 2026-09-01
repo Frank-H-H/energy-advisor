@@ -6,12 +6,12 @@ Purpose: define the external input of the ForecastEngine and the TimeSeries it p
 
 The input object contains:
 
-- `intervals`: ordered array of non-overlapping forecast intervals
+- `timeSeries`: ordered array of non-overlapping forecast timesteps
 - `state`: optional current simulation state
-  - `state.batteryEnergyKwh`: current battery energy in kWh; takes precedence over the configured battery `soc_kwh`
+  - `state.batteryEnergyKwh`: current battery energy in kWh; is the initial battery energy for the simulation
 - `components`: optional simulation components (battery, grid, etc.)
 
-Each forecast interval contains only external forecasts and constraints:
+Each forecast timestep contains only external forecasts and constraints:
 
 - `start`: interval start timestamp
 - `end`: interval end timestamp
@@ -23,7 +23,7 @@ Each forecast interval contains only external forecasts and constraints:
 - `grid.buyPerKwh`: electricity purchase price per kWh
 - `grid.sellPerKwh`: electricity selling price per kWh
 
-A forecast interval intentionally has no `battery.energyKwh`. Calculating the battery energy for every timestep is a responsibility of the ForecastEngine. Only the initial battery energy is supplied once through `state.batteryEnergyKwh`.
+A forecast timestep intentionally has no `battery.energyKwh`. Calculating the battery energy for every timestep is a responsibility of the ForecastEngine. Only the initial battery energy is supplied once through `state.batteryEnergyKwh`.
 
 Power values are passed to the simulation in kW. Energy values are calculated by the simulation from the interval duration.
 

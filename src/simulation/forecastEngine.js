@@ -2,12 +2,12 @@ import { simulateTimeSeries } from './time-series.js';
 
 export class ForecastEngine {
   static run(input = {}) {
-    const intervals = input.intervals || [];
+    const timeSeries = input.timeSeries || [];
     const components = input.components || {};
     const initialBatteryEnergy =
-      input.state?.batteryEnergyKwh ?? components.battery?.soc_kwh ?? 0;
+      input.state?.batteryEnergyKwh ?? 0;
 
-    const timesteps = intervals.map((interval) => this.toTimestep(interval));
+    const timesteps = timeSeries.map((interval) => this.toTimestep(interval));
 
     const simulation = simulateTimeSeries({
       state: {
@@ -18,7 +18,7 @@ export class ForecastEngine {
     });
 
     return simulation.timesteps.map((timestep, index) =>
-      this.toForecastInterval(intervals[index], timestep)
+      this.toForecastInterval(timeSeries[index], timestep)
     );
   }
 
@@ -28,7 +28,7 @@ export class ForecastEngine {
     const durationMs = end.getTime() - start.getTime();
 
     if (!Number.isFinite(durationMs) || durationMs <= 0) {
-      throw new Error('forecast interval must have a positive duration');
+      throw new Error('forecast timestep must have a positive duration');
     }
 
     return {
