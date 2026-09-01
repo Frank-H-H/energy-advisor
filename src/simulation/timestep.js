@@ -32,11 +32,11 @@ export function simulateTimestep({ state = {}, timestep, components = {} }) {
 
   timestep.batteryEnergyAtStartKwh = state.batteryEnergyAtStartKwh;
   // normalize inputs
-  timestep.expectedProductionPowerKw = Number(
-    timestep.expectedProductionPowerKw || 0
+  timestep.productionPowerKw = Number(
+    timestep.productionPowerKw || 0
   );
-  timestep.expectedConsumptionPowerKw = Number(
-    timestep.expectedConsumptionPowerKw || 0
+  timestep.consumptionPowerKw = Number(
+    timestep.consumptionPowerKw || 0
   );
   timestep.gridTargetPowerKw = Number(timestep.gridTargetPowerKw || 0);
   timestep.prematureExportPowerKw = Number(timestep.prematureExportPowerKw || 0);
@@ -145,7 +145,7 @@ export function simulateTimestep({ state = {}, timestep, components = {} }) {
     timestep.constrainedPowerBalance = constrainedPowerBalance;
     timestep.missedProductionEnergyKwh =
       Math.min(
-        timestep.expectedProductionPowerKw,
+        timestep.productionPowerKw,
         Math.max(0, unconstrainedPowerBalance - constrainedPowerBalance)
       ) * timestepFraction;
     if (!isBefore(timestep.extraConsumptionEndsAt, timestep.end)) {
@@ -177,7 +177,7 @@ export function simulateTimestep({ state = {}, timestep, components = {} }) {
     timestep.limitedBatteryChargePower = limitedBatteryChargePower;
     timestep.missedProductionEnergyKwh =
       Math.min(
-        timestep.expectedProductionPowerKw,
+        timestep.productionPowerKw,
         Math.max(
           0,
           unconstrainedPowerBalance -

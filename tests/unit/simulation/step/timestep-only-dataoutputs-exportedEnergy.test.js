@@ -11,7 +11,7 @@ describe('simulateTimestep - computation of exportedEnergyKwh', () => {
       const testFixture = defaultSimpleTestSettingsForPartialStepFixture(
         { batteryEnergyAtStartKwh: 43 },
         {
-          expectedProductionPowerKw: 10,
+          productionPowerKw: 10,
         }
       );
 
@@ -28,7 +28,7 @@ describe('simulateTimestep - computation of exportedEnergyKwh', () => {
       const testFixture = defaultSimpleTestSettingsForPartialStepFixture(
         { batteryEnergyAtStartKwh: 42.6 },
         {
-          expectedProductionPowerKw: 10,
+          productionPowerKw: 10,
         }
       );
 
@@ -47,7 +47,7 @@ describe('simulateTimestep - computation of exportedEnergyKwh', () => {
       const testFixture = defaultSimpleTestSettingsForPartialStepFixture(
         { batteryEnergyAtStartKwh: 0 },
         {
-          expectedConsumptionPowerKw: 10,
+          consumptionPowerKw: 10,
         }
       );
 
@@ -59,7 +59,7 @@ describe('simulateTimestep - computation of exportedEnergyKwh', () => {
       const testFixture = defaultSimpleTestSettingsForPartialStepFixture(
         { batteryEnergyAtStartKwh: 0.4 },
         {
-          expectedConsumptionPowerKw: 10,
+          consumptionPowerKw: 10,
         }
       );
 
@@ -73,7 +73,7 @@ describe('simulateTimestep - computation of exportedEnergyKwh', () => {
       const testFixture = defaultSimpleTestSettingsForFullStepFixture(
         { batteryEnergyAtStartKwh: 43 },
         {
-          expectedProductionPowerKw: 10,
+          productionPowerKw: 10,
         }
       );
 
@@ -90,7 +90,7 @@ describe('simulateTimestep - computation of exportedEnergyKwh', () => {
       const testFixture = defaultSimpleTestSettingsForFullStepFixture(
         { batteryEnergyAtStartKwh: 42.6 },
         {
-          expectedProductionPowerKw: 10,
+          productionPowerKw: 10,
         }
       );
 
@@ -110,7 +110,7 @@ describe('simulateTimestep - computation of exportedEnergyKwh', () => {
       const testFixture = defaultSimpleTestSettingsForFullStepFixture(
         { batteryEnergyAtStartKwh: 0 },
         {
-          expectedConsumptionPowerKw: 10,
+          consumptionPowerKw: 10,
         }
       );
 
@@ -122,7 +122,7 @@ describe('simulateTimestep - computation of exportedEnergyKwh', () => {
       const testFixture = defaultSimpleTestSettingsForFullStepFixture(
         { batteryEnergyAtStartKwh: 0.4 },
         {
-          expectedConsumptionPowerKw: 10,
+          consumptionPowerKw: 10,
         }
       );
 

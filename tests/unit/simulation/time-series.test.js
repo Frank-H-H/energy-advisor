@@ -19,15 +19,15 @@ describe('simulateTimeSeries', () => {
       {
         start: new Date('2026-01-01T00:00:00Z'),
         end: new Date('2026-01-01T01:00:00Z'),
-        expectedProductionPowerKw: 4,
-        expectedConsumptionPowerKw: 0,
+        productionPowerKw: 4,
+        consumptionPowerKw: 0,
         gridTargetPowerKw: 0,
       },
       {
         start: new Date('2026-01-01T01:00:00Z'),
         end: new Date('2026-01-01T02:00:00Z'),
-        expectedProductionPowerKw: 4,
-        expectedConsumptionPowerKw: 0,
+        productionPowerKw: 4,
+        consumptionPowerKw: 0,
         gridTargetPowerKw: 0,
       },
     ];
@@ -60,8 +60,8 @@ describe('simulateTimeSeries', () => {
         {
           start: new Date('2026-01-01T00:00:00Z'),
           end: new Date('2026-01-01T01:00:00Z'),
-          expectedProductionPowerKw: 0,
-          expectedConsumptionPowerKw: 1,
+          productionPowerKw: 0,
+          consumptionPowerKw: 1,
           gridTargetPowerKw: 0,
         },
       ],
@@ -94,15 +94,15 @@ describe('simulateTimeSeries', () => {
     const first = {
       start: new Date('2026-01-01T01:00:00Z'),
       end: new Date('2026-01-01T02:00:00Z'),
-      expectedProductionPowerKw: 2,
-      expectedConsumptionPowerKw: 0,
+      productionPowerKw: 2,
+      consumptionPowerKw: 0,
       gridTargetPowerKw: 0,
     };
     const second = {
       start: new Date('2026-01-01T00:00:00Z'),
       end: new Date('2026-01-01T01:00:00Z'),
-      expectedProductionPowerKw: 3,
-      expectedConsumptionPowerKw: 0,
+      productionPowerKw: 3,
+      consumptionPowerKw: 0,
       gridTargetPowerKw: 0,
     };
 

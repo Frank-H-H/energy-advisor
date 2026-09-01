@@ -9,8 +9,8 @@ import {
 describe.skip('simulateTimestep - Full example (kWh message field names)', () => {
   it('current frame (partial 10 minutes) returns kWhInBatteryEnd = 20.25', () => {
     const interval = makeInterval('2026-04-08T12:05:00.000Z', '2026-04-08T12:15:00.000Z', {
-      expectedProductionPowerKw: 6,
-      expectedConsumptionPowerKw: 3,
+      productionPowerKw: 6,
+      consumptionPowerKw: 3,
       gridTargetPowerKw: 0.6,
       extraConsumptionPowerKw: 2.1,
       extraConsumptionEndsAt: new Date('2026-04-08T14:00:00.000Z')
@@ -25,8 +25,8 @@ describe.skip('simulateTimestep - Full example (kWh message field names)', () =>
 
   it('future frame (full 15 minutes) returns kWhInBatteryEnd = 20.4', () => {
     const interval = makeInterval('2026-04-08T13:00:00.000Z', '2026-04-08T13:15:00.000Z', {
-      expectedProductionPowerKw: 6,
-      expectedConsumptionPowerKw: 3,
+      productionPowerKw: 6,
+      consumptionPowerKw: 3,
       gridTargetPowerKw: 0.6,
       extraConsumptionPowerKw: 2,
       extraConsumptionEndsAt: new Date('2026-04-08T14:00:00.000Z')

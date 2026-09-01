@@ -45,29 +45,40 @@
     {
       "start": "2026-08-29T12:00:00Z",
       "end": "2026-08-29T12:15:00Z",
-      "pvProduction": 4.2,
-      "consumption": 1.8,
-      "gridTarget": 0,
-      "importPrice": 0.32,
-      "exportPrice": 0.08
+      "energy": {
+        "productionPowerKw": 4.2,
+        "consumptionPowerKw": 1.8
+      },
+      "grid": {
+        "targetPowerKw": 0
+      },
+      "price": {
+        "buyPerKwh": 0.32,
+        "sellPerKwh": 0.08
+      }
     },
     {
       "start": "2026-08-29T12:15:00Z",
       "end": "2026-08-29T12:30:00Z",
-      "pvProduction": 4.8,
-      "consumption": 1.9,
-      "gridTarget": 0,
-      "importPrice": 0.32,
-      "exportPrice": 0.08
-    }
-  ],
-  "extraLoads": [
-    {
-      "remainingMinutes": 45,
-      "powerKw": 3.6
+      "energy": {
+        "productionPowerKw": 4.8,
+        "consumptionPowerKw": 1.9
+      },
+      "grid": {
+        "targetPowerKw": 0
+      },
+      "price": {
+        "buyPerKwh": 0.32,
+        "sellPerKwh": 0.08
+      }
+      ,
+      "loads": {
+        "extraPowerKw": 3.6,
+        "extraEndsAt": "2026-08-29T13:00:00Z"
+      }
     }
   ]
-+}</pre>
+}</pre>
 
   <h4>Intervals</h4>
 
@@ -83,29 +94,29 @@
     <dt><code>end</code></dt>
     <dd>End of the forecast interval.</dd>
 
-    <dt><code>pvProduction</code></dt>
+    <dt><code>energy.productionPowerKw</code></dt>
     <dd>
       Expected PV production in <b>kW</b>.
     </dd>
 
-    <dt><code>consumption</code></dt>
+    <dt><code>energy.consumptionPowerKw</code></dt>
     <dd>
       Estimated normal household consumption in <b>kW</b>.
     </dd>
 
-    <dt><code>gridTarget</code></dt>
+    <dt><code>grid.targetPowerKw</code></dt>
     <dd>
       Desired power exchange with the electricity grid in <b>kW</b>.
       A positive value represents grid import, a negative value represents
       grid export, and zero represents no desired grid exchange.
     </dd>
 
-    <dt><code>importPrice</code></dt>
+    <dt><code>price.buyPerKwh</code></dt>
     <dd>
       Electricity purchase price in currency per <b>kWh</b>.
     </dd>
 
-    <dt><code>exportPrice</code></dt>
+    <dt><code>price.sellPerKwh</code></dt>
     <dd>
       Electricity selling price in currency per <b>kWh</b>.
     </dd>
@@ -114,26 +125,26 @@
   <h4>Grid target</h4>
 
   <p>
-    <code>gridTarget</code> describes the desired power at the grid connection
+    <code>grid.targetPowerKw</code> describes the desired power at the grid connection
     point:
   </p>
 
   <ul>
-    <li><code>gridTarget &gt; 0</code> - import power from the grid</li>
-    <li><code>gridTarget = 0</code> - no grid exchange</li>
-    <li><code>gridTarget &lt; 0</code> - export power to the grid</li>
+    <li><code>grid.targetPowerKw &gt; 0</code> - import power from the grid</li>
+    <li><code>grid.targetPowerKw = 0</code> - no grid exchange</li>
+    <li><code>grid.targetPowerKw &lt; 0</code> - export power to the grid</li>
   </ul>
 
   <p>
-    For example, <code>gridTarget: 2</code> represents a desired grid import
-    of 2 kW, while <code>gridTarget: -2</code> represents a desired grid
+    For example, <code>grid.targetPowerKw: 2</code> represents a desired grid import
+    of 2 kW, while <code>grid.targetPowerKw: -2</code> represents a desired grid
     export of 2 kW.
   </p>
 
   <h4>Extra loads</h4>
 
   <p>
-    The optional <code>extraLoads</code> array describes additional consumers
+    The optional <code>loads</code> object describes additional consumers
     that are currently running but are not included in the normal
     <code>consumption</code> forecast.
   </p>
@@ -170,12 +181,12 @@
       "powerKw": 1.2
     }
   ]
-+}</pre>
+}</pre>
 
   <h4>Prices</h4>
 
   <p>
-    <code>importPrice</code> and <code>exportPrice</code> are specified per
+    <code>price.buyPerKwh</code> and <code>price.sellPerKwh</code> are specified per
     kWh. They are used to calculate the cost of imported energy and the
     revenue from exported energy.
   </p>
@@ -199,11 +210,11 @@
   "battery_charge_kwh": 0.6,
   "battery_discharge_kwh": 0,
   "battery_soc_kwh": 21.4,
-  "importPrice": 0.32,
-  "exportPrice": 0.08,
+  "importPricePerKwh": 0.32,
+  "exportPricePerKwh": 0.08,
   "cost": 0,
   "revenue": 0
-+}</pre>
+}</pre>
 
   <dl>
     <dt><code>exportedEnergy</code></dt>

@@ -8,8 +8,8 @@ describe('PowerBalance domain model', () => {
 
   it('calculates production minus consumption plus grid target', () => {
     const balance = PowerBalance.fromTimestep({
-      expectedProductionPowerKw: 8,
-      expectedConsumptionPowerKw: 3,
+      productionPowerKw: 8,
+      consumptionPowerKw: 3,
       gridTargetPowerKw: -1,
       start,
       end,
@@ -20,8 +20,8 @@ describe('PowerBalance domain model', () => {
 
   it('subtracts premature export power', () => {
     const balance = PowerBalance.fromTimestep({
-      expectedProductionPowerKw: 8,
-      expectedConsumptionPowerKw: 3,
+      productionPowerKw: 8,
+      consumptionPowerKw: 3,
       gridTargetPowerKw: 0,
       prematureExportPowerKw: 2,
       start,
@@ -33,8 +33,8 @@ describe('PowerBalance domain model', () => {
 
   it('subtracts extra consumption while it is active', () => {
     const balance = PowerBalance.fromTimestep({
-      expectedProductionPowerKw: 8,
-      expectedConsumptionPowerKw: 3,
+      productionPowerKw: 8,
+      consumptionPowerKw: 3,
       gridTargetPowerKw: 0,
       extraConsumptionPowerKw: 2,
       extraConsumptionEndsAt: beforeEnd,
@@ -47,8 +47,8 @@ describe('PowerBalance domain model', () => {
 
   it('does not subtract extra consumption after it has ended', () => {
     const balance = PowerBalance.fromTimestep({
-      expectedProductionPowerKw: 8,
-      expectedConsumptionPowerKw: 3,
+      productionPowerKw: 8,
+      consumptionPowerKw: 3,
       gridTargetPowerKw: 0,
       extraConsumptionPowerKw: 2,
       extraConsumptionEndsAt: start,
@@ -61,8 +61,8 @@ describe('PowerBalance domain model', () => {
 
   it('returns a negative balance when consumption exceeds supply', () => {
     const balance = PowerBalance.fromTimestep({
-      expectedProductionPowerKw: 2,
-      expectedConsumptionPowerKw: 7,
+      productionPowerKw: 2,
+      consumptionPowerKw: 7,
       gridTargetPowerKw: 0,
       start,
       end,
@@ -73,8 +73,8 @@ describe('PowerBalance domain model', () => {
 
   it('does not alter the timestep', () => {
     const timestep = {
-      expectedProductionPowerKw: 8,
-      expectedConsumptionPowerKw: 3,
+      productionPowerKw: 8,
+      consumptionPowerKw: 3,
       gridTargetPowerKw: 1,
       start,
       end,

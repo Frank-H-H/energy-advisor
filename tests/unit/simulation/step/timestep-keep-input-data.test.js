@@ -12,8 +12,8 @@ describe('simulateTimestep keeps input data', () => {
     const testFixture = defaultSimpleTestSettingsForPartialStepFixture(
       {},
       {
-        expectedProductionPowerKw: 6,
-        expectedConsumptionPowerKw: 3,
+        productionPowerKw: 6,
+        consumptionPowerKw: 3,
         gridTargetPowerKw: 0.6,
         extraConsumptionPowerKw: 2.1,
         extraConsumptionEndsAt: new Date('2026-04-08T14:00:00.000Z'),
@@ -22,8 +22,8 @@ describe('simulateTimestep keeps input data', () => {
     );
     const { nextState } = simulateTimestep(testFixture);
 
-    expect(nextState.expectedProductionPowerKw).toBeCloseTo(6);
-    expect(nextState.expectedConsumptionPowerKw).toBeCloseTo(3);
+    expect(nextState.productionPowerKw).toBeCloseTo(6);
+    expect(nextState.consumptionPowerKw).toBeCloseTo(3);
     expect(nextState.gridTargetPowerKw).toBeCloseTo(0.6);
     expect(nextState.extraConsumptionPowerKw).toBeCloseTo(2.1);
     expect(nextState.extraConsumptionEndsAt).toBeCloseTo(
@@ -37,8 +37,8 @@ describe('simulateTimestep keeps input data', () => {
     const testFixture = defaultSimpleTestSettingsForFullStepFixture(
       {},
       {
-        expectedProductionPowerKw: 6,
-        expectedConsumptionPowerKw: 3,
+        productionPowerKw: 6,
+        consumptionPowerKw: 3,
         gridTargetPowerKw: 0.6,
         extraConsumptionPowerKw: 2.1,
         extraConsumptionEndsAt: new Date('2026-04-08T14:00:00.000Z'),
@@ -47,8 +47,8 @@ describe('simulateTimestep keeps input data', () => {
     );
     const { nextState } = simulateTimestep(testFixture);
 
-    expect(nextState.expectedProductionPowerKw).toBeCloseTo(6);
-    expect(nextState.expectedConsumptionPowerKw).toBeCloseTo(3);
+    expect(nextState.productionPowerKw).toBeCloseTo(6);
+    expect(nextState.consumptionPowerKw).toBeCloseTo(3);
     expect(nextState.gridTargetPowerKw).toBeCloseTo(0.6);
     expect(nextState.extraConsumptionPowerKw).toBeCloseTo(2.1);
     expect(nextState.extraConsumptionEndsAt).toBeCloseTo(

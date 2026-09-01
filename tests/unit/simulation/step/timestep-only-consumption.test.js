@@ -12,7 +12,7 @@ describe('simulateTimestep - influence of consumption only', () => {
       const testFixture = defaultSimpleTestSettingsForPartialStepFixture(
         {},
         {
-          expectedConsumptionPowerKw: 6,
+          consumptionPowerKw: 6,
         }
       );
 
@@ -28,7 +28,7 @@ describe('simulateTimestep - influence of consumption only', () => {
       const testFixture = defaultSimpleTestSettingsForPartialStepFixture(
         { batteryEnergyAtStartKwh: 0.2 },
         {
-          expectedConsumptionPowerKw: 6,
+          consumptionPowerKw: 6,
         }
       );
 
@@ -46,7 +46,7 @@ describe('simulateTimestep - influence of consumption only', () => {
       const testFixture = defaultSimpleTestSettingsForFullStepFixture(
         {},
         {
-          expectedConsumptionPowerKw: 4,
+          consumptionPowerKw: 4,
         }
       );
 
@@ -62,7 +62,7 @@ describe('simulateTimestep - influence of consumption only', () => {
       const testFixture = defaultSimpleTestSettingsForFullStepFixture(
         { batteryEnergyAtStartKwh: 0.2 },
         {
-          expectedConsumptionPowerKw: 6,
+          consumptionPowerKw: 6,
         }
       );
 

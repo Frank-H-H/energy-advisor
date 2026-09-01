@@ -25,41 +25,29 @@ export class ForecastEngine {
   static toTimestep(interval) {
     const start = new Date(interval.start);
     const end = new Date(interval.end);
-    const durationHours = (end.getTime() - start.getTime()) / 3600000;
+    const durationMs = end.getTime() - start.getTime();
 
-    if (!Number.isFinite(durationHours) || durationHours <= 0) {
+    if (!Number.isFinite(durationMs) || durationMs <= 0) {
       throw new Error('forecast interval must have a positive duration');
     }
-
-    const values = interval.values || {};
 
     return {
       start,
       end,
-
-      expectedProductionPowerKw: Number(values.pv_kwh ?? 0) / durationHours,
-
-      expectedConsumptionPowerKw:
-        Number(values.consumption_kwh ?? 0) / durationHours,
-
-      gridTargetPowerKw: Number(values.gridTargetPowerKw ?? 0),
-
-      prematureExportPowerKw: Number(values.prematureExportPowerKw ?? 0),
-
-      extraConsumptionPowerKw: Number(values.extraConsumptionPowerKw ?? 0),
-
-      extraConsumptionEndsAt: values.extraConsumptionEndsAt
-        ? new Date(values.extraConsumptionEndsAt)
+      productionPowerKw: Number(interval.energy?.productionPowerKw ?? 0),
+      consumptionPowerKw: Number(interval.energy?.consumptionPowerKw ?? 0),
+      gridTargetPowerKw: Number(interval.grid?.targetPowerKw ?? 0),
+      prematureExportPowerKw: Number(interval.grid?.prematureExportPowerKw ?? 0),
+      extraConsumptionPowerKw: Number(interval.loads?.extraPowerKw ?? 0),
+      extraConsumptionEndsAt: interval.loads?.extraEndsAt
+        ? new Date(interval.loads.extraEndsAt)
         : undefined,
-
-      importPricePerKwh: values.importPricePerKwh ?? null,
-      exportPricePerKwh: values.exportPricePerKwh ?? null,
+      importPricePerKwh: interval.price?.buyPerKwh ?? null,
+      exportPricePerKwh: interval.price?.sellPerKwh ?? null,
     };
   }
 
   static toForecastInterval(interval, timestep) {
-    const values = interval.values || {};
-
     const batteryEnergyAtStartKwh = timestep.batteryEnergyAtStartKwh ?? 0;
 
     const batteryEnergyAtEndKwh =
@@ -79,9 +67,9 @@ export class ForecastEngine {
 
     const gridExportKWh = timestep.exportedEnergyKwh ?? 0;
 
-    const importPricePerKwh = values.importPricePerKwh ?? null;
+    const importPricePerKwh = interval.price?.buyPerKwh ?? null;
 
-    const exportPricePerKwh = values.exportPricePerKwh ?? null;
+    const exportPricePerKwh = interval.price?.sellPerKwh ?? null;
 
     return {
       start: interval.start,
@@ -92,9 +80,13 @@ export class ForecastEngine {
         new Date(interval.end).getTime() - new Date(interval.start).getTime(),
 
       values: {
-        consumption_kwh: Number(values.consumption_kwh ?? 0),
+        consumption_kwh: Number(interval.consumptionPowerKw ?? 0) *
+          (new Date(interval.end).getTime() - new Date(interval.start).getTime()) /
+          3600000,
 
-        pv_kwh: Number(values.pv_kwh ?? 0),
+        pv_kwh: Number(interval.productionPowerKw ?? 0) *
+          (new Date(interval.end).getTime() - new Date(interval.start).getTime()) /
+          3600000,
 
         battery_soc_kwh: batteryEnergyAtEndKwh,
 

@@ -20,18 +20,12 @@ describe('ForecastEngine', () => {
         {
           start: '2026-01-01T00:00:00Z',
           end: '2026-01-01T01:00:00Z',
-          values: {
-            consumption_kwh: 0,
-            pv_kwh: 4,
-          },
+          energy: { productionPowerKw: 4, consumptionPowerKw: 0 },
         },
         {
           start: '2026-01-01T01:00:00Z',
           end: '2026-01-01T02:00:00Z',
-          values: {
-            consumption_kwh: 0,
-            pv_kwh: 4,
-          },
+          energy: { productionPowerKw: 4, consumptionPowerKw: 0 },
         },
       ],
       components,
@@ -51,10 +45,7 @@ describe('ForecastEngine', () => {
         {
           start: '2026-01-01T00:00:00Z',
           end: '2026-01-01T01:00:00Z',
-          values: {
-            consumption_kwh: 0,
-            pv_kwh: 1,
-          },
+          energy: { productionPowerKw: 1, consumptionPowerKw: 0 },
         },
       ],
       components,
@@ -63,22 +54,19 @@ describe('ForecastEngine', () => {
     expect(result[0].values.battery_soc_kwh).toBe(7);
   });
 
-  it('converts interval energy to timestep power', () => {
+  it('uses interval power directly', () => {
     const result = ForecastEngine.run({
       intervals: [
         {
           start: '2026-01-01T00:00:00Z',
           end: '2026-01-01T00:15:00Z',
-          values: {
-            consumption_kwh: 0,
-            pv_kwh: 1,
-          },
+          energy: { productionPowerKw: 1, consumptionPowerKw: 0 },
         },
       ],
       components,
     });
 
-    expect(result[0].values.battery_soc_kwh).toBe(1);
+    expect(result[0].values.battery_soc_kwh).toBe(0.25);
   });
 
   it('calculates cost from simulated grid import', () => {
@@ -87,12 +75,8 @@ describe('ForecastEngine', () => {
         {
           start: '2026-01-01T00:00:00Z',
           end: '2026-01-01T01:00:00Z',
-          values: {
-            consumption_kwh: 3,
-            pv_kwh: 0,
-            importPricePerKwh: 0.3,
-            exportPricePerKwh: 0.1,
-          },
+          energy: { productionPowerKw: 0, consumptionPowerKw: 3 },
+          price: { buyPerKwh: 0.3, sellPerKwh: 0.1 },
         },
       ],
       components: {
@@ -122,7 +106,7 @@ describe('ForecastEngine', () => {
           {
             start: '2026-01-01T00:00:00Z',
             end: '2026-01-01T00:00:00Z',
-            values: {},
+            energy: {},
           },
         ],
         components,

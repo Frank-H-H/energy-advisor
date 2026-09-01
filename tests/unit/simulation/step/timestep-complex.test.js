@@ -13,8 +13,8 @@ describe('simulateTimestep - complex scenarios', () => {
       const testFixture = defaultSimpleTestSettingsForPartialStepFixture(
         {},
         {
-          expectedProductionPowerKw: 6,
-          expectedConsumptionPowerKw: 3,
+          productionPowerKw: 6,
+          consumptionPowerKw: 3,
           gridTargetPowerKw: 0.6,
           extraConsumptionPowerKw: 2.1,
           extraConsumptionEndsAt: new Date('2026-04-08T14:00:00.000Z'),
@@ -38,8 +38,8 @@ describe('simulateTimestep - complex scenarios', () => {
       const testFixture = defaultSimpleTestSettingsForFullStepFixture(
         {},
         {
-          expectedProductionPowerKw: 6,
-          expectedConsumptionPowerKw: 3,
+          productionPowerKw: 6,
+          consumptionPowerKw: 3,
           gridTargetPowerKw: 0.6,
           extraConsumptionPowerKw: 2.1,
           extraConsumptionEndsAt: new Date('2026-04-08T14:00:00.000Z'),

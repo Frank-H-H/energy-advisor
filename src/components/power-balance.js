@@ -13,8 +13,8 @@ export class PowerBalance {
 
   static fromTimestep(timestep) {
     let powerBalance =
-      timestep.expectedProductionPowerKw -
-      timestep.expectedConsumptionPowerKw +
+      timestep.productionPowerKw -
+      timestep.consumptionPowerKw +
       timestep.gridTargetPowerKw
 
     if (typeof timestep.prematureExportPowerKw !== 'undefined') {

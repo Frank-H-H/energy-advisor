@@ -10,15 +10,15 @@ import {
 describe.skip('Forecast / run integration using simulateTimestep sequentially', () => {
   it('runs current (10min) then future (15min) intervals and aggregates results', () => {
     const A = makeInterval('2026-04-08T12:05:00.000Z', '2026-04-08T12:15:00.000Z', {
-      expectedProductionPowerKw: 6,
-      expectedConsumptionPowerKw: 3,
+      productionPowerKw: 6,
+      consumptionPowerKw: 3,
       gridTargetPowerKw: 0.6,
       extraConsumptionPowerKw: 2.1,
       extraConsumptionEndsAt: new Date('2026-04-08T14:00:00.000Z')
     })
     const B = makeInterval('2026-04-08T13:00:00.000Z', '2026-04-08T13:15:00.000Z', {
-      expectedProductionPowerKw: 6,
-      expectedConsumptionPowerKw: 3,
+      productionPowerKw: 6,
+      consumptionPowerKw: 3,
       gridTargetPowerKw: 0.6,
       extraConsumptionPowerKw: 2,
       extraConsumptionEndsAt: new Date('2026-04-08T14:00:00.000Z')
@@ -49,8 +49,8 @@ describe.skip('Forecast / run integration using simulateTimestep sequentially', 
 
   it('energy delta per interval matches nextState - startState invariant', () => {
     const interval = makeInterval('2026-04-08T13:00:00.000Z', '2026-04-08T13:15:00.000Z', {
-      expectedProductionPowerKw: 4,
-      expectedConsumptionPowerKw: 2
+      productionPowerKw: 4,
+      consumptionPowerKw: 2
     })
     const components = makeComponents()
     const s0 = { battery_soc_kwh: 10 }

@@ -21,24 +21,23 @@ export function simulateTimestep({ state = {}, interval, components = {} }) {
   }
 
   // normalize inputs
-  const vals = interval.values || {};
-  const expectedProductionPowerKw = Number(
-    vals.expectedProductionPowerKw ?? 0
+  const productionPowerKw = Number(
+    interval.productionPowerKw ?? 0
   );
-  const expectedConsumptionPowerKw = Number(
-    vals.expectedConsumptionPowerKw ?? 0
+  const consumptionPowerKw = Number(
+    interval.consumptionPowerKw ?? 0
   );
-  const gridTargetPowerKw = Number(vals.gridTargetPowerKw ?? 0);
-  const prematureExportPowerKw = Number(vals.prematureExportPowerKw ?? 0);
+  const gridTargetPowerKw = Number(interval.gridTargetPowerKw ?? 0);
+  const prematureExportPowerKw = Number(interval.prematureExportPowerKw ?? 0);
   const extraConsumptionPowerKw = Number(
-    vals.extraConsumptionPowerKw ?? vals.extraConsumption ?? 0
+    interval.extraConsumptionPowerKw ?? 0
   );
-  const extraConsumptionEndsAt = vals.extraConsumptionEndsAt
-    ? new Date(vals.extraConsumptionEndsAt)
+  const extraConsumptionEndsAt = interval.extraConsumptionEndsAt
+    ? new Date(interval.extraConsumptionEndsAt)
     : undefined;
 
-  const importPricePerKwh = vals.importPricePerKwh ?? null;
-  const exportPricePerKwh = vals.exportPricePerKwh ?? null;
+  const importPricePerKwh = interval.importPricePerKwh ?? null;
+  const exportPricePerKwh = interval.exportPricePerKwh ?? null;
 
   const batterySpec = components.battery || {};
   const gridSpec = components.grid || {};
@@ -63,7 +62,7 @@ export function simulateTimestep({ state = {}, interval, components = {} }) {
 
   function getPowerBalance(iv) {
     let powerBalance =
-      expectedProductionPowerKw - expectedConsumptionPowerKw + gridTargetPowerKw;
+      productionPowerKw - consumptionPowerKw + gridTargetPowerKw;
     if (prematureExportPowerKw) powerBalance -= prematureExportPowerKw;
     if (
       extraConsumptionPowerKw &&
@@ -115,7 +114,7 @@ export function simulateTimestep({ state = {}, interval, components = {} }) {
     // initial missedProductionEnergyKwh estimate (will be overwritten later based on limitedBatteryChargePower)
     let missedProductionEnergyKwh =
       Math.min(
-        expectedProductionPowerKw,
+        productionPowerKw,
         Math.max(0, unconstrainedPowerBalance - constrainedPowerBalance)
       ) * ivDurationH;
 
@@ -154,7 +153,7 @@ export function simulateTimestep({ state = {}, interval, components = {} }) {
     // recompute missedProductionEnergyKwh considering battery taking limitedBatteryChargePower
     missedProductionEnergyKwh =
       Math.min(
-        expectedProductionPowerKw,
+        productionPowerKw,
         Math.max(
           0,
           unconstrainedPowerBalance -

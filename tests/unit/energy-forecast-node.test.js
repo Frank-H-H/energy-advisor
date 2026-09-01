@@ -8,7 +8,7 @@ describe.skip('energy-forecast node mapping', () => {
   it('maps inline system config into components and ForecastEngine uses them', async () => {
     const fixture = {
       intervals: [
-        { start: '2026-01-01T00:00:00Z', end: '2026-01-01T01:00:00Z', durationMs: 3600000, values: { consumption_kwh: 1, pv_kwh: 2 } }
+        { start: '2026-01-01T00:00:00Z', end: '2026-01-01T01:00:00Z', durationMs: 3600000, energy: { productionPowerKw: 2, consumptionPowerKw: 1 } }
       ]
     }
     const systemConfig = { analysis_interval_minutes: 60 }
@@ -31,7 +31,7 @@ describe.skip('energy-forecast node mapping', () => {
     if (typeof runForecast === 'function') {
       const fixture = {
         intervals: [
-          { start: '2026-01-01T00:00:00Z', end: '2026-01-01T00:15:00Z', durationMs: 900000, values: { consumption_kwh: 0.2, pv_kwh: 1 } }
+          { start: '2026-01-01T00:00:00Z', end: '2026-01-01T00:15:00Z', durationMs: 900000, energy: { productionPowerKw: 4, consumptionPowerKw: 0.8 } }
         ]
       }
       const sys = { analysis_interval_minutes: 15 }

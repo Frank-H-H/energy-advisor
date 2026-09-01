@@ -12,7 +12,7 @@ describe('simulateTimestep - influence of production only', () => {
       const testFixture = defaultSimpleTestSettingsForPartialStepFixture(
         {},
         {
-          expectedProductionPowerKw: 6,
+          productionPowerKw: 6,
         }
       );
 
@@ -30,7 +30,7 @@ describe('simulateTimestep - influence of production only', () => {
           batteryEnergyAtStartKwh: 42.8,
         },
         {
-          expectedProductionPowerKw: 6,
+          productionPowerKw: 6,
         }
       );
 
@@ -48,7 +48,7 @@ describe('simulateTimestep - influence of production only', () => {
       const testFixture = defaultSimpleTestSettingsForFullStepFixture(
         {},
         {
-          expectedProductionPowerKw: 4,
+          productionPowerKw: 4,
         }
       );
 
@@ -64,7 +64,7 @@ describe('simulateTimestep - influence of production only', () => {
       const testFixture = defaultSimpleTestSettingsForFullStepFixture(
         { batteryEnergyAtStartKwh: 42.8 },
         {
-          expectedProductionPowerKw: 4,
+          productionPowerKw: 4,
         }
       );
 

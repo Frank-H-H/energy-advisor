@@ -1,8 +1,8 @@
 {
   "intervals": [
-    { "start": "2026-01-01T00:00:00Z", "end": "2026-01-01T00:15:00Z", "durationMs": 900000, "values": { "consumption_kwh": 1, "pv_kwh": 0, "importPrice": 0.2 } },
-    { "start": "2026-01-01T00:15:00Z", "end": "2026-01-01T00:30:00Z", "durationMs": 900000, "values": { "consumption_kwh": 0.5, "pv_kwh": 3, "importPrice": 0.1 } },
-    { "start": "2026-01-01T00:30:00Z", "end": "2026-01-01T00:45:00Z", "durationMs": 900000, "values": { "consumption_kwh": 1, "pv_kwh": 0, "importPrice": -0.05 } }
+    { "start": "2026-01-01T00:00:00Z", "end": "2026-01-01T00:15:00Z", "durationMs": 900000, "energy": { "consumptionPowerKw": 4, "productionPowerKw": 0 }, "price": { "buyPerKwh": 0.2, "sellPerKwh": 0.08 } },
+    { "start": "2026-01-01T00:15:00Z", "end": "2026-01-01T00:30:00Z", "durationMs": 900000, "energy": { "consumptionPowerKw": 2, "productionPowerKw": 12 }, "price": { "buyPerKwh": 0.1, "sellPerKwh": 0.08 } },
+    { "start": "2026-01-01T00:30:00Z", "end": "2026-01-01T00:45:00Z", "durationMs": 900000, "energy": { "consumptionPowerKw": 4, "productionPowerKw": 0 }, "price": { "buyPerKwh": -0.05, "sellPerKwh": 0.08 } }
   ],
   "components": {
     "battery": { "capacity_kwh": 5, "soc_kwh": 4, "min_soc_kwh": 0, "charge_efficiency": 0.95, "discharge_efficiency": 0.95 }
