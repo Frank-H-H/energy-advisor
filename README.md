@@ -311,7 +311,15 @@ Developer flow (recommended)
 
    # start Node-RED (my local windows machine)
 
+   ```
    pm2 start ~/AppData/Roaming/npm/node_modules/node-red/red.js --name "node-red" --watch .
+   ```
+
+   or
+
+   ```
+   pm2 start ${HOME}/AppData/Roaming/npm/node_modules/node-red/red.js --name "node-red" --watch .
+   ```
 
 4. Run tests:
    npm test
