@@ -49,7 +49,7 @@
 
   <pre>
 {
-  "state": {
+  "initialState": {
     "batteryEnergyKwh": 21
   },
   "plan": {
@@ -87,7 +87,7 @@
   <p>
     Each timestep contains external forecasts and constraints. Battery energy is
     intentionally not part of an interval input; the Forecast node computes it
-    from <code>state.batteryEnergyKwh</code> and the simulated energy flow.
+    from <code>initialState.batteryEnergyKwh</code> and the simulated energy flow.
   </p>
 
   <dl>

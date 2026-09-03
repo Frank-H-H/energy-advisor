@@ -52,15 +52,15 @@ describe('energy-advisor Node-RED adapter', () => {
         },
       ],
     };
-    const state = { batteryEnergyKwh: 4 };
-    const msg = { payload: forecast, state };
+    const initialState = { batteryEnergyKwh: 4 };
+    const msg = { payload: forecast, initialState };
 
     await inputHandlers[0](msg);
 
     expect(errors).toHaveLength(0);
     expect(sent).toHaveLength(1);
     expect(sent[0].payload).toBe(forecast);
-    expect(sent[0].state).toBe(state);
+    expect(sent[0].initialState).toBe(initialState);
     expect(sent[0].plan).toBeDefined();
     expect(sent[0].plan.actions).toHaveLength(1);
     expect(sent[0].plan.actions[0].type).toBe('set-grid-target');

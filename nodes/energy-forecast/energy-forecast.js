@@ -82,6 +82,10 @@ module.exports = function (RED) {
         if (inputCopy.plan === undefined && msg.plan !== undefined) {
           inputCopy.plan = msg.plan;
         }
+        // Allow the initial simulation state to be supplied as message metadata.
+        if (inputCopy.initialState === undefined && msg.initialState !== undefined) {
+          inputCopy.initialState = msg.initialState;
+        }
         if (systemConfigObject || batteryConfigObject || gridConfigObject) {
           inputCopy.components = schemas.mapSystemConfigToComponents(
             systemConfigObject || {},
@@ -91,7 +95,7 @@ module.exports = function (RED) {
         }
 
         const forecast = ForecastEngine.run(inputCopy);
-        // Keep the original message metadata (including top-level state)
+        // Keep the original message metadata (including top-level initialState)
         // while replacing only the payload with the forecast result.
         node.send({ ...msg, payload: forecast });
       } catch (err) {

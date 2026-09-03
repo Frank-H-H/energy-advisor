@@ -38,10 +38,10 @@ describe('ForecastEngine', () => {
     expect(result.timeSeries[1].battery.energyKwh).toBe(8);
   });
 
-  it('preserves the input state in the forecast result for re-simulation', () => {
-    const state = { batteryEnergyKwh: 6 };
+  it('preserves the input initialState in the forecast result for re-simulation', () => {
+    const initialState = { batteryEnergyKwh: 6 };
     const result = ForecastEngine.run({
-      state,
+      initialState,
       timeSeries: [
         {
           start: '2026-01-01T00:00:00Z',
@@ -53,13 +53,13 @@ describe('ForecastEngine', () => {
       components,
     });
 
-    expect(result.state).toBe(state);
-    expect(result.state).toEqual({ batteryEnergyKwh: 6 });
+    expect(result.initialState).toBe(initialState);
+    expect(result.initialState).toEqual({ batteryEnergyKwh: 6 });
   });
 
   it('uses the battery energy from the input state as the initial simulation state', () => {
     const result = ForecastEngine.run({
-      state: { batteryEnergyKwh: 6 },
+      initialState: { batteryEnergyKwh: 6 },
       timeSeries: [
         {
           start: '2026-01-01T00:00:00Z',
@@ -109,7 +109,7 @@ describe('ForecastEngine', () => {
 
   it('applies set-grid-target actions from a Plan before simulation', () => {
     const result = ForecastEngine.run({
-      state: { batteryEnergyKwh: 10 },
+      initialState: { batteryEnergyKwh: 10 },
       timeSeries: [
         {
           start: '2026-01-01T00:00:00Z',
@@ -165,7 +165,7 @@ describe('ForecastEngine', () => {
 
   it('returns a domain-grouped TimeSeries that can be consumed by the advisor', () => {
     const result = ForecastEngine.run({
-      state: { batteryEnergyKwh: 2 },
+      initialState: { batteryEnergyKwh: 2 },
       timeSeries: [
         {
           start: '2026-01-01T00:00:00Z',
@@ -225,7 +225,7 @@ describe('ForecastEngine', () => {
 
   it('generates an aggregated summary for the simulated time series', () => {
     const result = ForecastEngine.run({
-      state: { batteryEnergyKwh: 0 },
+      initialState: { batteryEnergyKwh: 0 },
       timeSeries: [
         {
           start: '2026-01-01T00:00:00Z',

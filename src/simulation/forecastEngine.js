@@ -5,7 +5,7 @@ export class ForecastEngine {
     const timeSeries = input.timeSeries || [];
     const components = input.components || {};
     const initialBatteryEnergy =
-      input.state?.batteryEnergyKwh ?? 0;
+      input.initialState?.batteryEnergyKwh ?? 0;
 
     const timesteps = timeSeries.map((interval) => this.toTimestep(interval));
     this.applyPlan(timesteps, input.plan);
@@ -27,7 +27,7 @@ export class ForecastEngine {
       summary: this.createSummary(forecastTimeSeries, initialBatteryEnergy),
       // Preserve the original simulation state so a forecast can be
       // re-simulated later (for example after applying an advisor Plan).
-      state: input.state,
+      initialState: input.initialState,
     };
   }
 
