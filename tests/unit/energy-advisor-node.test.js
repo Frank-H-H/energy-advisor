@@ -30,8 +30,8 @@ describe('energy-advisor Node-RED adapter', () => {
       priority: '80',
     });
 
-    await inputHandlers[0]({
-      payload: [
+    const forecast = {
+      timeSeries: [
         {
           start: '2026-01-01T00:00:00Z',
           end: '2026-01-01T00:15:00Z',
@@ -51,12 +51,17 @@ describe('energy-advisor Node-RED adapter', () => {
           },
         },
       ],
-    });
+    };
+    const msg = { payload: forecast };
+
+    await inputHandlers[0](msg);
 
     expect(errors).toHaveLength(0);
     expect(sent).toHaveLength(1);
-    expect(sent[0].payload.actions).toHaveLength(1);
-    expect(sent[0].payload.actions[0].type).toBe('set-grid-target');
-    expect(sent[0].payload.actions[0].gridTargetPowerKw).toBeCloseTo(-7, 10);
+    expect(sent[0].payload).toBe(forecast);
+    expect(sent[0].plan).toBeDefined();
+    expect(sent[0].plan.actions).toHaveLength(1);
+    expect(sent[0].plan.actions[0].type).toBe('set-grid-target');
+    expect(sent[0].plan.actions[0].gridTargetPowerKw).toBeCloseTo(-7, 10);
   });
 });

@@ -14,10 +14,14 @@ module.exports = function (RED) {
     node.on('input', async function (msg) {
       try {
         const core = await import(coreUrl);
-        const timeSeries = msg.timeSeries || msg.payload;
+        // Keep the forecast result intact and only add the generated Plan
+        // separately. A subsequent forecast node can then reuse the
+        // original timeSeries together with msg.plan.
+        const timeSeries =
+          msg.timeSeries || msg.payload?.timeSeries || msg.payload;
         if (!Array.isArray(timeSeries)) {
           node.error(
-            'Invalid input: msg.timeSeries or msg.payload must be an array'
+            'Invalid input: msg.timeSeries or msg.payload.timeSeries must be an array'
           );
           return;
         }
@@ -52,7 +56,8 @@ module.exports = function (RED) {
         });
 
         const plan = core.AdvisorEngine.run({ timeSeries, strategies });
-        msg.payload = plan;
+        // Do not replace msg.payload: it contains the forecast/timeSeries
+        // needed by a subsequent forecast node.
         msg.plan = plan;
         node.send(msg);
       } catch (err) {
