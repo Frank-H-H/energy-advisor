@@ -1,7 +1,7 @@
 <script type="text/html" data-template-name="energy-forecast">
   <div class="form-row">
     <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
-    <input type="text" id="node-input-name" placeholder="Name">
+    <input type="text" id="node-input-name" placeholder="Name" />
   </div>
 
   <div class="form-row">
@@ -20,7 +20,9 @@
   <div class="form-row">
     <label for="node-input-inputField">Input payload field</label>
     <input id="node-input-inputField" type="text" placeholder="payload" />
-    <div class="form-tips">Which property of msg contains the Forecast input (default: payload)</div>
+    <div class="form-tips">
+      Which property of msg contains the Forecast input (default: payload)
+    </div>
   </div>
 </script>
 
@@ -33,14 +35,32 @@
   <h3>Input</h3>
 
   <p>
-    By default, the node expects the forecast in <code>msg.payload</code>.
-    The input property can be changed using the <b>Input payload field</b>
+    By default, the node expects the forecast in <code>msg.payload</code>. The
+    input property can be changed using the <b>Input payload field</b>
     setting.
   </p>
 
-  <pre>{
+  <p>
+    An optional Advisor <code>Plan</code> can be supplied as
+    <code>input.plan</code> or as <code>msg.plan</code>. When a plan is present,
+    its <code>set-grid-target</code> actions are applied to the corresponding
+    forecast timesteps before the simulation is run.
+  </p>
+
+  <pre>
+{
   "state": {
     "batteryEnergyKwh": 21
+  },
+  "plan": {
+    "actions": [
+      {
+        "type": "set-grid-target",
+        "start": "2026-08-29T12:00:00Z",
+        "end": "2026-08-29T12:15:00Z",
+        "gridTargetPowerKw": -5
+      }
+    ]
   },
   "timeSeries": [
     {
@@ -59,14 +79,15 @@
       }
     }
   ]
-}</pre>
+}</pre
+  >
 
   <h4>TimeSeries</h4>
 
   <p>
-    Each timestep contains external forecasts and constraints. Battery energy
-    is intentionally not part of an interval input; the Forecast node computes
-    it from <code>state.batteryEnergyKwh</code> and the simulated energy flow.
+    Each timestep contains external forecasts and constraints. Battery energy is
+    intentionally not part of an interval input; the Forecast node computes it
+    from <code>state.batteryEnergyKwh</code> and the simulated energy flow.
   </p>
 
   <dl>
@@ -104,11 +125,12 @@
   <h3>Output</h3>
 
   <p>
-    The node outputs the calculated TimeSeries as <code>msg.payload</code>.
-    It can be connected directly to an <code>energy-advisor</code> node.
+    The node outputs the calculated TimeSeries as <code>msg.payload</code>. It
+    can be connected directly to an <code>energy-advisor</code> node.
   </p>
 
-  <pre>{
+  <pre>
+{
   "start": "2026-08-29T12:00:00Z",
   "end": "2026-08-29T12:15:00Z",
   "durationMs": 900000,
@@ -136,7 +158,8 @@
     "cost": 0,
     "revenue": 0
   }
-}</pre>
+}</pre
+  >
 
   <p>
     Output values are grouped by the component where they occur. The
@@ -150,7 +173,9 @@
 
   <ul>
     <li><b>System config</b> - system-wide simulation settings</li>
-    <li><b>Battery config</b> - battery capacity, power limits and efficiencies</li>
+    <li>
+      <b>Battery config</b> - battery capacity, power limits and efficiencies
+    </li>
     <li><b>Grid config</b> - grid and export limitations</li>
   </ul>
 </script>
@@ -164,13 +189,13 @@
       system_config: { value: '', type: 'energy-system-config' },
       battery_config: { value: '', type: 'energy-battery-config' },
       grid_config: { value: '', type: 'energy-grid-config' },
-      inputField: { value: 'payload' }
+      inputField: { value: 'payload' },
     },
     inputs: 1,
     outputs: 1,
     icon: 'font-awesome/fa-bolt',
-    label: function() {
+    label: function () {
       return this.name || 'energy-forecast';
-    }
+    },
   });
 </script>

@@ -75,6 +75,13 @@ module.exports = function (RED) {
 
         // prepare a copy of the input and attach components if we have config
         const inputCopy = { ...input };
+        // The advisor node also exposes its Plan as msg.plan. Allow the
+        // simulation to use that Plan even when the Forecast input itself
+        // lives in another message property. An explicitly supplied
+        // input.plan always wins.
+        if (inputCopy.plan === undefined && msg.plan !== undefined) {
+          inputCopy.plan = msg.plan;
+        }
         if (systemConfigObject || batteryConfigObject || gridConfigObject) {
           inputCopy.components = schemas.mapSystemConfigToComponents(
             systemConfigObject || {},

@@ -8,6 +8,7 @@ export class ForecastEngine {
       input.state?.batteryEnergyKwh ?? 0;
 
     const timesteps = timeSeries.map((interval) => this.toTimestep(interval));
+    this.applyPlan(timesteps, input.plan);
 
     const simulation = simulateTimeSeries({
       state: {
@@ -20,6 +21,40 @@ export class ForecastEngine {
     return simulation.timesteps.map((timestep, index) =>
       this.toForecastInterval(timeSeries[index], timestep)
     );
+  }
+
+  static applyPlan(timesteps, plan) {
+    if (plan === undefined || plan === null) return;
+    if (!Array.isArray(plan.actions)) {
+      throw new Error('plan.actions must be an array');
+    }
+
+    for (const action of plan.actions) {
+      if (!action || action.type !== 'set-grid-target') {
+        throw new Error('plan action type must be set-grid-target');
+      }
+
+      const actionStart = new Date(action.start);
+      const actionEnd = new Date(action.end);
+      const timestep = timesteps.find(
+        (candidate) =>
+          candidate.start.getTime() === actionStart.getTime() &&
+          candidate.end.getTime() === actionEnd.getTime()
+      );
+
+      if (!timestep) {
+        throw new Error(
+          `plan action ${action.start} - ${action.end} does not match a forecast timestep`
+        );
+      }
+
+      const gridTargetPowerKw = Number(action.gridTargetPowerKw);
+      if (!Number.isFinite(gridTargetPowerKw)) {
+        throw new Error('plan action gridTargetPowerKw must be a finite number');
+      }
+
+      timestep.gridTargetPowerKw = gridTargetPowerKw;
+    }
   }
 
   static toTimestep(interval) {
@@ -83,7 +118,7 @@ export class ForecastEngine {
         dischargeKwh: batteryDischargeKwh,
       },
       grid: {
-        targetPowerKw: Number(interval.grid?.targetPowerKw ?? 0),
+        targetPowerKw: Number(timestep.gridTargetPowerKw ?? 0),
         importKwh: gridImportKwh,
         exportKwh: gridExportKwh,
         buyPerKwh,

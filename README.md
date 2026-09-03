@@ -14,12 +14,18 @@ Migration tasks:
 - [x] Add tests for iterating
 - [x] Add logic for advisory (currently called actions)
 - [x] Add tests for advisory (currently called actions)
-- [ ] Have the algorithms use the config objects for battery, grid, etc.
+- [x] Have the algorithms use the config objects for battery, grid, etc.
+- [x] Refactor! Introduce (or use existing) data objects like "Battery.charge(2)"
+- [x] Change advisory algorithm to support different advisory strategies
+- [x] Run first test in my Home Assistant environment
+- [x] Enable rerunning the forecast with the planned actions
 - [ ] Migrate from single extraConsumedEnergyKwh to extraLoads
-- [ ] Refactor! Introduce (or use existing) data objects like "Battery.charge(2)"
-- [ ] Change advisory algorithm to support different advisory strategies
+- [ ] Compute the total effects of the plans (total savings or so)
 - [ ] Add examples to documentation
 - [ ] Introduce helper nodes (maybe as a separate repository / module?) to prepare a time series
+- [ ] Add more strategies
+- [ ] adapt node UI to make it better configurable
+- [ ] Added charge and discharge efficiency as configuration options
 
 [![CI](https://github.com/Frank-H-H/energy-advisor/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Frank-H-H/energy-advisor/actions/workflows/ci.yml)
 [![Codecov](https://img.shields.io/codecov/c/github/Frank-H-H/energy-advisor/main.svg)](https://codecov.io/gh/Frank-H-H/energy-advisor)

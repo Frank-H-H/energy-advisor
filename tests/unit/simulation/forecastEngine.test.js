@@ -88,6 +88,62 @@ describe('ForecastEngine', () => {
     expect(result[0].battery.energyKwh).toBe(0.25);
   });
 
+  it('applies set-grid-target actions from a Plan before simulation', () => {
+    const result = ForecastEngine.run({
+      state: { batteryEnergyKwh: 10 },
+      timeSeries: [
+        {
+          start: '2026-01-01T00:00:00Z',
+          end: '2026-01-01T01:00:00Z',
+          solar: { productionPowerKw: 0 },
+          load: { consumptionPowerKw: 0 },
+          grid: { targetPowerKw: 0, sellPerKwh: 0.1 },
+        },
+      ],
+      plan: {
+        actions: [
+          {
+            type: 'set-grid-target',
+            start: '2026-01-01T00:00:00Z',
+            end: '2026-01-01T01:00:00Z',
+            gridTargetPowerKw: -5,
+          },
+        ],
+      },
+      components,
+    });
+
+    expect(result[0].grid.targetPowerKw).toBe(-5);
+    expect(result[0].grid.exportKwh).toBe(5);
+    expect(result[0].battery.energyKwh).toBe(5);
+  });
+
+  it('rejects plan actions that do not match a forecast timestep', () => {
+    expect(() =>
+      ForecastEngine.run({
+        timeSeries: [
+          {
+            start: '2026-01-01T00:00:00Z',
+            end: '2026-01-01T01:00:00Z',
+            solar: {},
+            load: {},
+          },
+        ],
+        plan: {
+          actions: [
+            {
+              type: 'set-grid-target',
+              start: '2026-01-01T00:15:00Z',
+              end: '2026-01-01T00:30:00Z',
+              gridTargetPowerKw: -5,
+            },
+          ],
+        },
+        components,
+      })
+    ).toThrow('does not match a forecast timestep');
+  });
+
   it('returns a domain-grouped TimeSeries that can be consumed by the advisor', () => {
     const result = ForecastEngine.run({
       state: { batteryEnergyKwh: 2 },
