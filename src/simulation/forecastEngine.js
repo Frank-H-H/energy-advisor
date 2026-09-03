@@ -18,9 +18,54 @@ export class ForecastEngine {
       components,
     });
 
-    return simulation.timesteps.map((timestep, index) =>
+    const forecastTimeSeries = simulation.timesteps.map((timestep, index) =>
       this.toForecastInterval(timeSeries[index], timestep)
     );
+
+    return {
+      timeSeries: forecastTimeSeries,
+      summary: this.createSummary(forecastTimeSeries, initialBatteryEnergy),
+    };
+  }
+
+  static createSummary(timeSeries, initialBatteryEnergy) {
+    const summary = {
+      economics: {
+        cost: 0,
+        revenue: 0,
+        netCost: 0,
+      },
+      grid: {
+        importKwh: 0,
+        exportKwh: 0,
+      },
+      solar: {
+        productionKwh: 0,
+        missedProductionKwh: 0,
+      },
+      battery: {
+        startEnergyKwh: initialBatteryEnergy,
+        endEnergyKwh: initialBatteryEnergy,
+      },
+    };
+
+    for (const interval of timeSeries) {
+      const durationHours = interval.durationMs / 3_600_000;
+
+      summary.economics.cost += interval.economics.cost;
+      summary.economics.revenue += interval.economics.revenue;
+      summary.grid.importKwh += interval.grid.importKwh;
+      summary.grid.exportKwh += interval.grid.exportKwh;
+      summary.solar.productionKwh +=
+        interval.solar.productionPowerKw * durationHours;
+      summary.solar.missedProductionKwh += interval.solar.missedProductionKwh;
+      summary.battery.endEnergyKwh = interval.battery.energyKwh;
+    }
+
+    summary.economics.netCost =
+      summary.economics.cost - summary.economics.revenue;
+
+    return summary;
   }
 
   static applyPlan(timesteps, plan) {

@@ -20,10 +20,10 @@ describe.skip('energy-forecast node mapping', () => {
     const input = { ...fixture, components }
     const forecast = ForecastEngine.run(input)
 
-    expect(Array.isArray(forecast)).toBe(true)
-    expect(forecast[0].battery).toHaveProperty('energyKwh')
+    expect(Array.isArray(forecast.timeSeries)).toBe(true)
+    expect(forecast.timeSeries[0].battery).toHaveProperty('energyKwh')
     // with 2 kWh battery and 2kW PV for 1h -> some battery charge may appear
-    expect(typeof forecast[0].battery.chargeKwh).toBe('number')
+    expect(typeof forecast.timeSeries[0].battery.chargeKwh).toBe('number')
   })
 
   it('runForecast helper accepts system config and returns forecast', async () => {
@@ -39,8 +39,8 @@ describe.skip('energy-forecast node mapping', () => {
       const grid = { max_export_power_kw: 5 }
 
       const forecast = await runForecast(fixture, sys, battery, grid)
-      expect(Array.isArray(forecast)).toBe(true)
-      expect(forecast[0].battery).toHaveProperty('energyKwh')
+      expect(Array.isArray(forecast.timeSeries)).toBe(true)
+      expect(forecast.timeSeries[0].battery).toHaveProperty('energyKwh')
     } else {
       // If helper not present, at least assert mapping helper is available
       expect(true).toBe(true)
