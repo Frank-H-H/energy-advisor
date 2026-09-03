@@ -25,6 +25,9 @@ export class ForecastEngine {
     return {
       timeSeries: forecastTimeSeries,
       summary: this.createSummary(forecastTimeSeries, initialBatteryEnergy),
+      // Preserve the original simulation state so a forecast can be
+      // re-simulated later (for example after applying an advisor Plan).
+      state: input.state,
     };
   }
 

@@ -38,6 +38,25 @@ describe('ForecastEngine', () => {
     expect(result.timeSeries[1].battery.energyKwh).toBe(8);
   });
 
+  it('preserves the input state in the forecast result for re-simulation', () => {
+    const state = { batteryEnergyKwh: 6 };
+    const result = ForecastEngine.run({
+      state,
+      timeSeries: [
+        {
+          start: '2026-01-01T00:00:00Z',
+          end: '2026-01-01T01:00:00Z',
+          solar: { productionPowerKw: 1 },
+          load: { consumptionPowerKw: 0 },
+        },
+      ],
+      components,
+    });
+
+    expect(result.state).toBe(state);
+    expect(result.state).toEqual({ batteryEnergyKwh: 6 });
+  });
+
   it('uses the battery energy from the input state as the initial simulation state', () => {
     const result = ForecastEngine.run({
       state: { batteryEnergyKwh: 6 },

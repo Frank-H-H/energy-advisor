@@ -91,7 +91,9 @@ module.exports = function (RED) {
         }
 
         const forecast = ForecastEngine.run(inputCopy);
-        node.send({ payload: forecast });
+        // Keep the original message metadata (including top-level state)
+        // while replacing only the payload with the forecast result.
+        node.send({ ...msg, payload: forecast });
       } catch (err) {
         node.error(err && err.stack ? err.stack : String(err));
       }
