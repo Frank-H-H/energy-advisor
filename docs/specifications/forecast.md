@@ -17,7 +17,7 @@ Each forecast timestep contains only external forecasts and constraints:
 - `end`: interval end timestamp
 - `solar.productionPowerKw`: expected PV production power in kW
 - `load.consumptionPowerKw`: expected normal consumption power in kW
-- `load.extraPowerKw`: optional additional consumption power in kW
+- `load.extraConsumptionPowerKw`: optional additional consumption power in kW
 - `load.extraEndsAt`: optional end timestamp for the additional consumption
 - `grid.targetPowerKw`: desired grid exchange in kW (`< 0` export, `0` neutral, `> 0` import)
 - `grid.buyPerKwh`: electricity purchase price per kWh
@@ -42,7 +42,7 @@ The ForecastEngine returns a TimeSeries containing one result per input interval
   },
   load: {
     consumptionPowerKw,
-    extraConsumptionKwh
+    extraConsumptionPowerKw
   },
   battery: {
     energyKwh,

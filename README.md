@@ -2,6 +2,8 @@
 
 Current state: Still in the process of migrating my implementation based on multiple node-red subflows into a set of more generalized node implementations.
 
+Be aware: This repo has been set up with the help of AI.
+
 Migration tasks:
 
 - [x] Setup repository

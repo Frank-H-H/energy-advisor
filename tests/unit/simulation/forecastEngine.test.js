@@ -197,7 +197,7 @@ describe('ForecastEngine', () => {
 
     expect(result.timeSeries[0]).toMatchObject({
       solar: { productionPowerKw: 4, missedProductionKwh: 0 },
-      load: { consumptionPowerKw: 1, extraConsumptionKwh: 0 },
+      load: { consumptionPowerKw: 1, extraConsumptionPowerKw: 0 },
       battery: { energyKwh: 5, chargeKwh: 3, dischargeKwh: 0 },
       grid: {
         targetPowerKw: 0,
@@ -211,7 +211,7 @@ describe('ForecastEngine', () => {
     expect(result.timeSeries[0]).not.toHaveProperty('values');
   });
 
-  it('passes load extra consumption energy through forecast simulation', () => {
+  it('passes load extra consumption power through forecast simulation', () => {
     const result = ForecastEngine.run({
       initialState: { batteryEnergyKwh: 10 },
       timeSeries: [
@@ -219,14 +219,14 @@ describe('ForecastEngine', () => {
           start: '2026-01-01T00:00:00Z',
           end: '2026-01-01T01:00:00Z',
           solar: { productionPowerKw: 0 },
-          load: { consumptionPowerKw: 0, extraConsumptionKwh: 2 },
+          load: { consumptionPowerKw: 0, extraConsumptionPowerKw: 2 },
           grid: { targetPowerKw: 0 },
         },
       ],
       components,
     });
 
-    expect(result.timeSeries[0].load.extraConsumptionKwh).toBe(2);
+    expect(result.timeSeries[0].load.extraConsumptionPowerKw).toBe(2);
     expect(result.timeSeries[0].battery.dischargeKwh).toBe(2);
   });
 

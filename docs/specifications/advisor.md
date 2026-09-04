@@ -16,7 +16,7 @@ Purpose: analyze a simulation TimeSeries and produce a Plan containing actionabl
 A Strategy consumes the TimeSeries produced by the ForecastEngine directly. A timestep is identified by its `start` and `end` timestamps and groups values by domain component:
 
 - `solar.productionPowerKw`, `solar.missedProductionKwh`
-- `load.consumptionPowerKw`, `load.extraConsumptionKwh`
+- `load.consumptionPowerKw`, `load.extraConsumptionPowerKw`
 - `battery.energyKwh`, `battery.chargeKwh`, `battery.dischargeKwh`
 - `grid.targetPowerKw`, `grid.importKwh`, `grid.exportKwh`, `grid.buyPerKwh`, `grid.sellPerKwh`
 - `economics.cost`, `economics.revenue`
