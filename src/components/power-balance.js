@@ -23,7 +23,8 @@ export class PowerBalance {
 
     if (
       timestep.extraConsumptionPowerKw &&
-      isBefore(timestep.start, timestep.extraConsumptionEndsAt)
+      (!timestep.extraConsumptionEndsAt ||
+        isBefore(timestep.start, timestep.extraConsumptionEndsAt))
     ) {
       powerBalance -= timestep.extraConsumptionPowerKw
     }

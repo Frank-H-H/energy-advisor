@@ -148,7 +148,10 @@ export function simulateTimestep({ state = {}, timestep, components = {} }) {
         timestep.productionPowerKw,
         Math.max(0, unconstrainedPowerBalance - constrainedPowerBalance)
       ) * timestepFraction;
-    if (!isBefore(timestep.extraConsumptionEndsAt, timestep.end)) {
+    if (
+      !timestep.extraConsumptionEndsAt ||
+      !isBefore(timestep.extraConsumptionEndsAt, timestep.end)
+    ) {
       timestep.extraConsumedEnergyKwh =
         timestep.extraConsumptionPowerKw * timestepFraction;
     } else {
