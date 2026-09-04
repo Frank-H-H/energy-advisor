@@ -211,6 +211,25 @@ describe('ForecastEngine', () => {
     expect(result.timeSeries[0]).not.toHaveProperty('values');
   });
 
+  it('passes load extra consumption energy through forecast simulation', () => {
+    const result = ForecastEngine.run({
+      initialState: { batteryEnergyKwh: 10 },
+      timeSeries: [
+        {
+          start: '2026-01-01T00:00:00Z',
+          end: '2026-01-01T01:00:00Z',
+          solar: { productionPowerKw: 0 },
+          load: { consumptionPowerKw: 0, extraConsumptionKwh: 2 },
+          grid: { targetPowerKw: 0 },
+        },
+      ],
+      components,
+    });
+
+    expect(result.timeSeries[0].load.extraConsumptionKwh).toBe(2);
+    expect(result.timeSeries[0].battery.dischargeKwh).toBe(2);
+  });
+
   it('calculates cost from simulated grid import', () => {
     const result = ForecastEngine.run({
       timeSeries: [

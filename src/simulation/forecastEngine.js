@@ -115,16 +115,25 @@ export class ForecastEngine {
       throw new Error('forecast timestep must have a positive duration');
     }
 
+    const extraConsumptionKwh = interval.load?.extraConsumptionKwh;
+    const hasExtraConsumptionKwh =
+      extraConsumptionKwh !== undefined && extraConsumptionKwh !== null;
+    const extraConsumptionPowerKw = hasExtraConsumptionKwh
+      ? Number(extraConsumptionKwh) / (durationMs / 3600000)
+      : Number(interval.load?.extraPowerKw ?? 0);
+
     return {
       start,
       end,
       productionPowerKw: Number(interval.solar?.productionPowerKw ?? 0),
       consumptionPowerKw: Number(interval.load?.consumptionPowerKw ?? 0),
       gridTargetPowerKw: Number(interval.grid?.targetPowerKw ?? 0),
-      extraConsumptionPowerKw: Number(interval.load?.extraPowerKw ?? 0),
-      extraConsumptionEndsAt: interval.load?.extraEndsAt
-        ? new Date(interval.load.extraEndsAt)
-        : undefined,
+      extraConsumptionPowerKw,
+      extraConsumptionEndsAt: hasExtraConsumptionKwh
+        ? end
+        : interval.load?.extraEndsAt
+          ? new Date(interval.load.extraEndsAt)
+          : undefined,
       importPricePerKwh: interval.grid?.buyPerKwh ?? null,
       exportPricePerKwh: interval.grid?.sellPerKwh ?? null,
     };
