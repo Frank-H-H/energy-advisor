@@ -4,8 +4,7 @@ export class ForecastEngine {
   static run(input = {}) {
     const timeSeries = input.timeSeries || [];
     const components = input.components || {};
-    const initialBatteryEnergy =
-      input.initialState?.batteryEnergyKwh ?? 0;
+    const initialBatteryEnergy = input.initialState?.batteryEnergyKwh ?? 0;
 
     const timesteps = timeSeries.map((interval) => this.toTimestep(interval));
     this.applyPlan(timesteps, input.plan);
@@ -19,7 +18,7 @@ export class ForecastEngine {
     });
 
     const forecastTimeSeries = simulation.timesteps.map((timestep, index) =>
-      this.toForecastInterval(timeSeries[index], timestep)
+      this.toForecastInterval(timeSeries[index], timestep, components)
     );
 
     return {
@@ -98,7 +97,9 @@ export class ForecastEngine {
 
       const gridTargetPowerKw = Number(action.gridTargetPowerKw);
       if (!Number.isFinite(gridTargetPowerKw)) {
-        throw new Error('plan action gridTargetPowerKw must be a finite number');
+        throw new Error(
+          'plan action gridTargetPowerKw must be a finite number'
+        );
       }
 
       timestep.gridTargetPowerKw = gridTargetPowerKw;
@@ -129,7 +130,7 @@ export class ForecastEngine {
     };
   }
 
-  static toForecastInterval(interval, timestep) {
+  static toForecastInterval(interval, timestep, components = {}) {
     const batteryEnergyAtStartKwh = timestep.batteryEnergyAtStartKwh ?? 0;
     const batteryEnergyAtEndKwh =
       timestep.batteryEnergyAtEndKwh ?? batteryEnergyAtStartKwh;
@@ -145,6 +146,13 @@ export class ForecastEngine {
     const gridExportKwh = timestep.exportedEnergyKwh ?? 0;
     const buyPerKwh = interval.grid?.buyPerKwh ?? null;
     const sellPerKwh = interval.grid?.sellPerKwh ?? null;
+    const batteryCapacityKwh = Number(components.battery?.capacity_kwh ?? 0);
+    const batteryStateOfChargePercent =
+      batteryCapacityKwh > 0
+        ? Number(
+            ((batteryEnergyAtEndKwh / batteryCapacityKwh) * 100).toFixed(12)
+          )
+        : null;
 
     return {
       start: interval.start,
@@ -162,6 +170,7 @@ export class ForecastEngine {
       },
       battery: {
         energyKwh: batteryEnergyAtEndKwh,
+        stateOfChargePercent: batteryStateOfChargePercent,
         chargeKwh: batteryChargeKwh,
         dischargeKwh: batteryDischargeKwh,
       },

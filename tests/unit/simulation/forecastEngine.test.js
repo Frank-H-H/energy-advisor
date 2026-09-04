@@ -38,6 +38,23 @@ describe('ForecastEngine', () => {
     expect(result.timeSeries[1].battery.energyKwh).toBe(8);
   });
 
+  it('includes battery state of charge percentage for each forecast timestep', () => {
+    const result = ForecastEngine.run({
+      initialState: { batteryEnergyKwh: 2 },
+      timeSeries: [
+        {
+          start: '2026-01-01T00:00:00Z',
+          end: '2026-01-01T01:00:00Z',
+          solar: { productionPowerKw: 3 },
+          load: { consumptionPowerKw: 0 },
+        },
+      ],
+      components,
+    });
+
+    expect(result.timeSeries[0].battery.stateOfChargePercent).toBe(50);
+  });
+
   it('preserves the input initialState in the forecast result for re-simulation', () => {
     const initialState = { batteryEnergyKwh: 6 };
     const result = ForecastEngine.run({
