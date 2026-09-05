@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { PrematureExportStrategy } from '../../src/advisor/strategies/prematureExportStrategy.js';
+import { ImmediateNegativePriceExportStrategy } from '../../src/advisor/strategies/immediateNegativePriceExportStrategy.js';
 
 function timestep(startMinute, spotPerKwh, exportKwh, targetPowerKw = 0) {
   const start = new Date(
@@ -17,15 +17,15 @@ function timestep(startMinute, spotPerKwh, exportKwh, targetPowerKw = 0) {
   };
 }
 
-describe('PrematureExportStrategy', () => {
+describe('ImmediateNegativePriceExportStrategy', () => {
   it('creates a set-grid-target action for excess export in a negative-price timestep', () => {
     const timeSeries = [timestep(0, 0.2, 0), timestep(15, -0.1, 2, -1)];
-    const result = new PrematureExportStrategy().createPlan(timeSeries);
+    const result = new ImmediateNegativePriceExportStrategy().createPlan(timeSeries);
 
-    expect(result.strategyId).toBe('premature-export');
+    expect(result.strategyId).toBe('immediate-negative-price-export');
     expect(result.proposals).toHaveLength(1);
     expect(result.proposals[0]).toMatchObject({
-      strategyId: 'premature-export',
+      strategyId: 'immediate-negative-price-export',
       priority: 50,
     });
     expect(result.proposals[0].action).toMatchObject({
@@ -56,7 +56,7 @@ describe('PrematureExportStrategy', () => {
         grid: { spotPerKwh: -0.1, exportKwh: 2, targetPowerKw: -1 },
       },
     ];
-    const result = new PrematureExportStrategy().createPlan(timeSeries);
+    const result = new ImmediateNegativePriceExportStrategy().createPlan(timeSeries);
 
     expect(result.proposals).toHaveLength(1);
     expect(result.proposals[0].action.gridTargetPowerKw).toBeCloseTo(-7, 10);
@@ -64,14 +64,14 @@ describe('PrematureExportStrategy', () => {
 
   it('uses the existing grid target when creating the new target', () => {
     const timeSeries = [timestep(0, 0.2, 0, 2), timestep(15, -0.1, 2, -1)];
-    const result = new PrematureExportStrategy().createPlan(timeSeries);
+    const result = new ImmediateNegativePriceExportStrategy().createPlan(timeSeries);
 
     expect(result.proposals[0].action.gridTargetPowerKw).toBeCloseTo(-5, 10);
   });
 
   it('does not move the part already covered by the target grid point', () => {
     const timeSeries = [timestep(0, 0.2, 0), timestep(15, -0.1, 2, -2)];
-    const result = new PrematureExportStrategy().createPlan(timeSeries);
+    const result = new ImmediateNegativePriceExportStrategy().createPlan(timeSeries);
 
     expect(result.totalPlannedExportEnergyKwh).toBe(1.5);
   });
@@ -82,7 +82,7 @@ describe('PrematureExportStrategy', () => {
       timestep(15, 0.3, 0),
       timestep(30, -0.1, 5),
     ];
-    const result = new PrematureExportStrategy().createPlan(timeSeries);
+    const result = new ImmediateNegativePriceExportStrategy().createPlan(timeSeries);
 
     expect(result.totalPlannedExportEnergyKwh).toBeCloseTo(3.73, 10);
     expect(result.remainingExportEnergyKwh).toBeCloseTo(1.27, 10);
@@ -94,7 +94,7 @@ describe('PrematureExportStrategy', () => {
   it('does not mutate the TimeSeries', () => {
     const timeSeries = [timestep(0, 0.2, 0), timestep(15, -0.1, 2, -1)];
     const original = structuredClone(timeSeries);
-    new PrematureExportStrategy().createPlan(timeSeries);
+    new ImmediateNegativePriceExportStrategy().createPlan(timeSeries);
     expect(timeSeries).toEqual(original);
   });
 
@@ -112,7 +112,7 @@ describe('PrematureExportStrategy', () => {
       },
     ];
 
-    const result = new PrematureExportStrategy({
+    const result = new ImmediateNegativePriceExportStrategy({
       maxExportPowerKw: 4,
       intervalMinutes: 30,
       priority: 80,

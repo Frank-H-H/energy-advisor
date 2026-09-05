@@ -26,15 +26,32 @@ module.exports = function (RED) {
           return;
         }
 
-        const strategyIds = (config.strategies || 'premature-export')
+        const strategyIds = (config.strategies || 'immediate-negative-price-export')
           .split(',')
           .map((id) => id.trim())
           .filter(Boolean);
 
         const strategies = strategyIds.map((id) => {
           switch (id) {
-            case 'premature-export':
-              return new core.PrematureExportStrategy({
+            case 'immediate-negative-price-export':
+              return new core.ImmediateNegativePriceExportStrategy({
+                maxExportPowerKw:
+                  config.maxExportPowerKw === '' ||
+                  config.maxExportPowerKw === undefined
+                    ? 7.46
+                    : Number(config.maxExportPowerKw),
+                intervalMinutes:
+                  config.intervalMinutes === '' ||
+                  config.intervalMinutes === undefined
+                    ? 15
+                    : Number(config.intervalMinutes),
+                priority:
+                  config.priority === '' || config.priority === undefined
+                    ? 50
+                    : Number(config.priority),
+              });
+            case 'distributed-negative-price-export':
+              return new core.DistributedNegativePriceExportStrategy({
                 maxExportPowerKw:
                   config.maxExportPowerKw === '' ||
                   config.maxExportPowerKw === undefined

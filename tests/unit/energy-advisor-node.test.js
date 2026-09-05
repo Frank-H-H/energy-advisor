@@ -26,7 +26,7 @@ describe('energy-advisor Node-RED adapter', () => {
     energyAdvisorNode(RED);
     const node = {};
     RED.constructor.call(node, {
-      strategies: 'premature-export',
+      strategies: 'immediate-negative-price-export',
       priority: '80',
     });
 
@@ -65,5 +65,62 @@ describe('energy-advisor Node-RED adapter', () => {
     expect(sent[0].plan.actions).toHaveLength(1);
     expect(sent[0].plan.actions[0].type).toBe('set-grid-target');
     expect(sent[0].plan.actions[0].gridTargetPowerKw).toBeCloseTo(-7, 10);
+  });
+
+  it('supports the distributed negative-price export strategy', async () => {
+    const sent = [];
+    const errors = [];
+    const inputHandlers = [];
+
+    const RED = {
+      nodes: {
+        createNode(node) {
+          node.on = (event, handler) => {
+            if (event === 'input') inputHandlers.push(handler);
+          };
+          node.send = (msg) => sent.push(msg);
+          node.error = (error) => errors.push(error);
+        },
+        registerType(name, constructor) {
+          RED.constructor = constructor;
+        },
+      },
+    };
+
+    energyAdvisorNode(RED);
+    const node = {};
+    RED.constructor.call(node, {
+      strategies: 'distributed-negative-price-export',
+    });
+
+    const forecast = {
+      timeSeries: [
+        {
+          start: '2026-01-01T00:00:00Z',
+          end: '2026-01-01T00:15:00Z',
+          grid: { spotPerKwh: 0.2, exportKwh: 0, targetPowerKw: 0 },
+        },
+        {
+          start: '2026-01-01T00:15:00Z',
+          end: '2026-01-01T00:30:00Z',
+          grid: { spotPerKwh: 0.3, exportKwh: 0, targetPowerKw: 0 },
+        },
+        {
+          start: '2026-01-01T00:30:00Z',
+          end: '2026-01-01T00:45:00Z',
+          grid: { spotPerKwh: -0.1, exportKwh: 2, targetPowerKw: 0 },
+        },
+      ],
+    };
+
+    await inputHandlers[0]({ payload: forecast });
+
+    expect(errors).toHaveLength(0);
+    expect(sent).toHaveLength(1);
+    expect(sent[0].plan.actions).toHaveLength(2);
+    expect(sent[0].plan.actions.map((action) => action.gridTargetPowerKw)).toEqual([
+      -4,
+      -4,
+    ]);
   });
 });

@@ -23,8 +23,8 @@ Migration tasks:
 - [x] Enable rerunning the forecast with the planned actions
 - [x] Migrate from single extraConsumption to multiple extraLoads
 - [x] Compute the total effects of the plans (total savings or so)
-- [ ] Add examples to documentation
 - [ ] Introduce helper nodes (maybe as a separate repository / module?) to prepare a time series
+- [ ] Add examples to documentation
 - [ ] Add more strategies
 - [ ] adapt node UI to make it better configurable
 - [ ] Added charge and discharge efficiency as configuration options

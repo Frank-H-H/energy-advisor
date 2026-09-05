@@ -7,13 +7,13 @@ const DEFAULT_INTERVAL_MINUTES = 15;
 const DEFAULT_PRIORITY = 50;
 
 /**
- * Plans premature exports so that energy that would otherwise be exported
- * during negative-price periods can be exported during earlier periods with
- * a non-negative import price.
+ * Plans exports immediately before negative-price periods so that energy
+ * that would otherwise be exported during negative-price periods can be
+ * exported in the nearest earlier periods.
  *
  * The strategy only creates a Plan. It never changes the TimeSeries.
  */
-export class PrematureExportStrategy extends Strategy {
+export class ImmediateNegativePriceExportStrategy extends Strategy {
   constructor({
     maxExportPowerKw = DEFAULT_MAX_EXPORT_POWER_KW,
     intervalMinutes = DEFAULT_INTERVAL_MINUTES,
@@ -29,7 +29,7 @@ export class PrematureExportStrategy extends Strategy {
   }
 
   get id() {
-    return 'premature-export';
+    return 'immediate-negative-price-export';
   }
 
   createPlan(timeSeries, options = {}) {

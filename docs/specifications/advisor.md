@@ -18,7 +18,7 @@ A Strategy consumes the TimeSeries produced by the ForecastEngine directly. A ti
 - `solar.productionPowerKw`, `solar.missedProductionKwh`
 - `load.consumptionPowerKw`, `load.extraLoads`
 - `battery.energyKwh`, `battery.chargeKwh`, `battery.dischargeKwh`
-- `grid.targetPowerKw`, `grid.importKwh`, `grid.exportKwh`, `grid.buyPerKwh`, `grid.sellPerKwh`
+- `grid.targetPowerKw`, `grid.importKwh`, `grid.exportKwh`, `grid.buyPerKwh`, `grid.sellPerKwh`, `grid.spotPerKwh`
 - `economics.cost`, `economics.revenue`
 
 Strategies must not mutate the TimeSeries. Power values use `kW` in property names and energy values use `kWh`. The canonical grid target is `grid.targetPowerKw`: negative means export, zero means neither import nor export, and positive means import.
@@ -62,3 +62,12 @@ The final Plan contains:
 - `rejectedProposals`: proposals rejected during conflict resolution, including a machine-readable reason
 
 The Plan is output only. No Action is executed by the Advisor.
+
+## Negative-price export strategies
+
+The following strategies handle energy that would otherwise be exported during negative spot-price timesteps:
+
+- `ImmediateNegativePriceExportStrategy` (`immediate-negative-price-export`): moves the required export to the nearest earlier non-negative-price timesteps, working backwards from the negative-price periods.
+- `DistributedNegativePriceExportStrategy` (`distributed-negative-price-export`): distributes the required export energy across all earlier non-negative-price timesteps. It intentionally does not select timesteps by the highest spot price.
+
+Both strategies use `grid.spotPerKwh` to detect negative-price periods. They produce `set-grid-target` ActionProposals and never modify the TimeSeries.

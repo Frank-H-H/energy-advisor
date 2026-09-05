@@ -6,7 +6,7 @@
   </div>
   <div class="form-row">
     <label for="node-input-strategies"><i class="fa fa-cogs"></i> Strategies</label>
-    <input type="text" id="node-input-strategies" placeholder="premature-export">
+    <input type="text" id="node-input-strategies" placeholder="immediate-negative-price-export,distributed-negative-price-export">
   </div>
   <div class="form-row">
     <label for="node-input-maxExportPowerKw">Max export kW</label>
@@ -21,7 +21,7 @@
 <script type="text/html" data-help-name="energy-advisor">
   <p>
     The energy-advisor node accepts the TimeSeries produced by the simulation and creates a Plan.
-    Multiple strategies can be activated by entering their IDs separated by commas.
+    Multiple strategies can be activated by entering their IDs separated by commas. Available strategies are <code>immediate-negative-price-export</code> and <code>distributed-negative-price-export</code>.
   </p>
   <h4>Input</h4>
   <p>
@@ -41,13 +41,17 @@
       "importKwh": 0,
       "exportKwh": 0,
       "buyPerKwh": 0.32,
-      "sellPerKwh": 0.08
+      "sellPerKwh": 0.08,
+      "spotPerKwh": 0.12
     },
     "economics": { "cost": 0, "revenue": 0 }
   }
 ]</pre>
   <h4>Output</h4>
   <pre>msg.payload = { actions, strategyPlans, rejectedProposals }</pre>
+  <h4>Strategies</h4>
+  <p><code>immediate-negative-price-export</code> exports the energy that would otherwise be exported during negative spot prices in the nearest earlier timesteps.</p>
+  <p><code>distributed-negative-price-export</code> exports that energy distributed across all earlier non-negative spot-price timesteps. It does not optimize for the highest prices.</p>
   <p>Actions are proposals for external execution. This node does not control devices.</p>
 </script>
 
@@ -57,7 +61,7 @@
     color: '#f0d36a',
     defaults: {
       name: { value: '' },
-      strategies: { value: 'premature-export' },
+      strategies: { value: 'immediate-negative-price-export' },
       maxExportPowerKw: { value: 7.46 },
       intervalMinutes: { value: 15 }
     },
