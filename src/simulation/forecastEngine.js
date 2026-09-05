@@ -5,6 +5,8 @@ export class ForecastEngine {
     const timeSeries = input.timeSeries || [];
     const components = input.components || {};
     const initialBatteryEnergy = input.initialState?.batteryEnergyKwh ?? 0;
+    const excludeNegativeSpotPriceRevenue =
+      input.excludeNegativeSpotPriceRevenue ?? true;
 
     const timesteps = timeSeries.map((interval) => this.toTimestep(interval));
     this.applyPlan(timesteps, input.plan);
@@ -18,7 +20,12 @@ export class ForecastEngine {
     });
 
     const forecastTimeSeries = simulation.timesteps.map((timestep, index) =>
-      this.toForecastInterval(timeSeries[index], timestep, components)
+      this.toForecastInterval(
+        timeSeries[index],
+        timestep,
+        components,
+        excludeNegativeSpotPriceRevenue
+      )
     );
 
     return {
@@ -124,10 +131,16 @@ export class ForecastEngine {
       extraLoads: interval.load?.extraLoads ?? [],
       importPricePerKwh: interval.grid?.buyPerKwh ?? null,
       exportPricePerKwh: interval.grid?.sellPerKwh ?? null,
+      spotPricePerKwh: interval.grid?.spotPerKwh ?? null,
     };
   }
 
-  static toForecastInterval(interval, timestep, components = {}) {
+  static toForecastInterval(
+    interval,
+    timestep,
+    components = {},
+    excludeNegativeSpotPriceRevenue = true
+  ) {
     const batteryEnergyAtStartKwh = timestep.batteryEnergyAtStartKwh ?? 0;
     const batteryEnergyAtEndKwh =
       timestep.batteryEnergyAtEndKwh ?? batteryEnergyAtStartKwh;
@@ -143,7 +156,12 @@ export class ForecastEngine {
     const gridExportKwh = timestep.exportedEnergyKwh ?? 0;
     const buyPerKwh = interval.grid?.buyPerKwh ?? null;
     const sellPerKwh = interval.grid?.sellPerKwh ?? null;
+    const spotPerKwh = interval.grid?.spotPerKwh ?? null;
     const batteryCapacityKwh = Number(components.battery?.capacity_kwh ?? 0);
+    const revenue =
+      excludeNegativeSpotPriceRevenue && spotPerKwh !== null && spotPerKwh < 0
+        ? 0
+        : gridExportKwh * (sellPerKwh ?? 0);
     const batteryStateOfChargePercent =
       batteryCapacityKwh > 0
         ? Number(
@@ -179,10 +197,11 @@ export class ForecastEngine {
         exportKwh: gridExportKwh,
         buyPerKwh,
         sellPerKwh,
+        spotPerKwh,
       },
       economics: {
         cost: gridImportKwh * (buyPerKwh ?? 0),
-        revenue: gridExportKwh * (sellPerKwh ?? 0),
+        revenue,
       },
     };
   }

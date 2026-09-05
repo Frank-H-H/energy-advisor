@@ -211,6 +211,48 @@ describe('ForecastEngine', () => {
     expect(result.timeSeries[0]).not.toHaveProperty('values');
   });
 
+  it('preserves buy, sell and spot prices through forecast re-simulation', () => {
+    const timeSeries = [
+      {
+        start: '2026-01-01T00:00:00Z',
+        end: '2026-01-01T01:00:00Z',
+        solar: { productionPowerKw: 0 },
+        load: { consumptionPowerKw: 1 },
+        grid: {
+          targetPowerKw: 0,
+          buyPerKwh: 0.32,
+          sellPerKwh: 0.08,
+          spotPerKwh: 0.11,
+        },
+      },
+    ];
+
+    const forecast = ForecastEngine.run({
+      initialState: { batteryEnergyKwh: 2 },
+      timeSeries,
+      components,
+    });
+
+    expect(forecast.timeSeries[0].grid).toMatchObject({
+      buyPerKwh: 0.32,
+      sellPerKwh: 0.08,
+      spotPerKwh: 0.11,
+    });
+
+    const resimulation = ForecastEngine.run({
+      initialState: forecast.initialState,
+      timeSeries: forecast.timeSeries,
+      plan: { actions: [] },
+      components,
+    });
+
+    expect(resimulation.timeSeries[0].grid).toMatchObject({
+      buyPerKwh: 0.32,
+      sellPerKwh: 0.08,
+      spotPerKwh: 0.11,
+    });
+  });
+
   it('passes load extra consumption power through forecast simulation', () => {
     const result = ForecastEngine.run({
       initialState: { batteryEnergyKwh: 10 },
@@ -357,4 +399,45 @@ describe('ForecastEngine', () => {
       })
     ).toThrow('forecast timestep must have a positive duration');
   });
+  it('excludes revenue from exports when spot price is negative by default', () => {
+    const result = ForecastEngine.run({
+      initialState: { batteryEnergyKwh: 10 },
+      timeSeries: [
+        {
+          start: '2026-01-01T00:00:00Z',
+          end: '2026-01-01T01:00:00Z',
+          solar: { productionPowerKw: 2 },
+          load: { consumptionPowerKw: 0 },
+          grid: { targetPowerKw: 0, sellPerKwh: 0.1, spotPerKwh: -0.05 },
+        },
+      ],
+      components,
+    });
+
+    expect(result.timeSeries[0].grid.exportKwh).toBe(2);
+    expect(result.timeSeries[0].economics.revenue).toBe(0);
+    expect(result.summary.economics.revenue).toBe(0);
+  });
+
+  it('includes revenue from exports when negative spot price revenue exclusion is disabled', () => {
+    const result = ForecastEngine.run({
+      excludeNegativeSpotPriceRevenue: false,
+      initialState: { batteryEnergyKwh: 10 },
+      timeSeries: [
+        {
+          start: '2026-01-01T00:00:00Z',
+          end: '2026-01-01T01:00:00Z',
+          solar: { productionPowerKw: 2 },
+          load: { consumptionPowerKw: 0 },
+          grid: { targetPowerKw: 0, sellPerKwh: 0.1, spotPerKwh: -0.05 },
+        },
+      ],
+      components,
+    });
+
+    expect(result.timeSeries[0].grid.exportKwh).toBe(2);
+    expect(result.timeSeries[0].economics.revenue).toBe(0.2);
+    expect(result.summary.economics.revenue).toBe(0.2);
+  });
+
 });

@@ -24,6 +24,15 @@
       Which property of msg contains the Forecast input (default: payload)
     </div>
   </div>
+
+  <div class="form-row">
+    <label for="node-input-excludeNegativeSpotPriceRevenue">Negative spot price</label>
+    <input type="checkbox" id="node-input-excludeNegativeSpotPriceRevenue" style="display: inline-block; width: auto; vertical-align: top;" />
+    <label for="node-input-excludeNegativeSpotPriceRevenue" style="width: auto;">Exclude sold energy from revenue</label>
+    <div class="form-tips">
+      If enabled, exports during negative spot market prices are not included in the revenue calculation (default: on).
+    </div>
+  </div>
 </script>
 
 <script type="text/html" data-help-name="energy-forecast">
@@ -75,7 +84,8 @@
       "grid": {
         "targetPowerKw": 0,
         "buyPerKwh": 0.32,
-        "sellPerKwh": 0.08
+        "sellPerKwh": 0.08,
+        "spotPerKwh": 0.11
       }
     }
   ]
@@ -121,6 +131,9 @@
 
     <dt><code>grid.sellPerKwh</code></dt>
     <dd>Electricity selling price per <b>kWh</b>.</dd>
+
+    <dt><code>grid.spotPerKwh</code></dt>
+    <dd>Spot market price per <b>kWh</b>. This value is carried through the simulation and is available to downstream consumers such as the Advisor and charting.</dd>
   </dl>
 
   <h3>Output</h3>
@@ -153,7 +166,8 @@
     "importKwh": 0,
     "exportKwh": 0,
     "buyPerKwh": 0.32,
-    "sellPerKwh": 0.08
+    "sellPerKwh": 0.08,
+    "spotPerKwh": 0.11
   },
   "economics": {
     "cost": 0,
@@ -191,6 +205,7 @@
       battery_config: { value: '', type: 'energy-battery-config' },
       grid_config: { value: '', type: 'energy-grid-config' },
       inputField: { value: 'payload' },
+      excludeNegativeSpotPriceRevenue: { value: true },
     },
     inputs: 1,
     outputs: 1,

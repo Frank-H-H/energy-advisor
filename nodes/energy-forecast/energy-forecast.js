@@ -74,7 +74,11 @@ module.exports = function (RED) {
         const ForecastEngine = core.ForecastEngine;
 
         // prepare a copy of the input and attach components if we have config
-        const inputCopy = { ...input };
+        const inputCopy = {
+          ...input,
+          excludeNegativeSpotPriceRevenue:
+            config.excludeNegativeSpotPriceRevenue !== false,
+        };
         // The advisor node also exposes its Plan as msg.plan. Allow the
         // simulation to use that Plan even when the Forecast input itself
         // lives in another message property. An explicitly supplied
