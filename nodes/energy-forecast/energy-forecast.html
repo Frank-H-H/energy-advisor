@@ -103,7 +103,8 @@
     <dt><code>load.consumptionPowerKw</code></dt>
     <dd>Estimated normal consumption in <b>kW</b>.</dd>
 
-    <dt><code>load.extraConsumptionPowerKw</code></dt>
+    <dt><code>load.extraLoads</code></dt>
+    <dd>Optional array of additional consumers. Each entry has a <code>name</code>, expected <code>consumptionPowerKw</code>, and optional <code>start</code>/<code>end</code> timestamps.</dd>
     <dd>Optional additional consumption in <b>kW</b>.</dd>
 
     <dt><code>load.extraEndsAt</code></dt>
@@ -140,7 +141,7 @@
   },
   "load": {
     "consumptionPowerKw": 1.8,
-    "extraConsumptionPowerKw": 0
+    "extraLoads": [{ "name": "car", "consumptionPowerKw": 7.4 }]
   },
   "battery": {
     "energyKwh": 21.6,

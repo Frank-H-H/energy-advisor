@@ -1,5 +1,12 @@
 // src/simulation/step.js
 
+import {
+  getExtraLoadBoundaryPoints,
+  getExtraLoadEnergyKwh,
+  getExtraLoadPowerKw,
+  normalizeExtraLoads,
+} from './extra-loads.js';
+
 /**
  * Simulate a single timestep (interval).
  *
@@ -29,12 +36,7 @@ export function simulateTimestep({ state = {}, interval, components = {} }) {
   );
   const gridTargetPowerKw = Number(interval.gridTargetPowerKw ?? 0);
   const prematureExportPowerKw = Number(interval.prematureExportPowerKw ?? 0);
-  const extraConsumptionPowerKw = Number(
-    interval.extraConsumptionPowerKw ?? 0
-  );
-  const extraConsumptionEndsAt = interval.extraConsumptionEndsAt
-    ? new Date(interval.extraConsumptionEndsAt)
-    : undefined;
+  const extraLoads = normalizeExtraLoads(interval.extraLoads);
 
   const importPricePerKwh = interval.importPricePerKwh ?? null;
   const exportPricePerKwh = interval.exportPricePerKwh ?? null;
@@ -64,16 +66,7 @@ export function simulateTimestep({ state = {}, interval, components = {} }) {
     let powerBalance =
       productionPowerKw - consumptionPowerKw + gridTargetPowerKw;
     if (prematureExportPowerKw) powerBalance -= prematureExportPowerKw;
-    if (
-      extraConsumptionPowerKw &&
-      extraConsumptionEndsAt &&
-      new Date(iv.start) < extraConsumptionEndsAt
-    ) {
-      powerBalance -= extraConsumptionPowerKw;
-    } else if (extraConsumptionPowerKw && !extraConsumptionEndsAt) {
-      // no end specified -> assume it applies
-      powerBalance -= extraConsumptionPowerKw;
-    }
+    powerBalance -= getExtraLoadPowerKw(extraLoads, iv.start, iv.end);
     return powerBalance;
   }
 
@@ -89,15 +82,45 @@ export function simulateTimestep({ state = {}, interval, components = {} }) {
   }
 
   function getExtraConsumedEnergyForInterval(iv) {
-    if (!extraConsumptionPowerKw || extraConsumptionPowerKw === 0) return 0;
-    const ivStart = new Date(iv.start).getTime();
-    const ivEnd = new Date(iv.end).getTime();
-    if (!extraConsumptionEndsAt)
-      return (extraConsumptionPowerKw * (ivEnd - ivStart)) / 3600000;
-    const extraEnd = extraConsumptionEndsAt.getTime();
-    if (extraEnd <= ivStart) return 0;
-    const effectiveEnd = Math.min(ivEnd, extraEnd);
-    return (extraConsumptionPowerKw * (effectiveEnd - ivStart)) / 3600000;
+    return getExtraLoadEnergyKwh(extraLoads, iv.start, iv.end);
+  }
+
+  // Split at extra-load boundaries first. Battery full/empty splitting is
+  // handled recursively inside each resulting interval.
+  function simulateIntervalWithExtraLoadBoundaries(iv, batteryEnergyAtStartKwh) {
+    const points = [
+      new Date(iv.start),
+      ...getExtraLoadBoundaryPoints(extraLoads, iv),
+      new Date(iv.end),
+    ].sort((a, b) => a.getTime() - b.getTime());
+
+    let batteryEnergyKwh = batteryEnergyAtStartKwh;
+    let combined;
+
+    for (let index = 0; index < points.length - 1; index++) {
+      const part = simulateInterval(
+        { start: points[index], end: points[index + 1] },
+        batteryEnergyKwh,
+        true
+      );
+      batteryEnergyKwh = part.batteryEnergyAtEndKwh;
+      combined = combined
+        ? {
+            batteryEnergyAtEndKwh: part.batteryEnergyAtEndKwh,
+            exportedEnergyKwh:
+              combined.exportedEnergyKwh + part.exportedEnergyKwh,
+            importedEnergyKwh:
+              combined.importedEnergyKwh + part.importedEnergyKwh,
+            missedProductionEnergyKwh:
+              combined.missedProductionEnergyKwh +
+              part.missedProductionEnergyKwh,
+            extraConsumedEnergyKwh:
+              combined.extraConsumedEnergyKwh + part.extraConsumedEnergyKwh,
+          }
+        : part;
+    }
+
+    return combined;
   }
 
   // recursive simulation of potentially-split interval
@@ -288,10 +311,9 @@ export function simulateTimestep({ state = {}, interval, components = {} }) {
   }
 
   // simulate the full (possibly-split) interval
-  const result = simulateInterval(
+  const result = simulateIntervalWithExtraLoadBoundaries(
     { start: new Date(interval.start), end: new Date(interval.end) },
-    socStart,
-    true
+    socStart
   );
 
   // prepare outputs

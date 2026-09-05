@@ -7,8 +7,8 @@ Purpose: define the external input of the ForecastEngine and the TimeSeries it p
 The input object contains:
 
 - `timeSeries`: ordered array of non-overlapping forecast timesteps
-- `state`: optional current simulation state
-  - `state.batteryEnergyKwh`: current battery energy in kWh; is the initial battery energy for the simulation
+- `initialState`: optional current simulation state
+  - `initialState.batteryEnergyKwh`: current battery energy in kWh; is the initial battery energy for the simulation
 - `components`: optional simulation components (battery, grid, etc.)
 
 Each forecast timestep contains only external forecasts and constraints:
@@ -17,8 +17,11 @@ Each forecast timestep contains only external forecasts and constraints:
 - `end`: interval end timestamp
 - `solar.productionPowerKw`: expected PV production power in kW
 - `load.consumptionPowerKw`: expected normal consumption power in kW
-- `load.extraConsumptionPowerKw`: optional additional consumption power in kW
-- `load.extraEndsAt`: optional end timestamp for the additional consumption
+- `load.extraLoads`: optional array of additional consumers
+  - `name`: optional name of the extra load
+  - `consumptionPowerKw`: expected consumption power in kW
+  - `start`: optional start timestamp; defaults to the containing interval's `start`
+  - `end`: optional end timestamp; defaults to the containing interval's `end`
 - `grid.targetPowerKw`: desired grid exchange in kW (`< 0` export, `0` neutral, `> 0` import)
 - `grid.buyPerKwh`: electricity purchase price per kWh
 - `grid.sellPerKwh`: electricity selling price per kWh
@@ -42,7 +45,7 @@ The ForecastEngine returns a TimeSeries containing one result per input interval
   },
   load: {
     consumptionPowerKw,
-    extraConsumptionPowerKw
+    extraLoads
   },
   battery: {
     energyKwh,

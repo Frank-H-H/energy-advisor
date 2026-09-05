@@ -11,8 +11,7 @@ describe('simulateTimestep - computation of extraConsumedEnergyKwh', () => {
       const testFixture = defaultSimpleTestSettingsForPartialStepFixture(
         {},
         {
-          extraConsumptionPowerKw: 2.1,
-          extraConsumptionEndsAt: new Date('2026-04-08T12:00:00.000Z'),
+          extraLoads: [{ name: 'test', consumptionPowerKw: 2.1, end: new Date('2026-04-08T12:00:00.000Z') }],
         }
       );
 
@@ -27,8 +26,7 @@ describe('simulateTimestep - computation of extraConsumedEnergyKwh', () => {
       const testFixture = defaultSimpleTestSettingsForPartialStepFixture(
         {},
         {
-          extraConsumptionPowerKw: 2.1,
-          extraConsumptionEndsAt: new Date('2026-04-08T14:00:00.000Z'),
+          extraLoads: [{ name: 'test', consumptionPowerKw: 2.1, end: new Date('2026-04-08T14:00:00.000Z') }],
         }
       );
 
@@ -43,8 +41,7 @@ describe('simulateTimestep - computation of extraConsumedEnergyKwh', () => {
       const testFixture = defaultSimpleTestSettingsForPartialStepFixture(
         {},
         {
-          extraConsumptionPowerKw: 2.1,
-          extraConsumptionEndsAt: new Date('2026-04-08T12:04:00.000Z'),
+          extraLoads: [{ name: 'test', consumptionPowerKw: 2.1, end: new Date('2026-04-08T12:04:00.000Z') }],
         }
       );
 
@@ -59,8 +56,7 @@ describe('simulateTimestep - computation of extraConsumedEnergyKwh', () => {
       const testFixture = defaultSimpleTestSettingsForPartialStepFixture(
         {},
         {
-          extraConsumptionPowerKw: 2.1,
-          extraConsumptionEndsAt: new Date('2026-04-08T12:11:00.000Z'),
+          extraLoads: [{ name: 'test', consumptionPowerKw: 2.1, end: new Date('2026-04-08T12:11:00.000Z') }],
         }
       );
 
@@ -75,8 +71,7 @@ describe('simulateTimestep - computation of extraConsumedEnergyKwh', () => {
       const testFixture = defaultSimpleTestSettingsForPartialStepFixture(
         {},
         {
-          extraConsumptionPowerKw: 0,
-          extraConsumptionEndsAt: new Date('2026-04-08T14:00:00.000Z'),
+          extraLoads: [{ name: 'test', consumptionPowerKw: 0, end: new Date('2026-04-08T14:00:00.000Z') }],
         }
       );
 
@@ -93,8 +88,7 @@ describe('simulateTimestep - computation of extraConsumedEnergyKwh', () => {
       const testFixture = defaultSimpleTestSettingsForFullStepFixture(
         {},
         {
-          extraConsumptionPowerKw: 2.1,
-          extraConsumptionEndsAt: new Date('2026-04-08T13:00:00.000Z'),
+          extraLoads: [{ name: 'test', consumptionPowerKw: 2.1, end: new Date('2026-04-08T13:00:00.000Z') }],
         }
       );
 
@@ -109,8 +103,7 @@ describe('simulateTimestep - computation of extraConsumedEnergyKwh', () => {
       const testFixture = defaultSimpleTestSettingsForFullStepFixture(
         {},
         {
-          extraConsumptionPowerKw: 2.1,
-          extraConsumptionEndsAt: new Date('2026-04-08T14:00:00.000Z'),
+          extraLoads: [{ name: 'test', consumptionPowerKw: 2.1, end: new Date('2026-04-08T14:00:00.000Z') }],
         }
       );
 
@@ -125,8 +118,7 @@ describe('simulateTimestep - computation of extraConsumedEnergyKwh', () => {
       const testFixture = defaultSimpleTestSettingsForFullStepFixture(
         {},
         {
-          extraConsumptionPowerKw: 2.1,
-          extraConsumptionEndsAt: new Date('2026-04-08T13:06:00.000Z'),
+          extraLoads: [{ name: 'test', consumptionPowerKw: 2.1, end: new Date('2026-04-08T13:06:00.000Z') }],
         }
       );
 
@@ -141,8 +133,7 @@ describe('simulateTimestep - computation of extraConsumedEnergyKwh', () => {
       const testFixture = defaultSimpleTestSettingsForFullStepFixture(
         {},
         {
-          extraConsumptionPowerKw: 0,
-          extraConsumptionEndsAt: new Date('2026-04-08T14:00:00.000Z'),
+          extraLoads: [{ name: 'test', consumptionPowerKw: 0, end: new Date('2026-04-08T14:00:00.000Z') }],
         }
       );
 
@@ -154,4 +145,50 @@ describe('simulateTimestep - computation of extraConsumedEnergyKwh', () => {
       ).toBeCloseTo(0.0, 6);
     });
   });
+  it('starts inside the timestep without an end', () => {
+    const testFixture = defaultSimpleTestSettingsForFullStepFixture(
+      {},
+      {
+        extraLoads: [
+          {
+            name: 'car',
+            consumptionPowerKw: 2.1,
+            start: new Date('2026-04-08T13:06:00.000Z'),
+          },
+        ],
+      }
+    );
+
+    const { nextState } = simulateTimestep(testFixture);
+
+    expect(nextState.extraConsumedEnergyKwh).toBeCloseTo(
+      2.1 * (9 / 60),
+      6
+    );
+  });
+
+  it('starts and ends inside the timestep', () => {
+    const testFixture = defaultSimpleTestSettingsForFullStepFixture(
+      {},
+      {
+        extraLoads: [
+          {
+            name: 'car',
+            consumptionPowerKw: 2.1,
+            start: new Date('2026-04-08T13:06:00.000Z'),
+            end: new Date('2026-04-08T13:11:00.000Z'),
+          },
+        ],
+      }
+    );
+
+    const { nextState } = simulateTimestep(testFixture);
+
+    expect(nextState.extraConsumedEnergyKwh).toBeCloseTo(
+      2.1 * (5 / 60),
+      6
+    );
+  });
+
+
 });

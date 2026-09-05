@@ -15,8 +15,7 @@ describe('simulateTimestep keeps input data', () => {
         productionPowerKw: 6,
         consumptionPowerKw: 3,
         gridTargetPowerKw: 0.6,
-        extraConsumptionPowerKw: 2.1,
-        extraConsumptionEndsAt: new Date('2026-04-08T14:00:00.000Z'),
+        extraLoads: [{ name: 'test', consumptionPowerKw: 2.1, end: new Date('2026-04-08T14:00:00.000Z') }],
         someExtraAttribute: 'someValue',
       }
     );
@@ -25,10 +24,13 @@ describe('simulateTimestep keeps input data', () => {
     expect(nextState.productionPowerKw).toBeCloseTo(6);
     expect(nextState.consumptionPowerKw).toBeCloseTo(3);
     expect(nextState.gridTargetPowerKw).toBeCloseTo(0.6);
-    expect(nextState.extraConsumptionPowerKw).toBeCloseTo(2.1);
-    expect(nextState.extraConsumptionEndsAt).toBeCloseTo(
-      new Date('2026-04-08T14:00:00.000Z')
-    );
+    expect(nextState.extraLoads).toEqual([
+      {
+        name: 'test',
+        consumptionPowerKw: 2.1,
+        end: new Date('2026-04-08T14:00:00.000Z'),
+      },
+    ]);
     expect(nextState.someExtraAttribute).toBe('someValue');
     expectStandardNextStateAttributesPresent(nextState);
   });
@@ -40,8 +42,7 @@ describe('simulateTimestep keeps input data', () => {
         productionPowerKw: 6,
         consumptionPowerKw: 3,
         gridTargetPowerKw: 0.6,
-        extraConsumptionPowerKw: 2.1,
-        extraConsumptionEndsAt: new Date('2026-04-08T14:00:00.000Z'),
+        extraLoads: [{ name: 'test', consumptionPowerKw: 2.1, end: new Date('2026-04-08T14:00:00.000Z') }],
         someExtraAttribute: 'someValue',
       }
     );
@@ -50,10 +51,13 @@ describe('simulateTimestep keeps input data', () => {
     expect(nextState.productionPowerKw).toBeCloseTo(6);
     expect(nextState.consumptionPowerKw).toBeCloseTo(3);
     expect(nextState.gridTargetPowerKw).toBeCloseTo(0.6);
-    expect(nextState.extraConsumptionPowerKw).toBeCloseTo(2.1);
-    expect(nextState.extraConsumptionEndsAt).toBeCloseTo(
-      new Date('2026-04-08T14:00:00.000Z')
-    );
+    expect(nextState.extraLoads).toEqual([
+      {
+        name: 'test',
+        consumptionPowerKw: 2.1,
+        end: new Date('2026-04-08T14:00:00.000Z'),
+      },
+    ]);
     expect(nextState.someExtraAttribute).toBe('someValue');
     expectStandardNextStateAttributesPresent(nextState);
   });

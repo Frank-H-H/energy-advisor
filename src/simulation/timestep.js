@@ -3,6 +3,11 @@ import { PowerBalance } from '../components/power-balance.js';
 import { SimulationStepResult } from '../components/simulation-step-result.js';
 import { Timestep } from '../components/timestep.js';
 import {
+  getExtraLoadBoundaryPoints,
+  getExtraLoadEnergyKwh,
+  normalizeExtraLoads,
+} from './extra-loads.js';
+import {
   addMilliseconds,
   differenceInMilliseconds,
   isAfter,
@@ -32,18 +37,13 @@ export function simulateTimestep({ state = {}, timestep, components = {} }) {
 
   timestep.batteryEnergyAtStartKwh = state.batteryEnergyAtStartKwh;
   // normalize inputs
-  timestep.productionPowerKw = Number(
-    timestep.productionPowerKw || 0
-  );
-  timestep.consumptionPowerKw = Number(
-    timestep.consumptionPowerKw || 0
-  );
+  timestep.productionPowerKw = Number(timestep.productionPowerKw || 0);
+  timestep.consumptionPowerKw = Number(timestep.consumptionPowerKw || 0);
   timestep.gridTargetPowerKw = Number(timestep.gridTargetPowerKw || 0);
-  timestep.prematureExportPowerKw = Number(timestep.prematureExportPowerKw || 0);
-  timestep.extraConsumptionPowerKw = Number(timestep.extraConsumptionPowerKw || 0);
-  timestep.extraConsumptionEndsAt = timestep.extraConsumptionEndsAt
-    ? new Date(timestep.extraConsumptionEndsAt)
-    : undefined;
+  timestep.prematureExportPowerKw = Number(
+    timestep.prematureExportPowerKw || 0
+  );
+  timestep.extraLoads = normalizeExtraLoads(timestep.extraLoads);
 
   timestep.importPricePerKwh = timestep.importPricePerKwh || null;
   timestep.exportPricePerKwh = timestep.exportPricePerKwh || null;
@@ -102,12 +102,12 @@ export function simulateTimestep({ state = {}, timestep, components = {} }) {
       timePointsInThisFrame.push(timestep.start);
     }
     timePointsInThisFrame.push(timestep.end);
-    if (
-      typeof timestep.extraConsumptionPowerKw !== 'undefined' &&
-      isWithinInterval(timestep.extraConsumptionEndsAt, timestep)
-    ) {
-      if (isAfter(timestep.extraConsumptionEndsAt, timeToStart)) {
-        timePointsInThisFrame.push(timestep.extraConsumptionEndsAt);
+    for (const boundary of getExtraLoadBoundaryPoints(
+      timestep.extraLoads,
+      timestep
+    )) {
+      if (isAfter(boundary, timeToStart)) {
+        timePointsInThisFrame.push(boundary);
       }
     }
     timePointsInThisFrame.sort();
@@ -120,7 +120,7 @@ export function simulateTimestep({ state = {}, timestep, components = {} }) {
     var currentStart = timePointsInThisFrame[0];
     for (let index = 1; index < timePointsInThisFrame.length; index++) {
       const currentEnd = timePointsInThisFrame[index];
-      if (!isBefore(timeToStart, currentStart)) {
+      if (!isBefore(currentStart, timeToStart)) {
         timestepPartsToSimulate.push(
           Timestep.from(timestep).between(currentStart, currentEnd)
         );
@@ -148,15 +148,11 @@ export function simulateTimestep({ state = {}, timestep, components = {} }) {
         timestep.productionPowerKw,
         Math.max(0, unconstrainedPowerBalance - constrainedPowerBalance)
       ) * timestepFraction;
-    if (
-      !timestep.extraConsumptionEndsAt ||
-      !isBefore(timestep.extraConsumptionEndsAt, timestep.end)
-    ) {
-      timestep.extraConsumedEnergyKwh =
-        timestep.extraConsumptionPowerKw * timestepFraction;
-    } else {
-      timestep.extraConsumedEnergyKwh = 0;
-    }
+    timestep.extraConsumedEnergyKwh = getExtraLoadEnergyKwh(
+      timestep.extraLoads,
+      timestep.start,
+      timestep.end
+    );
     if (unconstrainedPowerBalance > 0 && battery.soc >= battery.capacity) {
       // charging, but already full
       timestep.batteryEnergyAtEndKwh = battery.capacity;
@@ -168,7 +164,8 @@ export function simulateTimestep({ state = {}, timestep, components = {} }) {
       // discharging, but already empty
       timestep.batteryEnergyAtEndKwh = battery.minSoc;
       timestep.exportedEnergyKwh = 0;
-      timestep.importedEnergyKwh = -unconstrainedPowerBalance * timestepFraction;
+      timestep.importedEnergyKwh =
+        -unconstrainedPowerBalance * timestepFraction;
       return;
     }
     // charging or discharging somewhere in between
@@ -212,7 +209,8 @@ export function simulateTimestep({ state = {}, timestep, components = {} }) {
             Math.max(0, unconstrainedPowerBalance - limitedBatteryChargePower) *
             timestepFraction;
         } else {
-          timestep.exportedEnergyKwh = constrainedPowerBalance * timestepFraction;
+          timestep.exportedEnergyKwh =
+            constrainedPowerBalance * timestepFraction;
         }
         timestep.importedEnergyKwh = 0;
         return;
@@ -232,7 +230,8 @@ export function simulateTimestep({ state = {}, timestep, components = {} }) {
         Timestep.from(timestep).splitAt(timePointWhenFull);
       firstTimestep.batteryEnergyAtStartKwh = timestep.batteryEnergyAtStartKwh;
       internalSimulateTimestep(firstTimestep, false);
-      secondTimestep.batteryEnergyAtStartKwh = firstTimestep.batteryEnergyAtEndKwh;
+      secondTimestep.batteryEnergyAtStartKwh =
+        firstTimestep.batteryEnergyAtEndKwh;
       internalSimulateTimestep(secondTimestep, false);
       timestep.firstTimestep = firstTimestep;
       timestep.secondTimestep = secondTimestep;
@@ -265,7 +264,8 @@ export function simulateTimestep({ state = {}, timestep, components = {} }) {
         Timestep.from(timestep).splitAt(timePointWhenEmpty);
       firstTimestep.batteryEnergyAtStartKwh = timestep.batteryEnergyAtStartKwh;
       internalSimulateTimestep(firstTimestep, false);
-      secondTimestep.batteryEnergyAtStartKwh = firstTimestep.batteryEnergyAtEndKwh;
+      secondTimestep.batteryEnergyAtStartKwh =
+        firstTimestep.batteryEnergyAtEndKwh;
       internalSimulateTimestep(secondTimestep, false);
       timestep.firstTimestep = firstTimestep;
       timestep.secondTimestep = secondTimestep;

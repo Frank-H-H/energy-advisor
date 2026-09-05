@@ -21,7 +21,7 @@ Migration tasks:
 - [x] Change advisory algorithm to support different advisory strategies
 - [x] Run first test in my Home Assistant environment
 - [x] Enable rerunning the forecast with the planned actions
-- [ ] Migrate from single extraConsumedEnergyKwh to extraLoads
+- [x] Migrate from single extraConsumption to multiple extraLoads
 - [ ] Compute the total effects of the plans (total savings or so)
 - [ ] Add examples to documentation
 - [ ] Introduce helper nodes (maybe as a separate repository / module?) to prepare a time series

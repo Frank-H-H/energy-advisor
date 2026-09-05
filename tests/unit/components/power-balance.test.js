@@ -36,8 +36,7 @@ describe('PowerBalance domain model', () => {
       productionPowerKw: 8,
       consumptionPowerKw: 3,
       gridTargetPowerKw: 0,
-      extraConsumptionPowerKw: 2,
-      extraConsumptionEndsAt: beforeEnd,
+      extraLoads: [{ name: 'test', consumptionPowerKw: 2, end: beforeEnd }],
       start,
       end,
     })
@@ -50,8 +49,7 @@ describe('PowerBalance domain model', () => {
       productionPowerKw: 8,
       consumptionPowerKw: 3,
       gridTargetPowerKw: 0,
-      extraConsumptionPowerKw: 2,
-      extraConsumptionEndsAt: start,
+      extraLoads: [{ name: 'test', consumptionPowerKw: 2, end: start }],
       start,
       end,
     })

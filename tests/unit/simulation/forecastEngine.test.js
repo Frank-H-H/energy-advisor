@@ -197,7 +197,7 @@ describe('ForecastEngine', () => {
 
     expect(result.timeSeries[0]).toMatchObject({
       solar: { productionPowerKw: 4, missedProductionKwh: 0 },
-      load: { consumptionPowerKw: 1, extraConsumptionPowerKw: 0 },
+      load: { consumptionPowerKw: 1, extraLoads: [] },
       battery: { energyKwh: 5, chargeKwh: 3, dischargeKwh: 0 },
       grid: {
         targetPowerKw: 0,
@@ -219,15 +219,60 @@ describe('ForecastEngine', () => {
           start: '2026-01-01T00:00:00Z',
           end: '2026-01-01T01:00:00Z',
           solar: { productionPowerKw: 0 },
-          load: { consumptionPowerKw: 0, extraConsumptionPowerKw: 2 },
+          load: { consumptionPowerKw: 0, extraLoads: [{ name: 'test', consumptionPowerKw: 2 }] },
           grid: { targetPowerKw: 0 },
         },
       ],
       components,
     });
 
-    expect(result.timeSeries[0].load.extraConsumptionPowerKw).toBe(2);
+    expect(result.timeSeries[0].load.extraLoads[0].consumptionPowerKw).toBe(2);
     expect(result.timeSeries[0].battery.dischargeKwh).toBe(2);
+  });
+
+  it('simulates multiple extra loads with start and end inside an interval', () => {
+    const result = ForecastEngine.run({
+      initialState: { batteryEnergyKwh: 10 },
+      timeSeries: [
+        {
+          start: '2026-01-01T00:00:00Z',
+          end: '2026-01-01T01:00:00Z',
+          solar: { productionPowerKw: 0 },
+          load: {
+            consumptionPowerKw: 0,
+            extraLoads: [
+              {
+                name: 'base load',
+                consumptionPowerKw: 1,
+              },
+              {
+                name: 'car',
+                consumptionPowerKw: 2,
+                start: '2026-01-01T00:15:00Z',
+                end: '2026-01-01T00:45:00Z',
+              },
+            ],
+          },
+          grid: { targetPowerKw: 0 },
+        },
+      ],
+      components,
+    });
+
+    expect(result.timeSeries[0].load.extraLoads).toEqual([
+      {
+        name: 'base load',
+        consumptionPowerKw: 1,
+      },
+      {
+        name: 'car',
+        consumptionPowerKw: 2,
+        start: '2026-01-01T00:15:00Z',
+        end: '2026-01-01T00:45:00Z',
+      },
+    ]);
+    expect(result.timeSeries[0].battery.dischargeKwh).toBe(2);
+    expect(result.timeSeries[0].battery.energyKwh).toBe(8);
   });
 
   it('calculates cost from simulated grid import', () => {

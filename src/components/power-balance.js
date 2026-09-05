@@ -4,7 +4,7 @@
  * Positive values mean surplus power available for the battery/grid.
  * Negative values mean a power demand that must be supplied.
  */
-import { isBefore } from 'date-fns';
+import { getExtraLoadPowerKw } from '../simulation/extra-loads.js';
 
 export class PowerBalance {
   constructor(powerKw) {
@@ -21,13 +21,11 @@ export class PowerBalance {
       powerBalance -= timestep.prematureExportPowerKw
     }
 
-    if (
-      timestep.extraConsumptionPowerKw &&
-      (!timestep.extraConsumptionEndsAt ||
-        isBefore(timestep.start, timestep.extraConsumptionEndsAt))
-    ) {
-      powerBalance -= timestep.extraConsumptionPowerKw
-    }
+    powerBalance -= getExtraLoadPowerKw(
+      timestep.extraLoads,
+      timestep.start,
+      timestep.end
+    );
 
     return new PowerBalance(powerBalance)
   }

@@ -13,15 +13,13 @@ describe.skip('Forecast / run integration using simulateTimestep sequentially', 
       productionPowerKw: 6,
       consumptionPowerKw: 3,
       gridTargetPowerKw: 0.6,
-      extraConsumptionPowerKw: 2.1,
-      extraConsumptionEndsAt: new Date('2026-04-08T14:00:00.000Z')
+      extraLoads: [{ name: 'test', consumptionPowerKw: 2.1, end: new Date('2026-04-08T14:00:00.000Z') }]
     })
     const B = makeInterval('2026-04-08T13:00:00.000Z', '2026-04-08T13:15:00.000Z', {
       productionPowerKw: 6,
       consumptionPowerKw: 3,
       gridTargetPowerKw: 0.6,
-      extraConsumptionPowerKw: 2,
-      extraConsumptionEndsAt: new Date('2026-04-08T14:00:00.000Z')
+      extraLoads: [{ name: 'test', consumptionPowerKw: 2, end: new Date('2026-04-08T14:00:00.000Z') }]
     })
 
     const components = makeComponents()
