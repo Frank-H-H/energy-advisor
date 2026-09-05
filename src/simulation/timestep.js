@@ -110,17 +110,30 @@ export function simulateTimestep({ state = {}, timestep, components = {} }) {
         timePointsInThisFrame.push(boundary);
       }
     }
-    timePointsInThisFrame.sort();
+    timePointsInThisFrame.sort(
+      (first, second) => first.getTime() - second.getTime()
+    );
+    const uniqueTimePointsInThisFrame = timePointsInThisFrame.filter(
+      (point, index, points) =>
+        index === 0 || point.getTime() !== points[index - 1].getTime()
+    );
     if (!state.DEBUG) {
-      timestep.timePointsInThisFrame = timePointsInThisFrame;
+      timestep.timePointsInThisFrame = uniqueTimePointsInThisFrame;
     }
 
     const timestepPartsToSimulate = new Array();
 
-    var currentStart = timePointsInThisFrame[0];
-    for (let index = 1; index < timePointsInThisFrame.length; index++) {
-      const currentEnd = timePointsInThisFrame[index];
-      if (!isBefore(currentStart, timeToStart)) {
+    var currentStart = uniqueTimePointsInThisFrame[0];
+    for (
+      let index = 1;
+      index < uniqueTimePointsInThisFrame.length;
+      index++
+    ) {
+      const currentEnd = uniqueTimePointsInThisFrame[index];
+      if (
+        isBefore(currentStart, currentEnd) &&
+        !isBefore(currentStart, timeToStart)
+      ) {
         timestepPartsToSimulate.push(
           Timestep.from(timestep).between(currentStart, currentEnd)
         );
