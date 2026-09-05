@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { PrematureExportStrategy } from '../../src/advisor/strategies/prematureExportStrategy.js';
 
-function timestep(startMinute, buyPerKwh, exportKwh, targetPowerKw = 0) {
+function timestep(startMinute, spotPerKwh, exportKwh, targetPowerKw = 0) {
   const start = new Date(
     `2026-01-01T00:${String(startMinute).padStart(2, '0')}:00Z`
   );
@@ -10,7 +10,7 @@ function timestep(startMinute, buyPerKwh, exportKwh, targetPowerKw = 0) {
     start: start.toISOString(),
     end: end.toISOString(),
     grid: {
-      buyPerKwh,
+      spotPerKwh,
       exportKwh,
       targetPowerKw,
     },
@@ -41,6 +41,25 @@ describe('PrematureExportStrategy', () => {
     );
     expect(result.remainingExportEnergyKwh).toBe(0);
     expect(result.totalPlannedExportEnergyKwh).toBeCloseTo(1.75, 10);
+  });
+
+  it('uses spot price instead of buy price to detect negative-price timesteps', () => {
+    const timeSeries = [
+      {
+        start: '2026-01-01T00:00:00Z',
+        end: '2026-01-01T00:15:00Z',
+        grid: { spotPerKwh: 0.2, exportKwh: 0, targetPowerKw: 0 },
+      },
+      {
+        start: '2026-01-01T00:15:00Z',
+        end: '2026-01-01T00:30:00Z',
+        grid: { spotPerKwh: -0.1, exportKwh: 2, targetPowerKw: -1 },
+      },
+    ];
+    const result = new PrematureExportStrategy().createPlan(timeSeries);
+
+    expect(result.proposals).toHaveLength(1);
+    expect(result.proposals[0].action.gridTargetPowerKw).toBeCloseTo(-7, 10);
   });
 
   it('uses the existing grid target when creating the new target', () => {
@@ -84,12 +103,12 @@ describe('PrematureExportStrategy', () => {
       {
         start: '2026-01-01T00:00:00Z',
         end: '2026-01-01T00:30:00Z',
-        grid: { buyPerKwh: 0.2, exportKwh: 0, targetPowerKw: 0 },
+        grid: { spotPerKwh: 0.2, exportKwh: 0, targetPowerKw: 0 },
       },
       {
         start: '2026-01-01T00:30:00Z',
         end: '2026-01-01T01:00:00Z',
-        grid: { buyPerKwh: -0.1, exportKwh: 2, targetPowerKw: 0 },
+        grid: { spotPerKwh: -0.1, exportKwh: 2, targetPowerKw: 0 },
       },
     ];
 

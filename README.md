@@ -22,7 +22,7 @@ Migration tasks:
 - [x] Run first test in my Home Assistant environment
 - [x] Enable rerunning the forecast with the planned actions
 - [x] Migrate from single extraConsumption to multiple extraLoads
-- [ ] Compute the total effects of the plans (total savings or so)
+- [x] Compute the total effects of the plans (total savings or so)
 - [ ] Add examples to documentation
 - [ ] Introduce helper nodes (maybe as a separate repository / module?) to prepare a time series
 - [ ] Add more strategies

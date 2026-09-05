@@ -48,7 +48,7 @@ export class PrematureExportStrategy extends Strategy {
 
     for (let index = timeSeries.length - 1; index >= 0; index -= 1) {
       const timestep = timeSeries[index];
-      const buyPerKwh = Number(timestep.grid?.buyPerKwh ?? 0);
+      const spotPerKwh = Number(timestep.grid?.spotPerKwh ?? 0);
       const gridTargetPowerKw = Number(timestep.grid?.targetPowerKw ?? 0);
       const gridExportKwh = Number(timestep.grid?.exportKwh ?? 0);
 
@@ -58,7 +58,7 @@ export class PrematureExportStrategy extends Strategy {
       const effectiveDurationHours =
         durationHours > 0 ? durationHours : intervalMinutes / 60;
 
-      if (buyPerKwh < 0) {
+      if (spotPerKwh < 0) {
         // gridTargetPowerKw < 0 means export.
         const allowedExportEnergyKwh =
           Math.max(0, -gridTargetPowerKw) * effectiveDurationHours;

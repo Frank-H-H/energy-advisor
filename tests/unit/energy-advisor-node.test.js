@@ -36,7 +36,7 @@ describe('energy-advisor Node-RED adapter', () => {
           start: '2026-01-01T00:00:00Z',
           end: '2026-01-01T00:15:00Z',
           grid: {
-            buyPerKwh: 0.2,
+            spotPerKwh: 0.2,
             exportKwh: 0,
             targetPowerKw: 0,
           },
@@ -45,7 +45,7 @@ describe('energy-advisor Node-RED adapter', () => {
           start: '2026-01-01T00:15:00Z',
           end: '2026-01-01T00:30:00Z',
           grid: {
-            buyPerKwh: -0.1,
+            spotPerKwh: -0.1,
             exportKwh: 2,
             targetPowerKw: -1,
           },
