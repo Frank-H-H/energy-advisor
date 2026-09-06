@@ -14,6 +14,11 @@ module.exports = function (RED) {
       sellPerKwh: readPriceConfig(config, 'sell'),
       spotPerKwh: readPriceConfig(config, 'spot'),
     };
+    const forecastConfigs = {
+      productionPowerKw: readForecastConfig(config, 'solarProduction'),
+      consumptionPowerKw: readForecastConfig(config, 'loadConsumption'),
+    };
+    const gridTargetConfig = readGridTargetConfig(config);
     const coreUrl = pathToFileURL(
       path.join(__dirname, '..', '..', 'src', 'index.js')
     ).href;
@@ -22,12 +27,14 @@ module.exports = function (RED) {
       try {
         const core = await import(coreUrl);
         const timeSeries = core.createTimeSeries({
-          start: new Date(),
+          start: msg.time,
           intervalMinutes,
           horizonHours,
         });
 
         const fixedPrices = {};
+        applyGridTarget(core, timeSeries, msg, gridTargetConfig, node);
+
         for (const [gridField, priceConfig] of Object.entries(priceConfigs)) {
           if (priceConfig.sourceType === 'fixed') {
             fixedPrices[gridField] = priceConfig.value;
@@ -64,6 +71,40 @@ module.exports = function (RED) {
                 `No ${priceConfig.label} found for ${result.missing} time-series interval(s)`
               );
             }
+          }
+        }
+
+        for (const [timeSeriesField, forecastConfig] of Object.entries(forecastConfigs)) {
+          if (forecastConfig.sourceType !== 'message') continue;
+
+          const { entries, skipped } = core.extractTimeSeriesValues(msg, {
+            path: forecastConfig.path,
+            startField: forecastConfig.startField,
+            endField: forecastConfig.endField,
+            valueField: forecastConfig.valueField,
+          });
+
+          const result = core.applyTimeSeriesValues(
+            timeSeries,
+            entries,
+            (timestep, value) => {
+              if (timeSeriesField === 'productionPowerKw') {
+                timestep.solar.productionPowerKw = value ?? 0;
+              } else {
+                timestep.load.consumptionPowerKw = value ?? 0;
+              }
+            }
+          );
+
+          if (skipped > 0) {
+            node.warn(
+              `Skipped ${skipped} invalid ${forecastConfig.label} entries`
+            );
+          }
+          if (result.missing > 0) {
+            node.warn(
+              `No ${forecastConfig.label} found for ${result.missing} time-series interval(s)`
+            );
           }
         }
 
@@ -106,6 +147,25 @@ function priceLabel(prefix) {
   }[prefix] ?? 'price';
 }
 
+function readForecastConfig(config, prefix) {
+  const sourceType = config[`${prefix}SourceType`] ?? 'none';
+  return {
+    sourceType,
+    path: config[`${prefix}Path`] ?? '',
+    startField: config[`${prefix}StartField`] ?? 'start',
+    endField: config[`${prefix}EndField`] ?? 'end',
+    valueField: config[`${prefix}ValueField`] ?? 'value',
+    label: forecastLabel(prefix),
+  };
+}
+
+function forecastLabel(prefix) {
+  return {
+    solarProduction: 'expected PV production',
+    loadConsumption: 'expected consumption',
+  }[prefix] ?? 'forecast';
+}
+
 function parsePrice(value) {
   if (value === '' || value === null || value === undefined) return null;
   const number = Number(value);
@@ -113,4 +173,90 @@ function parsePrice(value) {
     throw new Error('Grid prices must be finite numbers or empty');
   }
   return number;
+}
+
+function readGridTargetConfig(config) {
+  const sourceType = config.gridTargetSourceType ?? 'none';
+  return {
+    sourceType,
+    value: parsePower(config.gridTargetPowerKw),
+    path: config.gridTargetPath ?? '',
+    startField: config.gridTargetStartField ?? 'start',
+    endField: config.gridTargetEndField ?? 'end',
+    valueField: config.gridTargetValueField ?? 'value',
+    dayStart: config.gridTargetDayStart ?? '06:00',
+    dayEnd: config.gridTargetDayEnd ?? '20:00',
+    dayValue: parsePower(config.gridTargetDayPowerKw),
+    nightValue: parsePower(config.gridTargetNightPowerKw),
+  };
+}
+
+function applyGridTarget(core, timeSeries, msg, config, node) {
+  if (config.sourceType === 'fixed') {
+    for (const timestep of timeSeries) {
+      timestep.grid.targetPowerKw = config.value ?? 0;
+    }
+    return;
+  }
+
+  if (config.sourceType === 'message') {
+    const { entries, skipped } = core.extractTimeSeriesValues(msg, {
+      path: config.path,
+      startField: config.startField,
+      endField: config.endField,
+      valueField: config.valueField,
+    });
+
+    const result = core.applyTimeSeriesValues(
+      timeSeries,
+      entries,
+      (timestep, value) => {
+        timestep.grid.targetPowerKw = value ?? 0;
+      }
+    );
+
+    if (skipped > 0) {
+      node.warn(`Skipped ${skipped} invalid grid target entries`);
+    }
+    if (result.missing > 0) {
+      node.warn(
+        `No grid target found for ${result.missing} time-series interval(s)`
+      );
+    }
+    return;
+  }
+
+  if (config.sourceType === 'dayNight') {
+    for (const timestep of timeSeries) {
+      const hour = new Date(timestep.start).getHours();
+      const minute = new Date(timestep.start).getMinutes();
+      const timeMinutes = hour * 60 + minute;
+      const dayStart = parseClockMinutes(config.dayStart);
+      const dayEnd = parseClockMinutes(config.dayEnd);
+      const isDay =
+        dayStart <= dayEnd
+          ? timeMinutes >= dayStart && timeMinutes < dayEnd
+          : timeMinutes >= dayStart || timeMinutes < dayEnd;
+      timestep.grid.targetPowerKw = isDay
+        ? config.dayValue ?? 0
+        : config.nightValue ?? 0;
+    }
+  }
+}
+
+function parsePower(value) {
+  if (value === '' || value === null || value === undefined) return null;
+  const number = Number(value);
+  if (!Number.isFinite(number)) {
+    throw new Error('Grid target power must be a finite number or empty');
+  }
+  return number;
+}
+
+function parseClockMinutes(value) {
+  const match = /^([01]\d|2[0-3]):([0-5]\d)$/.exec(String(value));
+  if (!match) {
+    throw new Error(`Invalid time of day: ${value}`);
+  }
+  return Number(match[1]) * 60 + Number(match[2]);
 }

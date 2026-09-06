@@ -1,6 +1,6 @@
 {
   "name": "energy-advisor",
-  "version": "0.1.5g",
+  "version": "0.1.6.0",
   "description": "Decision-support library for residential energy systems: forecast and advisor engines with Node-RED adapters.",
   "license": "MIT",
   "type": "module",
