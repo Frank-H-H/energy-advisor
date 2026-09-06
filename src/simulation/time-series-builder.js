@@ -86,17 +86,18 @@ export function createTimeSeries({
  * @param {Object} prices Fixed grid prices in currency per kWh.
  * @param {number|null} [prices.buyPerKwh] Grid import price.
  * @param {number|null} [prices.sellPerKwh] Grid export remuneration.
+ * @param {number|null} [prices.spotPerKwh] Spot market price.
  * @returns {Array<Object>} The same TimeSeries instance.
  */
 export function setGridPrices(
   timeSeries,
-  { buyPerKwh = null, sellPerKwh = null } = {}
+  { buyPerKwh = null, sellPerKwh = null, spotPerKwh = null } = {}
 ) {
   if (!Array.isArray(timeSeries)) {
     throw new Error('timeSeries must be an array');
   }
 
-  const prices = { buyPerKwh, sellPerKwh };
+  const prices = { buyPerKwh, sellPerKwh, spotPerKwh };
   for (const [name, value] of Object.entries(prices)) {
     if (value !== null && value !== undefined && !Number.isFinite(Number(value))) {
       throw new Error(`${name} must be a finite number or null`);
@@ -107,6 +108,7 @@ export function setGridPrices(
     timestep.grid ??= {};
     timestep.grid.buyPerKwh = buyPerKwh == null ? null : Number(buyPerKwh);
     timestep.grid.sellPerKwh = sellPerKwh == null ? null : Number(sellPerKwh);
+    timestep.grid.spotPerKwh = spotPerKwh == null ? null : Number(spotPerKwh);
   }
 
   return timeSeries;

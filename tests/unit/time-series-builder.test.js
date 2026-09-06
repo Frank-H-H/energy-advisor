@@ -64,13 +64,16 @@ describe('setGridPrices', () => {
     const result = setGridPrices(timeSeries, {
       buyPerKwh: 0.32,
       sellPerKwh: 0.08,
+      spotPerKwh: -0.02,
     });
 
     expect(result).toBe(timeSeries);
     expect(
       result.every(
         (timestep) =>
-          timestep.grid.buyPerKwh === 0.32 && timestep.grid.sellPerKwh === 0.08
+          timestep.grid.buyPerKwh === 0.32 &&
+          timestep.grid.sellPerKwh === 0.08 &&
+          timestep.grid.spotPerKwh === -0.02
       )
     ).toBe(true);
   });

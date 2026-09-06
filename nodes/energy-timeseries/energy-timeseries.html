@@ -6,9 +6,20 @@
       name: { value: '', required: false },
       intervalMinutes: { value: 15, required: true, validate: RED.validators.number() },
       horizonHours: { value: 24, required: true, validate: RED.validators.number() },
+      buyPriceSourceType: { value: 'none', required: true },
       buyPerKwh: { value: '', required: false, validate: RED.validators.number() },
+      buyPricePath: { value: '', required: false },
+      buyPriceStartField: { value: 'start', required: false },
+      buyPriceEndField: { value: 'end', required: false },
+      buyPriceValueField: { value: 'value', required: false },
+      sellPriceSourceType: { value: 'none', required: true },
       sellPerKwh: { value: '', required: false, validate: RED.validators.number() },
+      sellPricePath: { value: '', required: false },
+      sellPriceStartField: { value: 'start', required: false },
+      sellPriceEndField: { value: 'end', required: false },
+      sellPriceValueField: { value: 'value', required: false },
       spotPriceSourceType: { value: 'none', required: true },
+      spotPerKwh: { value: '', required: false, validate: RED.validators.number() },
       spotPricePath: { value: 'payload.attributes.data', required: false },
       spotPriceStartField: { value: 'start_time', required: false },
       spotPriceEndField: { value: 'end_time', required: false },
@@ -21,13 +32,16 @@
       return this.name || 'energy-timeseries';
     },
     oneditprepare: function() {
-      const updateVisibility = () => {
-        $('#energy-timeseries-spot-config').toggle(
-          $('#node-input-spotPriceSourceType').val() === 'message'
-        );
+      const updateVisibility = (prefix) => {
+        const source = $(`#node-input-${prefix}PriceSourceType`).val();
+        $(`#energy-timeseries-${prefix}-fixed`).toggle(source === 'fixed');
+        $(`#energy-timeseries-${prefix}-message`).toggle(source === 'message');
       };
-      $('#node-input-spotPriceSourceType').on('change', updateVisibility);
-      updateVisibility();
+
+      ['buy', 'sell', 'spot'].forEach((prefix) => {
+        $(`#node-input-${prefix}PriceSourceType`).on('change', () => updateVisibility(prefix));
+        updateVisibility(prefix);
+      });
     }
   });
 </script>
@@ -52,42 +66,105 @@
     <span>hours</span>
   </div>
 
+  <h4>Grid import price</h4>
   <div class="form-row">
-    <label for="node-input-buyPerKwh"><i class="fa fa-bolt"></i> Grid import</label>
-    <input id="node-input-buyPerKwh" type="number" step="0.001" placeholder="e.g. 0.32" />
-    <span>per kWh</span>
-  </div>
-
-  <div class="form-row">
-    <label for="node-input-sellPerKwh"><i class="fa fa-upload"></i> Grid export</label>
-    <input id="node-input-sellPerKwh" type="number" step="0.001" placeholder="e.g. 0.08" />
-    <span>per kWh</span>
-  </div>
-
-  <div class="form-row">
-    <label for="node-input-spotPriceSourceType"><i class="fa fa-line-chart"></i> Spot prices</label>
-    <select id="node-input-spotPriceSourceType">
+    <label for="node-input-buyPriceSourceType">Source</label>
+    <select id="node-input-buyPriceSourceType">
       <option value="none">None</option>
+      <option value="fixed">Fixed price</option>
       <option value="message">Message attribute</option>
     </select>
   </div>
+  <div id="energy-timeseries-buy-fixed">
+    <div class="form-row">
+      <label for="node-input-buyPerKwh">Price</label>
+      <input id="node-input-buyPerKwh" type="number" step="0.001" placeholder="e.g. 0.32" />
+      <span>per kWh</span>
+    </div>
+  </div>
+  <div id="energy-timeseries-buy-message">
+    <div class="form-row">
+      <label for="node-input-buyPricePath">Message path</label>
+      <input id="node-input-buyPricePath" type="text" placeholder="payload.prices" />
+    </div>
+    <div class="form-row">
+      <label for="node-input-buyPriceStartField">Start field</label>
+      <input id="node-input-buyPriceStartField" type="text" placeholder="start" />
+    </div>
+    <div class="form-row">
+      <label for="node-input-buyPriceEndField">End field</label>
+      <input id="node-input-buyPriceEndField" type="text" placeholder="end" />
+    </div>
+    <div class="form-row">
+      <label for="node-input-buyPriceValueField">Value field</label>
+      <input id="node-input-buyPriceValueField" type="text" placeholder="value" />
+    </div>
+  </div>
 
-  <div id="energy-timeseries-spot-config">
+  <h4>Grid export price</h4>
+  <div class="form-row">
+    <label for="node-input-sellPriceSourceType">Source</label>
+    <select id="node-input-sellPriceSourceType">
+      <option value="none">None</option>
+      <option value="fixed">Fixed price</option>
+      <option value="message">Message attribute</option>
+    </select>
+  </div>
+  <div id="energy-timeseries-sell-fixed">
+    <div class="form-row">
+      <label for="node-input-sellPerKwh">Price</label>
+      <input id="node-input-sellPerKwh" type="number" step="0.001" placeholder="e.g. 0.08" />
+      <span>per kWh</span>
+    </div>
+  </div>
+  <div id="energy-timeseries-sell-message">
+    <div class="form-row">
+      <label for="node-input-sellPricePath">Message path</label>
+      <input id="node-input-sellPricePath" type="text" placeholder="payload.prices" />
+    </div>
+    <div class="form-row">
+      <label for="node-input-sellPriceStartField">Start field</label>
+      <input id="node-input-sellPriceStartField" type="text" placeholder="start" />
+    </div>
+    <div class="form-row">
+      <label for="node-input-sellPriceEndField">End field</label>
+      <input id="node-input-sellPriceEndField" type="text" placeholder="end" />
+    </div>
+    <div class="form-row">
+      <label for="node-input-sellPriceValueField">Value field</label>
+      <input id="node-input-sellPriceValueField" type="text" placeholder="value" />
+    </div>
+  </div>
+
+  <h4>Spot price</h4>
+  <div class="form-row">
+    <label for="node-input-spotPriceSourceType">Source</label>
+    <select id="node-input-spotPriceSourceType">
+      <option value="none">None</option>
+      <option value="fixed">Fixed price</option>
+      <option value="message">Message attribute</option>
+    </select>
+  </div>
+  <div id="energy-timeseries-spot-fixed">
+    <div class="form-row">
+      <label for="node-input-spotPerKwh">Price</label>
+      <input id="node-input-spotPerKwh" type="number" step="0.001" placeholder="e.g. 0.07" />
+      <span>per kWh</span>
+    </div>
+  </div>
+  <div id="energy-timeseries-spot-message">
     <div class="form-row">
       <label for="node-input-spotPricePath">Message path</label>
       <input id="node-input-spotPricePath" type="text" placeholder="payload.attributes.data" />
     </div>
-
     <div class="form-row">
       <label for="node-input-spotPriceStartField">Start field</label>
       <input id="node-input-spotPriceStartField" type="text" placeholder="start_time" />
     </div>
-
     <div class="form-row">
       <label for="node-input-spotPriceEndField">End field</label>
       <input id="node-input-spotPriceEndField" type="text" placeholder="end_time" />
     </div>
-
     <div class="form-row">
       <label for="node-input-spotPriceValueField">Value field</label>
       <input id="node-input-spotPriceValueField" type="text" placeholder="price_per_kwh" />
@@ -110,21 +187,17 @@
     <dt>Future</dt>
     <dd>Number of hours for which timesteps are created.</dd>
 
-    <dt>Grid import</dt>
-    <dd>Fixed price for electricity imported from the grid, in currency per kWh.</dd>
-
-    <dt>Grid export</dt>
-    <dd>Fixed remuneration for electricity exported to the grid, in currency per kWh.</dd>
-
-    <dt>Spot prices</dt>
-    <dd>Spot prices can be read from a message attribute. Configure the path to the array and the start, end and value fields of each array entry. The same mapping can later be reused for other time-dependent values.</dd>
+    <dt>Grid import price, Grid export price, Spot price</dt>
+    <dd>Grid import and export prices can independently use <em>None</em>, a <em>Fixed price</em>, or a <em>Message attribute</em>. Spot price uses <em>None</em> or a <em>Message attribute</em>. For a message attribute, configure the message path and the start, end and value fields of each array entry.</dd>
   </dl>
 
   <h3>Output</h3>
   <p>
-    The generated series is placed in <code>msg.payload.timeSeries</code> so it
-    can be connected directly to <code>energy-forecast</code>. Solar production,
-    load and grid target start at zero. Configured grid prices are copied to
-    every timestep; empty price fields remain <code>null</code>.
+    The node preserves the incoming message and writes the generated series to
+    <code>msg.payload.timeSeries</code>. Unconfigured prices remain
+    <code>null</code>. Message-based values are matched by time: exact source
+    intervals are preferred, a containing larger interval is accepted, and
+    fully covering smaller intervals are averaged arithmetically. Incomplete
+    coverage leaves the target value unset and produces a warning.
   </p>
 </script>

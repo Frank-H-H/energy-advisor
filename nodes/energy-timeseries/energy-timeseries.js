@@ -9,13 +9,11 @@ module.exports = function (RED) {
 
     const intervalMinutes = Number(config.intervalMinutes ?? 15);
     const horizonHours = Number(config.horizonHours ?? 24);
-    const buyPerKwh = parsePrice(config.buyPerKwh);
-    const sellPerKwh = parsePrice(config.sellPerKwh);
-    const spotPriceSourceType = config.spotPriceSourceType ?? 'none';
-    const spotPricePath = config.spotPricePath ?? 'payload.attributes.data';
-    const spotPriceStartField = config.spotPriceStartField ?? 'start_time';
-    const spotPriceEndField = config.spotPriceEndField ?? 'end_time';
-    const spotPriceValueField = config.spotPriceValueField ?? 'price_per_kwh';
+    const priceConfigs = {
+      buyPerKwh: readPriceConfig(config, 'buy'),
+      sellPerKwh: readPriceConfig(config, 'sell'),
+      spotPerKwh: readPriceConfig(config, 'spot'),
+    };
     const coreUrl = pathToFileURL(
       path.join(__dirname, '..', '..', 'src', 'index.js')
     ).href;
@@ -29,28 +27,43 @@ module.exports = function (RED) {
           horizonHours,
         });
 
-        core.setGridPrices(timeSeries, {
-          buyPerKwh,
-          sellPerKwh,
-        });
-
-        if (spotPriceSourceType === 'message') {
-          const { entries, skipped } = core.extractTimeSeriesValues(msg, {
-            path: spotPricePath,
-            startField: spotPriceStartField,
-            endField: spotPriceEndField,
-            valueField: spotPriceValueField,
-          });
-
-          const result = core.applyTimeSeriesValues(timeSeries, entries, (timestep, value) => {
-            timestep.grid.spotPerKwh = value;
-          });
-
-          if (skipped > 0) {
-            node.warn(`Skipped ${skipped} invalid spot-price entries`);
+        const fixedPrices = {};
+        for (const [gridField, priceConfig] of Object.entries(priceConfigs)) {
+          if (priceConfig.sourceType === 'fixed') {
+            fixedPrices[gridField] = priceConfig.value;
           }
-          if (result.missing > 0) {
-            node.warn(`No spot price found for ${result.missing} time-series interval(s)`);
+        }
+        if (Object.keys(fixedPrices).length > 0) {
+          core.setGridPrices(timeSeries, fixedPrices);
+        }
+
+        for (const [gridField, priceConfig] of Object.entries(priceConfigs)) {
+          if (priceConfig.sourceType === 'message') {
+            const { entries, skipped } = core.extractTimeSeriesValues(msg, {
+              path: priceConfig.path,
+              startField: priceConfig.startField,
+              endField: priceConfig.endField,
+              valueField: priceConfig.valueField,
+            });
+
+            const result = core.applyTimeSeriesValues(
+              timeSeries,
+              entries,
+              (timestep, value) => {
+                timestep.grid[gridField] = value;
+              }
+            );
+
+            if (skipped > 0) {
+              node.warn(
+                `Skipped ${skipped} invalid ${priceConfig.label} entries`
+              );
+            }
+            if (result.missing > 0) {
+              node.warn(
+                `No ${priceConfig.label} found for ${result.missing} time-series interval(s)`
+              );
+            }
           }
         }
 
@@ -71,6 +84,27 @@ module.exports = function (RED) {
 
   RED.nodes.registerType('energy-timeseries', EnergyTimeSeriesNode);
 };
+
+function readPriceConfig(config, prefix) {
+  const sourceType = config[`${prefix}PriceSourceType`] ?? 'none';
+  return {
+    sourceType,
+    value: parsePrice(config[`${prefix}PerKwh`]),
+    path: config[`${prefix}PricePath`] ?? '',
+    startField: config[`${prefix}PriceStartField`] ?? 'start',
+    endField: config[`${prefix}PriceEndField`] ?? 'end',
+    valueField: config[`${prefix}PriceValueField`] ?? 'value',
+    label: priceLabel(prefix),
+  };
+}
+
+function priceLabel(prefix) {
+  return {
+    buy: 'grid import price',
+    sell: 'grid export price',
+    spot: 'spot price',
+  }[prefix] ?? 'price';
+}
 
 function parsePrice(value) {
   if (value === '' || value === null || value === undefined) return null;

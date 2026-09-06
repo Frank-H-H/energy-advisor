@@ -68,9 +68,11 @@ describe('energy-timeseries Node-RED adapter', () => {
       {
         intervalMinutes: '60',
         horizonHours: '2',
+        buyPriceSourceType: 'fixed',
         buyPerKwh: '0.32',
+        sellPriceSourceType: 'fixed',
         sellPerKwh: '0.08',
-        spotPerKwh: '0.07',
+        spotPriceSourceType: 'none',
       }
     );
 
@@ -81,9 +83,54 @@ describe('energy-timeseries Node-RED adapter', () => {
     expect(
       sent[0].payload.timeSeries.every(
         (timestep) =>
-          timestep.grid.buyPerKwh === 0.32 && timestep.grid.sellPerKwh === 0.08
+          timestep.grid.buyPerKwh === 0.32 &&
+          timestep.grid.sellPerKwh === 0.08 &&
+          timestep.grid.spotPerKwh === null
       )
     ).toBe(true);
+
+    vi.useRealTimers();
+  });
+
+  it('maps buy and sell prices independently from message attributes', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-01-01T14:07:30Z'));
+
+    const { RED, sent, errors, warnings, inputHandlers } = createRED();
+    energyTimeSeriesNode(RED);
+    RED.constructor.call(
+      {},
+      {
+        intervalMinutes: '60',
+        horizonHours: '1',
+        buyPriceSourceType: 'message',
+        buyPricePath: 'payload.buyPrices',
+        buyPriceStartField: 'from',
+        buyPriceEndField: 'to',
+        buyPriceValueField: 'price',
+        sellPriceSourceType: 'message',
+        sellPricePath: 'payload.sellPrices',
+        sellPriceStartField: 'from',
+        sellPriceEndField: 'to',
+        sellPriceValueField: 'price',
+      }
+    );
+
+    await inputHandlers[0]({
+      payload: {
+        buyPrices: [
+          { from: '2026-01-01T14:00:00Z', to: '2026-01-01T15:00:00Z', price: 0.32 },
+        ],
+        sellPrices: [
+          { from: '2026-01-01T14:00:00Z', to: '2026-01-01T15:00:00Z', price: 0.08 },
+        ],
+      },
+    });
+
+    expect(errors).toHaveLength(0);
+    expect(warnings).toHaveLength(0);
+    expect(sent[0].payload.timeSeries[0].grid.buyPerKwh).toBe(0.32);
+    expect(sent[0].payload.timeSeries[0].grid.sellPerKwh).toBe(0.08);
 
     vi.useRealTimers();
   });
