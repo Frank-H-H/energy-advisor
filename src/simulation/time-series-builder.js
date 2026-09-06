@@ -75,3 +75,39 @@ export function createTimeSeries({
 
   return timeSeries;
 }
+
+/**
+ * Set fixed grid prices on every timestep in a TimeSeries.
+ *
+ * A null or undefined price leaves that price field unset (null). This keeps
+ * the helper neutral for contracts that do not provide one of the prices.
+ *
+ * @param {Array<Object>} timeSeries TimeSeries to modify.
+ * @param {Object} prices Fixed grid prices in currency per kWh.
+ * @param {number|null} [prices.buyPerKwh] Grid import price.
+ * @param {number|null} [prices.sellPerKwh] Grid export remuneration.
+ * @returns {Array<Object>} The same TimeSeries instance.
+ */
+export function setGridPrices(
+  timeSeries,
+  { buyPerKwh = null, sellPerKwh = null } = {}
+) {
+  if (!Array.isArray(timeSeries)) {
+    throw new Error('timeSeries must be an array');
+  }
+
+  const prices = { buyPerKwh, sellPerKwh };
+  for (const [name, value] of Object.entries(prices)) {
+    if (value !== null && value !== undefined && !Number.isFinite(Number(value))) {
+      throw new Error(`${name} must be a finite number or null`);
+    }
+  }
+
+  for (const timestep of timeSeries) {
+    timestep.grid ??= {};
+    timestep.grid.buyPerKwh = buyPerKwh == null ? null : Number(buyPerKwh);
+    timestep.grid.sellPerKwh = sellPerKwh == null ? null : Number(sellPerKwh);
+  }
+
+  return timeSeries;
+}

@@ -5,13 +5,29 @@
     defaults: {
       name: { value: '', required: false },
       intervalMinutes: { value: 15, required: true, validate: RED.validators.number() },
-      horizonHours: { value: 24, required: true, validate: RED.validators.number() }
+      horizonHours: { value: 24, required: true, validate: RED.validators.number() },
+      buyPerKwh: { value: '', required: false, validate: RED.validators.number() },
+      sellPerKwh: { value: '', required: false, validate: RED.validators.number() },
+      spotPriceSourceType: { value: 'none', required: true },
+      spotPricePath: { value: 'payload.attributes.data', required: false },
+      spotPriceStartField: { value: 'start_time', required: false },
+      spotPriceEndField: { value: 'end_time', required: false },
+      spotPriceValueField: { value: 'price_per_kwh', required: false }
     },
     inputs: 1,
     outputs: 1,
     icon: 'font-awesome/fa-clock-o',
     label: function() {
       return this.name || 'energy-timeseries';
+    },
+    oneditprepare: function() {
+      const updateVisibility = () => {
+        $('#energy-timeseries-spot-config').toggle(
+          $('#node-input-spotPriceSourceType').val() === 'message'
+        );
+      };
+      $('#node-input-spotPriceSourceType').on('change', updateVisibility);
+      updateVisibility();
     }
   });
 </script>
@@ -35,6 +51,48 @@
     <input id="node-input-horizonHours" type="number" min="1" step="1" />
     <span>hours</span>
   </div>
+
+  <div class="form-row">
+    <label for="node-input-buyPerKwh"><i class="fa fa-bolt"></i> Grid import</label>
+    <input id="node-input-buyPerKwh" type="number" step="0.001" placeholder="e.g. 0.32" />
+    <span>per kWh</span>
+  </div>
+
+  <div class="form-row">
+    <label for="node-input-sellPerKwh"><i class="fa fa-upload"></i> Grid export</label>
+    <input id="node-input-sellPerKwh" type="number" step="0.001" placeholder="e.g. 0.08" />
+    <span>per kWh</span>
+  </div>
+
+  <div class="form-row">
+    <label for="node-input-spotPriceSourceType"><i class="fa fa-line-chart"></i> Spot prices</label>
+    <select id="node-input-spotPriceSourceType">
+      <option value="none">None</option>
+      <option value="message">Message attribute</option>
+    </select>
+  </div>
+
+  <div id="energy-timeseries-spot-config">
+    <div class="form-row">
+      <label for="node-input-spotPricePath">Message path</label>
+      <input id="node-input-spotPricePath" type="text" placeholder="payload.attributes.data" />
+    </div>
+
+    <div class="form-row">
+      <label for="node-input-spotPriceStartField">Start field</label>
+      <input id="node-input-spotPriceStartField" type="text" placeholder="start_time" />
+    </div>
+
+    <div class="form-row">
+      <label for="node-input-spotPriceEndField">End field</label>
+      <input id="node-input-spotPriceEndField" type="text" placeholder="end_time" />
+    </div>
+
+    <div class="form-row">
+      <label for="node-input-spotPriceValueField">Value field</label>
+      <input id="node-input-spotPriceValueField" type="text" placeholder="price_per_kwh" />
+    </div>
+  </div>
 </script>
 
 <script type="text/html" data-help-name="energy-timeseries">
@@ -51,13 +109,22 @@
 
     <dt>Future</dt>
     <dd>Number of hours for which timesteps are created.</dd>
+
+    <dt>Grid import</dt>
+    <dd>Fixed price for electricity imported from the grid, in currency per kWh.</dd>
+
+    <dt>Grid export</dt>
+    <dd>Fixed remuneration for electricity exported to the grid, in currency per kWh.</dd>
+
+    <dt>Spot prices</dt>
+    <dd>Spot prices can be read from a message attribute. Configure the path to the array and the start, end and value fields of each array entry. The same mapping can later be reused for other time-dependent values.</dd>
   </dl>
 
   <h3>Output</h3>
   <p>
     The generated series is placed in <code>msg.payload.timeSeries</code> so it
     can be connected directly to <code>energy-forecast</code>. Solar production,
-    load and grid target start at zero; price fields start as <code>null</code>
-    and can be filled by later nodes.
+    load and grid target start at zero. Configured grid prices are copied to
+    every timestep; empty price fields remain <code>null</code>.
   </p>
 </script>

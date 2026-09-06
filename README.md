@@ -44,7 +44,7 @@ This repository contains:
 
 ## Energy TimeSeries Node
 
-The `energy-timeseries` Node-RED node creates a simulation-ready `TimeSeries` for a configurable future horizon. Choose a 15-minute or 60-minute interval and the number of future hours. The generated series is written to `msg.payload.timeSeries`, with zero-valued solar/load/grid target fields and empty price fields ready to be enriched by downstream nodes.
+The `energy-timeseries` Node-RED node creates a simulation-ready `TimeSeries` for a configurable future horizon. Choose a 15-minute or 60-minute interval and the number of future hours. The generated series is written to `msg.payload.timeSeries`, with zero-valued solar/load/grid target fields. Optional fixed import/export prices can be configured. Spot prices can instead be read from a configurable message attribute containing time intervals and values.
 
 A typical flow is:
 

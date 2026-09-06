@@ -5,6 +5,7 @@ describe('energy-timeseries Node-RED adapter', () => {
   function createRED() {
     const sent = [];
     const errors = [];
+    const warnings = [];
     const inputHandlers = [];
     const RED = {
       nodes: {
@@ -14,6 +15,7 @@ describe('energy-timeseries Node-RED adapter', () => {
           };
           node.send = (msg) => sent.push(msg);
           node.error = (error) => errors.push(error);
+          node.warn = (warning) => warnings.push(warning);
         },
         registerType(name, constructor) {
           expect(name).toBe('energy-timeseries');
@@ -21,7 +23,7 @@ describe('energy-timeseries Node-RED adapter', () => {
         },
       },
     };
-    return { RED, sent, errors, inputHandlers };
+    return { RED, sent, errors, warnings, inputHandlers };
   }
 
   it('creates 15-minute timesteps for the configured horizon', async () => {
@@ -55,6 +57,92 @@ describe('energy-timeseries Node-RED adapter', () => {
     vi.useRealTimers();
   });
 
+  it('applies configured fixed buy and sell prices to every timestep', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-01-01T12:07:30Z'));
+
+    const { RED, sent, errors, inputHandlers } = createRED();
+    energyTimeSeriesNode(RED);
+    RED.constructor.call(
+      {},
+      {
+        intervalMinutes: '60',
+        horizonHours: '2',
+        buyPerKwh: '0.32',
+        sellPerKwh: '0.08',
+        spotPerKwh: '0.07',
+      }
+    );
+
+    await inputHandlers[0]({ payload: {} });
+
+    expect(errors).toHaveLength(0);
+    expect(sent[0].payload.timeSeries).toHaveLength(2);
+    expect(
+      sent[0].payload.timeSeries.every(
+        (timestep) =>
+          timestep.grid.buyPerKwh === 0.32 && timestep.grid.sellPerKwh === 0.08
+      )
+    ).toBe(true);
+
+    vi.useRealTimers();
+  });
+
+  it('maps spot prices from a configurable message attribute', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-01-01T14:07:30Z'));
+
+    const { RED, sent, errors, warnings, inputHandlers } = createRED();
+    energyTimeSeriesNode(RED);
+    RED.constructor.call(
+      {},
+      {
+        intervalMinutes: '60',
+        horizonHours: '1',
+        spotPriceSourceType: 'message',
+        spotPricePath: 'payload.attributes.data',
+        spotPriceStartField: 'start_time',
+        spotPriceEndField: 'end_time',
+        spotPriceValueField: 'price_per_kwh',
+      }
+    );
+
+    await inputHandlers[0]({
+      payload: {
+        attributes: {
+          data: [
+            {
+              start_time: '2026-01-01T14:00:00Z',
+              end_time: '2026-01-01T14:15:00Z',
+              price_per_kwh: 0.1,
+            },
+            {
+              start_time: '2026-01-01T14:15:00Z',
+              end_time: '2026-01-01T14:30:00Z',
+              price_per_kwh: 0.2,
+            },
+            {
+              start_time: '2026-01-01T14:30:00Z',
+              end_time: '2026-01-01T14:45:00Z',
+              price_per_kwh: 0.3,
+            },
+            {
+              start_time: '2026-01-01T14:45:00Z',
+              end_time: '2026-01-01T15:00:00Z',
+              price_per_kwh: 0.4,
+            },
+          ],
+        },
+      },
+    });
+
+    expect(errors).toHaveLength(0);
+    expect(warnings).toHaveLength(0);
+    expect(sent[0].payload.timeSeries[0].grid.spotPerKwh).toBeCloseTo(0.25);
+
+    vi.useRealTimers();
+  });
+
   it('creates 60-minute timesteps and replaces an existing timeSeries', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-01-01T12:07:30Z'));
@@ -70,7 +158,9 @@ describe('energy-timeseries Node-RED adapter', () => {
     expect(errors).toHaveLength(0);
     expect(sent[0].payload.keep).toBe(true);
     expect(sent[0].payload.timeSeries).toHaveLength(3);
-    expect(sent[0].payload.timeSeries[0].start).toBe('2026-01-01T12:00:00.000Z');
+    expect(sent[0].payload.timeSeries[0].start).toBe(
+      '2026-01-01T12:00:00.000Z'
+    );
     expect(sent[0].payload.timeSeries[2].end).toBe('2026-01-01T15:00:00.000Z');
 
     vi.useRealTimers();

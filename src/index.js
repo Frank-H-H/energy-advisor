@@ -7,4 +7,6 @@ export { Plan } from './advisor/plan.js'
 export { PlanBuilder } from './advisor/plan-builder.js'
 export { ImmediateNegativePriceExportStrategy } from './advisor/strategies/immediateNegativePriceExportStrategy.js'
 export { DistributedNegativePriceExportStrategy } from './advisor/strategies/distributedNegativePriceExportStrategy.js'
-export { createTimeSeries } from './simulation/time-series-builder.js'
+export { createTimeSeries, setGridPrices } from './simulation/time-series-builder.js'
+
+export { getPath, extractTimeSeriesValues, findTimeSeriesValue, applyTimeSeriesValues } from './simulation/time-series-values.js'
