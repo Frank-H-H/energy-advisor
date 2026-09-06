@@ -23,7 +23,7 @@ Migration tasks:
 - [x] Enable rerunning the forecast with the planned actions
 - [x] Migrate from single extraConsumption to multiple extraLoads
 - [x] Compute the total effects of the plans (total savings or so)
-- [ ] Introduce helper nodes (maybe as a separate repository / module?) to prepare a time series
+- [x] Introduce helper node to prepare a TimeSeries
 - [ ] Add examples to documentation
 - [ ] Add more strategies
 - [ ] adapt node UI to make it better configurable
@@ -41,6 +41,16 @@ This repository contains:
 - Core forecast and advisor engines (ESM) under `src/`
 - Node-RED adapter nodes under `nodes/`
 - Documentation and examples under `docs/`
+
+## Energy TimeSeries Node
+
+The `energy-timeseries` Node-RED node creates a simulation-ready `TimeSeries` for a configurable future horizon. Choose a 15-minute or 60-minute interval and the number of future hours. The generated series is written to `msg.payload.timeSeries`, with zero-valued solar/load/grid target fields. Optional fixed import/export prices can be configured. Spot prices can instead be read from a configurable message attribute containing time intervals and values.
+
+A typical flow is:
+
+```text
+Energy TimeSeries -> Forecast -> Advisor -> Forecast
+```
 
 ## Vision
 
@@ -320,7 +330,7 @@ Developer flow (recommended)
    # start Node-RED (my local windows machine)
 
    ```
-   pm2 start ~/AppData/Roaming/npm/node_modules/node-red/red.js --name "node-red" --watch .
+   pm2 start ${HOME}/AppData/Roaming/npm/node_modules/node-red/red.js --name "node-red" --watch .
    ```
 
    or for debugging via visual studio code:

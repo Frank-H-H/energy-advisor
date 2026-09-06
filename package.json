@@ -1,6 +1,6 @@
 {
   "name": "energy-advisor",
-  "version": "0.1.5g",
+  "version": "0.1.6.0",
   "description": "Decision-support library for residential energy systems: forecast and advisor engines with Node-RED adapters.",
   "license": "MIT",
   "type": "module",
@@ -38,7 +38,8 @@
       "energy-advisor": "nodes/energy-advisor/energy-advisor.js",
       "energy-battery-config": "nodes/energy-battery-config/energy-battery-config.js",
       "energy-grid-config": "nodes/energy-grid-config/energy-grid-config.js",
-      "energy-system-config": "nodes/energy-system-config/energy-system-config.js"
+      "energy-system-config": "nodes/energy-system-config/energy-system-config.js",
+      "energy-timeseries": "nodes/energy-timeseries/energy-timeseries.js"
     }
   },
   "dependencies": {

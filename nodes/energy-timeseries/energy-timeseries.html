@@ -1,0 +1,511 @@
+<script type="text/javascript">
+  RED.nodes.registerType('energy-timeseries', {
+    category: 'energy',
+    color: '#d7d7a0',
+    defaults: {
+      name: { value: '', required: false },
+      intervalMinutes: { value: 15, required: true, validate: RED.validators.number() },
+      horizonHours: { value: 24, required: true, validate: RED.validators.number() },
+      gridTargetSourceType: { value: 'none', required: true },
+      gridTargetPowerKw: { value: '', required: false, validate: RED.validators.number() },
+      gridTargetPath: { value: '', required: false },
+      gridTargetStartField: { value: 'start', required: false },
+      gridTargetEndField: { value: 'end', required: false },
+      gridTargetValueField: { value: 'value', required: false },
+      gridTargetDayStart: { value: '06:00', required: false },
+      gridTargetDayEnd: { value: '20:00', required: false },
+      gridTargetDayPowerKw: { value: '', required: false, validate: RED.validators.number() },
+      gridTargetNightPowerKw: { value: '', required: false, validate: RED.validators.number() },
+      buyPriceSourceType: { value: 'none', required: true },
+      buyPerKwh: { value: '', required: false, validate: RED.validators.number() },
+      buyPricePath: { value: '', required: false },
+      buyPriceStartField: { value: 'start', required: false },
+      buyPriceEndField: { value: 'end', required: false },
+      buyPriceValueField: { value: 'value', required: false },
+      sellPriceSourceType: { value: 'none', required: true },
+      sellPerKwh: { value: '', required: false, validate: RED.validators.number() },
+      sellPricePath: { value: '', required: false },
+      sellPriceStartField: { value: 'start', required: false },
+      sellPriceEndField: { value: 'end', required: false },
+      sellPriceValueField: { value: 'value', required: false },
+      spotPriceSourceType: { value: 'none', required: true },
+      spotPerKwh: { value: '', required: false, validate: RED.validators.number() },
+      spotPricePath: { value: 'payload.attributes.data', required: false },
+      spotPriceStartField: { value: 'start_time', required: false },
+      spotPriceEndField: { value: 'end_time', required: false },
+      spotPriceValueField: { value: 'price_per_kwh', required: false },
+      solarProductionSourceType: { value: 'none', required: true },
+      solarProductionPath: { value: '', required: false },
+      solarProductionStartField: { value: 'start', required: false },
+      solarProductionEndField: { value: 'end', required: false },
+      solarProductionValueField: { value: 'value', required: false },
+      loadConsumptionSourceType: { value: 'none', required: true },
+      loadConsumptionPath: { value: '', required: false },
+      loadConsumptionStartField: { value: 'start', required: false },
+      loadConsumptionEndField: { value: 'end', required: false },
+      loadConsumptionValueField: { value: 'value', required: false },
+      extraLoads: { value: '[]', required: true }
+    },
+    inputs: 1,
+    outputs: 1,
+    icon: 'font-awesome/fa-clock-o',
+    label: function() {
+      return this.name || 'energy-timeseries';
+    },
+    oneditprepare: function() {
+      const updateVisibility = (prefix) => {
+        const source = $(`#node-input-${prefix}PriceSourceType`).val();
+        $(`#energy-timeseries-${prefix}-fixed`).toggle(source === 'fixed');
+        $(`#energy-timeseries-${prefix}-message`).toggle(source === 'message');
+      };
+
+      ['buy', 'sell', 'spot'].forEach((prefix) => {
+        $(`#node-input-${prefix}PriceSourceType`).on('change', () => updateVisibility(prefix));
+        updateVisibility(prefix);
+      });
+
+      const updateGridTargetVisibility = () => {
+        const source = $('#node-input-gridTargetSourceType').val();
+        $('#energy-timeseries-gridTarget-fixed').toggle(source === 'fixed');
+        $('#energy-timeseries-gridTarget-message').toggle(source === 'message');
+        $('#energy-timeseries-gridTarget-dayNight').toggle(source === 'dayNight');
+      };
+
+      $('#node-input-gridTargetSourceType').on('change', updateGridTargetVisibility);
+      updateGridTargetVisibility();
+
+      const updateForecastVisibility = (prefix) => {
+        const source = $(`#node-input-${prefix}SourceType`).val();
+        $(`#energy-timeseries-${prefix}-message`).toggle(source === 'message');
+      };
+
+      ['solarProduction', 'loadConsumption'].forEach((prefix) => {
+        $(`#node-input-${prefix}SourceType`).on('change', () => updateForecastVisibility(prefix));
+        updateForecastVisibility(prefix);
+      });
+
+      const renderExtraLoads = () => {
+        let loads = [];
+        try {
+          loads = JSON.parse($('#node-input-extraLoads').val() || '[]');
+        } catch {
+          loads = [];
+        }
+
+        const container = $('#energy-timeseries-extraLoads-list');
+        container.empty();
+
+        loads.forEach((load, index) => {
+          const row = $(`
+            <div class="energy-timeseries-extraLoad" data-index="${index}" style="border: 1px solid #ddd; padding: 8px; margin-bottom: 8px;">
+              <div class="form-row">
+                <label>Source</label>
+                <select class="extraLoad-sourceType">
+                  <option value="message">Message array</option>
+                  <option value="current">Current load + end time</option>
+                </select>
+              </div>
+              <div class="form-row">
+                <label>Name</label>
+                <input class="extraLoad-name" type="text" />
+                <button type="button" class="red-ui-button extraLoad-remove"><i class="fa fa-trash"></i> Remove</button>
+              </div>
+              <div class="extraLoad-message">
+                <div class="form-row">
+                  <label>Message path</label>
+                  <input class="extraLoad-path" type="text" placeholder="payload.extraLoads" />
+                </div>
+                <div class="form-row">
+                  <label>Start field</label>
+                  <input class="extraLoad-startField" type="text" placeholder="start" />
+                </div>
+                <div class="form-row">
+                  <label>End field</label>
+                  <input class="extraLoad-endField" type="text" placeholder="end" />
+                </div>
+                <div class="form-row">
+                  <label>Power field (kW)</label>
+                  <input class="extraLoad-valueField" type="text" placeholder="consumptionPowerKw" />
+                </div>
+              </div>
+              <div class="extraLoad-current">
+                <div class="form-row">
+                  <label>Power field (kW)</label>
+                  <input class="extraLoad-valueField-current" type="text" placeholder="extraConsumptionPower" />
+                </div>
+                <div class="form-row">
+                  <label>End timestamp field</label>
+                  <input class="extraLoad-endField-current" type="text" placeholder="end" />
+                </div>
+                <p>Start is <code>msg.time</code>; the end timestamp field contains the absolute end time.</p>
+              </div>
+            </div>
+          `);
+
+          row.find('.extraLoad-sourceType').val(load.sourceType || 'message');
+          row.find('.extraLoad-name').val(load.name || '');
+          row.find('.extraLoad-path').val(load.path || '');
+          row.find('.extraLoad-startField').val(load.startField || 'start');
+          row.find('.extraLoad-endField').val(load.endField || 'end');
+          row.find('.extraLoad-valueField').val(load.valueField || 'consumptionPowerKw');
+          row.find('.extraLoad-valueField-current').val(load.valueField || 'extraConsumptionPower');
+          row.find('.extraLoad-endField-current').val(load.endField || 'end');
+
+          const updateExtraLoadVisibility = () => {
+            const source = row.find('.extraLoad-sourceType').val();
+            row.find('.extraLoad-message').toggle(source === 'message');
+            row.find('.extraLoad-current').toggle(source === 'current');
+          };
+          row.find('.extraLoad-sourceType').on('change', updateExtraLoadVisibility);
+          updateExtraLoadVisibility();
+          container.append(row);
+        });
+
+        container.find('.extraLoad-remove').on('click', function() {
+          $(this).closest('.energy-timeseries-extraLoad').remove();
+        });
+      };
+
+      const collectExtraLoads = () => {
+        const loads = [];
+        $('#energy-timeseries-extraLoads-list .energy-timeseries-extraLoad').each(function() {
+          const row = $(this);
+          const sourceType = row.find('.extraLoad-sourceType').val() || 'message';
+          loads.push({
+            name: row.find('.extraLoad-name').val(),
+            sourceType,
+            path: row.find('.extraLoad-path').val(),
+            startField: row.find('.extraLoad-startField').val() || 'start',
+            endField:
+              sourceType === 'current'
+                ? row.find('.extraLoad-endField-current').val() || 'end'
+                : row.find('.extraLoad-endField').val() || 'end',
+            valueField:
+              sourceType === 'current'
+                ? row.find('.extraLoad-valueField-current').val() || 'extraConsumptionPower'
+                : row.find('.extraLoad-valueField').val() || 'consumptionPowerKw',
+          });
+        });
+        return loads;
+      };
+
+      $('#node-input-extraLoads-add').on('click', () => {
+        const loads = collectExtraLoads();
+        loads.push({
+          name: '',
+          sourceType: 'message',
+          path: '',
+          startField: 'start',
+          endField: 'end',
+          valueField: 'consumptionPowerKw',
+        });
+        $('#node-input-extraLoads').val(JSON.stringify(loads));
+        renderExtraLoads();
+      });
+
+      renderExtraLoads();
+    },
+    oneditsave: function() {
+      const loads = [];
+      $('#energy-timeseries-extraLoads-list .energy-timeseries-extraLoad').each(function() {
+        const row = $(this);
+        const sourceType = row.find('.extraLoad-sourceType').val() || 'message';
+        loads.push({
+          name: row.find('.extraLoad-name').val(),
+          sourceType,
+          path: row.find('.extraLoad-path').val(),
+          startField: row.find('.extraLoad-startField').val() || 'start',
+          endField:
+            sourceType === 'current'
+              ? row.find('.extraLoad-endField-current').val() || 'end'
+              : row.find('.extraLoad-endField').val() || 'end',
+          valueField:
+            sourceType === 'current'
+              ? row.find('.extraLoad-valueField-current').val() || 'extraConsumptionPower'
+              : row.find('.extraLoad-valueField').val() || 'consumptionPowerKw',
+        });
+      });
+      $('#node-input-extraLoads').val(JSON.stringify(loads));
+    }
+  });
+</script>
+
+<script type="text/html" data-template-name="energy-timeseries">
+  <div class="form-row">
+    <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+    <input type="text" id="node-input-name" placeholder="Name" />
+  </div>
+
+  <div class="form-row">
+    <label for="node-input-intervalMinutes"><i class="fa fa-clock-o"></i> Interval</label>
+    <select id="node-input-intervalMinutes">
+      <option value="15">15 minutes</option>
+      <option value="60">60 minutes</option>
+    </select>
+  </div>
+
+  <div class="form-row">
+    <label for="node-input-horizonHours"><i class="fa fa-forward"></i> Future</label>
+    <input id="node-input-horizonHours" type="number" min="1" step="1" />
+    <span>hours</span>
+  </div>
+
+  <h4>Grid target</h4>
+  <div class="form-row">
+    <label for="node-input-gridTargetSourceType">Source</label>
+    <select id="node-input-gridTargetSourceType">
+      <option value="none">None</option>
+      <option value="fixed">Fixed target</option>
+      <option value="message">Message attribute</option>
+      <option value="dayNight">Day / night</option>
+    </select>
+  </div>
+  <div id="energy-timeseries-gridTarget-fixed">
+    <div class="form-row">
+      <label for="node-input-gridTargetPowerKw">Target</label>
+      <input id="node-input-gridTargetPowerKw" type="number" step="0.001" placeholder="e.g. 2" />
+      <span>kW</span>
+    </div>
+  </div>
+  <div id="energy-timeseries-gridTarget-message">
+    <div class="form-row">
+      <label for="node-input-gridTargetPath">Message path</label>
+      <input id="node-input-gridTargetPath" type="text" placeholder="payload.gridTargets" />
+    </div>
+    <div class="form-row">
+      <label for="node-input-gridTargetStartField">Start field</label>
+      <input id="node-input-gridTargetStartField" type="text" placeholder="start" />
+    </div>
+    <div class="form-row">
+      <label for="node-input-gridTargetEndField">End field</label>
+      <input id="node-input-gridTargetEndField" type="text" placeholder="end" />
+    </div>
+    <div class="form-row">
+      <label for="node-input-gridTargetValueField">Value field</label>
+      <input id="node-input-gridTargetValueField" type="text" placeholder="targetPowerKw" />
+    </div>
+  </div>
+  <div id="energy-timeseries-gridTarget-dayNight">
+    <div class="form-row">
+      <label for="node-input-gridTargetDayStart">Day starts</label>
+      <input id="node-input-gridTargetDayStart" type="time" />
+    </div>
+    <div class="form-row">
+      <label for="node-input-gridTargetDayEnd">Day ends</label>
+      <input id="node-input-gridTargetDayEnd" type="time" />
+    </div>
+    <div class="form-row">
+      <label for="node-input-gridTargetDayPowerKw">Day target</label>
+      <input id="node-input-gridTargetDayPowerKw" type="number" step="0.001" placeholder="e.g. 2" />
+      <span>kW</span>
+    </div>
+    <div class="form-row">
+      <label for="node-input-gridTargetNightPowerKw">Night target</label>
+      <input id="node-input-gridTargetNightPowerKw" type="number" step="0.001" placeholder="e.g. 0" />
+      <span>kW</span>
+    </div>
+  </div>
+
+  <h4>Grid import price</h4>
+  <div class="form-row">
+    <label for="node-input-buyPriceSourceType">Source</label>
+    <select id="node-input-buyPriceSourceType">
+      <option value="none">None</option>
+      <option value="fixed">Fixed price</option>
+      <option value="message">Message attribute</option>
+    </select>
+  </div>
+  <div id="energy-timeseries-buy-fixed">
+    <div class="form-row">
+      <label for="node-input-buyPerKwh">Price</label>
+      <input id="node-input-buyPerKwh" type="number" step="0.001" placeholder="e.g. 0.32" />
+      <span>per kWh</span>
+    </div>
+  </div>
+  <div id="energy-timeseries-buy-message">
+    <div class="form-row">
+      <label for="node-input-buyPricePath">Message path</label>
+      <input id="node-input-buyPricePath" type="text" placeholder="payload.prices" />
+    </div>
+    <div class="form-row">
+      <label for="node-input-buyPriceStartField">Start field</label>
+      <input id="node-input-buyPriceStartField" type="text" placeholder="start" />
+    </div>
+    <div class="form-row">
+      <label for="node-input-buyPriceEndField">End field</label>
+      <input id="node-input-buyPriceEndField" type="text" placeholder="end" />
+    </div>
+    <div class="form-row">
+      <label for="node-input-buyPriceValueField">Value field</label>
+      <input id="node-input-buyPriceValueField" type="text" placeholder="value" />
+    </div>
+  </div>
+
+  <h4>Grid export price</h4>
+  <div class="form-row">
+    <label for="node-input-sellPriceSourceType">Source</label>
+    <select id="node-input-sellPriceSourceType">
+      <option value="none">None</option>
+      <option value="fixed">Fixed price</option>
+      <option value="message">Message attribute</option>
+    </select>
+  </div>
+  <div id="energy-timeseries-sell-fixed">
+    <div class="form-row">
+      <label for="node-input-sellPerKwh">Price</label>
+      <input id="node-input-sellPerKwh" type="number" step="0.001" placeholder="e.g. 0.08" />
+      <span>per kWh</span>
+    </div>
+  </div>
+  <div id="energy-timeseries-sell-message">
+    <div class="form-row">
+      <label for="node-input-sellPricePath">Message path</label>
+      <input id="node-input-sellPricePath" type="text" placeholder="payload.prices" />
+    </div>
+    <div class="form-row">
+      <label for="node-input-sellPriceStartField">Start field</label>
+      <input id="node-input-sellPriceStartField" type="text" placeholder="start" />
+    </div>
+    <div class="form-row">
+      <label for="node-input-sellPriceEndField">End field</label>
+      <input id="node-input-sellPriceEndField" type="text" placeholder="end" />
+    </div>
+    <div class="form-row">
+      <label for="node-input-sellPriceValueField">Value field</label>
+      <input id="node-input-sellPriceValueField" type="text" placeholder="value" />
+    </div>
+  </div>
+
+  <h4>Spot price</h4>
+  <div class="form-row">
+    <label for="node-input-spotPriceSourceType">Source</label>
+    <select id="node-input-spotPriceSourceType">
+      <option value="none">None</option>
+      <option value="fixed">Fixed price</option>
+      <option value="message">Message attribute</option>
+    </select>
+  </div>
+  <div id="energy-timeseries-spot-fixed">
+    <div class="form-row">
+      <label for="node-input-spotPerKwh">Price</label>
+      <input id="node-input-spotPerKwh" type="number" step="0.001" placeholder="e.g. 0.07" />
+      <span>per kWh</span>
+    </div>
+  </div>
+  <div id="energy-timeseries-spot-message">
+    <div class="form-row">
+      <label for="node-input-spotPricePath">Message path</label>
+      <input id="node-input-spotPricePath" type="text" placeholder="payload.attributes.data" />
+    </div>
+    <div class="form-row">
+      <label for="node-input-spotPriceStartField">Start field</label>
+      <input id="node-input-spotPriceStartField" type="text" placeholder="start_time" />
+    </div>
+    <div class="form-row">
+      <label for="node-input-spotPriceEndField">End field</label>
+      <input id="node-input-spotPriceEndField" type="text" placeholder="end_time" />
+    </div>
+    <div class="form-row">
+      <label for="node-input-spotPriceValueField">Value field</label>
+      <input id="node-input-spotPriceValueField" type="text" placeholder="price_per_kwh" />
+    </div>
+  </div>
+
+  <h4>Expected PV production</h4>
+  <div class="form-row">
+    <label for="node-input-solarProductionSourceType">Source</label>
+    <select id="node-input-solarProductionSourceType">
+      <option value="none">None</option>
+      <option value="message">Message attribute</option>
+    </select>
+  </div>
+  <div id="energy-timeseries-solarProduction-message">
+    <div class="form-row">
+      <label for="node-input-solarProductionPath">Message path</label>
+      <input id="node-input-solarProductionPath" type="text" placeholder="payload.pvForecast" />
+    </div>
+    <div class="form-row">
+      <label for="node-input-solarProductionStartField">Start field</label>
+      <input id="node-input-solarProductionStartField" type="text" placeholder="start" />
+    </div>
+    <div class="form-row">
+      <label for="node-input-solarProductionEndField">End field</label>
+      <input id="node-input-solarProductionEndField" type="text" placeholder="end" />
+    </div>
+    <div class="form-row">
+      <label for="node-input-solarProductionValueField">Value field</label>
+      <input id="node-input-solarProductionValueField" type="text" placeholder="productionPowerKw" />
+    </div>
+  </div>
+
+  <h4>Expected consumption</h4>
+  <div class="form-row">
+    <label for="node-input-loadConsumptionSourceType">Source</label>
+    <select id="node-input-loadConsumptionSourceType">
+      <option value="none">None</option>
+      <option value="message">Message attribute</option>
+    </select>
+  </div>
+  <div id="energy-timeseries-loadConsumption-message">
+    <div class="form-row">
+      <label for="node-input-loadConsumptionPath">Message path</label>
+      <input id="node-input-loadConsumptionPath" type="text" placeholder="payload.loadForecast" />
+    </div>
+    <div class="form-row">
+      <label for="node-input-loadConsumptionStartField">Start field</label>
+      <input id="node-input-loadConsumptionStartField" type="text" placeholder="start" />
+    </div>
+    <div class="form-row">
+      <label for="node-input-loadConsumptionEndField">End field</label>
+      <input id="node-input-loadConsumptionEndField" type="text" placeholder="end" />
+    </div>
+    <div class="form-row">
+      <label for="node-input-loadConsumptionValueField">Value field</label>
+      <input id="node-input-loadConsumptionValueField" type="text" placeholder="consumptionPowerKw" />
+    </div>
+  </div>
+  <h4>Extra loads</h4>
+  <p>Extra loads can either be read from a message array or from a current load on the message. For current-load mode, the start is msg.time, the power field contains kW and the end-timestamp field contains the absolute end time.</p>
+  <div id="energy-timeseries-extraLoads-list"></div>
+  <div class="form-row">
+    <button type="button" class="red-ui-button" id="node-input-extraLoads-add">
+      <i class="fa fa-plus"></i> Add extra load
+    </button>
+  </div>
+  <input type="hidden" id="node-input-extraLoads" />
+</script>
+
+<script type="text/html" data-help-name="energy-timeseries">
+  <p>
+    Creates an empty, simulation-ready TimeSeries for a configurable future
+    horizon. The start time is the current time rounded down to the selected
+    interval.
+  </p>
+
+  <h3>Configuration</h3>
+  <dl>
+    <dt>Interval</dt>
+    <dd>Length of each timestep: 15 or 60 minutes.</dd>
+
+    <dt>Future</dt>
+    <dd>Number of hours for which timesteps are created. The start time is taken from <code>msg.time</code> and rounded down to the selected interval.</dd>
+
+    <dt>Extra loads</dt>
+    <dd>One or more extra-load sources can be configured. A source can be a message array with start/end/power fields, or a current load where start is msg.time and the message provides power in kW plus remaining minutes. No fixed load times or power values are stored in the node.</dd>
+
+    <dt>Grid import price, Grid export price, Spot price</dt>
+    <dd>The grid target can use <em>None</em>, a <em>Fixed target</em>, a <em>Message attribute</em>, or <em>Day / night</em>. In day/night mode, configure the day start/end times and separate day/night target powers. Grid import and export prices can independently use <em>None</em>, a <em>Fixed price</em>, or a <em>Message attribute</em>. Spot price uses <em>None</em> or a <em>Message attribute</em>. Expected PV production and expected consumption use <em>None</em> or a <em>Message attribute</em>. For a message attribute, configure the message path and the start, end and value fields of each array entry.</dd>
+  </dl>
+
+  <h3>Output</h3>
+  <p>
+    The node takes the simulation start from <code>msg.time</code>, rounded down to the selected interval. The node preserves the incoming message and writes the generated series to
+    <code>msg.payload.timeSeries</code>. Unconfigured prices remain
+    <code>null</code>; unconfigured expected PV production and consumption remain
+    <code>0</code>. Message-based values are matched by time: exact source
+    intervals are preferred, a containing larger interval is accepted, and
+    fully covering smaller intervals are averaged arithmetically. Incomplete
+    coverage leaves price values unset; expected PV production and consumption
+    remain at zero and produce a warning.
+  </p>
+</script>
