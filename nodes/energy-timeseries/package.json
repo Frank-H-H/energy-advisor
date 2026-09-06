@@ -1,0 +1,11 @@
+{
+  "name": "energy-timeseries-node",
+  "version": "0.1.0",
+  "description": "Node-RED node for generating energy TimeSeries",
+  "keywords": ["node-red", "energy", "timeseries"],
+  "node-red": {
+    "nodes": {
+      "energy-timeseries": "energy-timeseries.js"
+    }
+  }
+}

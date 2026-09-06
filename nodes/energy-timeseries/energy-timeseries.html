@@ -1,0 +1,63 @@
+<script type="text/javascript">
+  RED.nodes.registerType('energy-timeseries', {
+    category: 'energy',
+    color: '#d7d7a0',
+    defaults: {
+      name: { value: '', required: false },
+      intervalMinutes: { value: 15, required: true, validate: RED.validators.number() },
+      horizonHours: { value: 24, required: true, validate: RED.validators.number() }
+    },
+    inputs: 1,
+    outputs: 1,
+    icon: 'font-awesome/fa-clock-o',
+    label: function() {
+      return this.name || 'energy-timeseries';
+    }
+  });
+</script>
+
+<script type="text/html" data-template-name="energy-timeseries">
+  <div class="form-row">
+    <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+    <input type="text" id="node-input-name" placeholder="Name" />
+  </div>
+
+  <div class="form-row">
+    <label for="node-input-intervalMinutes"><i class="fa fa-clock-o"></i> Interval</label>
+    <select id="node-input-intervalMinutes">
+      <option value="15">15 minutes</option>
+      <option value="60">60 minutes</option>
+    </select>
+  </div>
+
+  <div class="form-row">
+    <label for="node-input-horizonHours"><i class="fa fa-forward"></i> Future</label>
+    <input id="node-input-horizonHours" type="number" min="1" step="1" />
+    <span>hours</span>
+  </div>
+</script>
+
+<script type="text/html" data-help-name="energy-timeseries">
+  <p>
+    Creates an empty, simulation-ready TimeSeries for a configurable future
+    horizon. The start time is the current time rounded down to the selected
+    interval.
+  </p>
+
+  <h3>Configuration</h3>
+  <dl>
+    <dt>Interval</dt>
+    <dd>Length of each timestep: 15 or 60 minutes.</dd>
+
+    <dt>Future</dt>
+    <dd>Number of hours for which timesteps are created.</dd>
+  </dl>
+
+  <h3>Output</h3>
+  <p>
+    The generated series is placed in <code>msg.payload.timeSeries</code> so it
+    can be connected directly to <code>energy-forecast</code>. Solar production,
+    load and grid target start at zero; price fields start as <code>null</code>
+    and can be filled by later nodes.
+  </p>
+</script>

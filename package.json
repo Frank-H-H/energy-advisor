@@ -38,7 +38,8 @@
       "energy-advisor": "nodes/energy-advisor/energy-advisor.js",
       "energy-battery-config": "nodes/energy-battery-config/energy-battery-config.js",
       "energy-grid-config": "nodes/energy-grid-config/energy-grid-config.js",
-      "energy-system-config": "nodes/energy-system-config/energy-system-config.js"
+      "energy-system-config": "nodes/energy-system-config/energy-system-config.js",
+      "energy-timeseries": "nodes/energy-timeseries/energy-timeseries.js"
     }
   },
   "dependencies": {
