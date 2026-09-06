@@ -8,6 +8,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      TZ: Europe/Berlin
     strategy:
       matrix:
         node-version: [18.x, 20.x]
