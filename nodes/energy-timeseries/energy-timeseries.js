@@ -2,6 +2,11 @@
 const path = require('path');
 const { pathToFileURL } = require('url');
 
+const coreUrl = pathToFileURL(
+  path.join(__dirname, '..', '..', 'src', 'index.js')
+).href;
+const corePromise = import(coreUrl);
+
 module.exports = function (RED) {
   function EnergyTimeSeriesNode(config) {
     RED.nodes.createNode(this, config);
@@ -19,13 +24,11 @@ module.exports = function (RED) {
       consumptionPowerKw: readForecastConfig(config, 'loadConsumption'),
     };
     const gridTargetConfig = readGridTargetConfig(config);
-    const coreUrl = pathToFileURL(
-      path.join(__dirname, '..', '..', 'src', 'index.js')
-    ).href;
+    const extraLoadConfigs = readExtraLoadConfigs(config);
 
     node.on('input', async function (msg) {
       try {
-        const core = await import(coreUrl);
+        const core = await corePromise;
         const timeSeries = core.createTimeSeries({
           start: msg.time,
           intervalMinutes,
@@ -34,6 +37,7 @@ module.exports = function (RED) {
 
         const fixedPrices = {};
         applyGridTarget(core, timeSeries, msg, gridTargetConfig, node);
+        applyExtraLoads(core, timeSeries, msg, extraLoadConfigs, node);
 
         for (const [gridField, priceConfig] of Object.entries(priceConfigs)) {
           if (priceConfig.sourceType === 'fixed') {
@@ -259,4 +263,87 @@ function parseClockMinutes(value) {
     throw new Error(`Invalid time of day: ${value}`);
   }
   return Number(match[1]) * 60 + Number(match[2]);
+}
+
+
+function readExtraLoadConfigs(config) {
+  let configs = config.extraLoads ?? '[]';
+
+  if (typeof configs === 'string') {
+    try {
+      configs = JSON.parse(configs);
+    } catch {
+      throw new Error('Extra loads configuration must be valid JSON');
+    }
+  }
+
+  if (!Array.isArray(configs)) {
+    throw new Error('Extra loads configuration must be an array');
+  }
+
+  return configs.map((extraLoad, index) => ({
+    name: String(extraLoad?.name ?? '').trim() || `Extra load ${index + 1}`,
+    sourceType: extraLoad?.sourceType ?? 'message',
+    path: extraLoad?.path ?? '',
+    startField: extraLoad?.startField ?? 'start',
+    endField: extraLoad?.endField ?? 'end',
+    valueField: extraLoad?.valueField ?? 'consumptionPowerKw',
+  }));
+}
+
+function applyExtraLoads(core, timeSeries, msg, configs, node) {
+  for (const config of configs) {
+    const entries =
+      config.sourceType === 'current'
+        ? extractCurrentExtraLoad(core, msg, config, node)
+        : extractMessageExtraLoads(core, msg, config, node);
+
+    for (const timestep of timeSeries) {
+      const timestepStart = new Date(timestep.start).getTime();
+      const timestepEnd = new Date(timestep.end).getTime();
+
+      for (const entry of entries) {
+        if (entry.startMs < timestepEnd && entry.endMs > timestepStart) {
+          timestep.load.extraLoads.push({
+            name: config.name,
+            consumptionPowerKw: entry.value,
+            start: new Date(entry.startMs).toISOString(),
+            end: new Date(entry.endMs).toISOString(),
+          });
+        }
+      }
+    }
+  }
+}
+
+function extractMessageExtraLoads(core, msg, config, node) {
+  const { entries, skipped } = core.extractTimeSeriesValues(msg, {
+    path: config.path,
+    startField: config.startField,
+    endField: config.endField,
+    valueField: config.valueField,
+  });
+
+  if (skipped > 0) {
+    node.warn(`Skipped ${skipped} invalid ${config.name} entries`);
+  }
+
+  return entries;
+}
+
+function extractCurrentExtraLoad(core, msg, config, node) {
+  const startMs = new Date(msg.time).getTime();
+  const value = Number(core.getPath(msg, config.valueField));
+  const endMs = new Date(core.getPath(msg, config.endField)).getTime();
+
+  if (!Number.isFinite(startMs) || !Number.isFinite(value) || !Number.isFinite(endMs) || endMs <= startMs) {
+    node.warn(`Skipped invalid ${config.name} current load`);
+    return [];
+  }
+
+  return [{
+    startMs,
+    endMs,
+    value,
+  }];
 }

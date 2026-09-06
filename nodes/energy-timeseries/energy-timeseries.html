@@ -43,7 +43,8 @@
       loadConsumptionPath: { value: '', required: false },
       loadConsumptionStartField: { value: 'start', required: false },
       loadConsumptionEndField: { value: 'end', required: false },
-      loadConsumptionValueField: { value: 'value', required: false }
+      loadConsumptionValueField: { value: 'value', required: false },
+      extraLoads: { value: '[]', required: true }
     },
     inputs: 1,
     outputs: 1,
@@ -82,6 +83,149 @@
         $(`#node-input-${prefix}SourceType`).on('change', () => updateForecastVisibility(prefix));
         updateForecastVisibility(prefix);
       });
+
+      const renderExtraLoads = () => {
+        let loads = [];
+        try {
+          loads = JSON.parse($('#node-input-extraLoads').val() || '[]');
+        } catch {
+          loads = [];
+        }
+
+        const container = $('#energy-timeseries-extraLoads-list');
+        container.empty();
+
+        loads.forEach((load, index) => {
+          const row = $(`
+            <div class="energy-timeseries-extraLoad" data-index="${index}" style="border: 1px solid #ddd; padding: 8px; margin-bottom: 8px;">
+              <div class="form-row">
+                <label>Source</label>
+                <select class="extraLoad-sourceType">
+                  <option value="message">Message array</option>
+                  <option value="current">Current load + end time</option>
+                </select>
+              </div>
+              <div class="form-row">
+                <label>Name</label>
+                <input class="extraLoad-name" type="text" />
+                <button type="button" class="red-ui-button extraLoad-remove"><i class="fa fa-trash"></i> Remove</button>
+              </div>
+              <div class="extraLoad-message">
+                <div class="form-row">
+                  <label>Message path</label>
+                  <input class="extraLoad-path" type="text" placeholder="payload.extraLoads" />
+                </div>
+                <div class="form-row">
+                  <label>Start field</label>
+                  <input class="extraLoad-startField" type="text" placeholder="start" />
+                </div>
+                <div class="form-row">
+                  <label>End field</label>
+                  <input class="extraLoad-endField" type="text" placeholder="end" />
+                </div>
+                <div class="form-row">
+                  <label>Power field (kW)</label>
+                  <input class="extraLoad-valueField" type="text" placeholder="consumptionPowerKw" />
+                </div>
+              </div>
+              <div class="extraLoad-current">
+                <div class="form-row">
+                  <label>Power field (kW)</label>
+                  <input class="extraLoad-valueField-current" type="text" placeholder="extraConsumptionPower" />
+                </div>
+                <div class="form-row">
+                  <label>End timestamp field</label>
+                  <input class="extraLoad-endField-current" type="text" placeholder="end" />
+                </div>
+                <p>Start is <code>msg.time</code>; the end timestamp field contains the absolute end time.</p>
+              </div>
+            </div>
+          `);
+
+          row.find('.extraLoad-sourceType').val(load.sourceType || 'message');
+          row.find('.extraLoad-name').val(load.name || '');
+          row.find('.extraLoad-path').val(load.path || '');
+          row.find('.extraLoad-startField').val(load.startField || 'start');
+          row.find('.extraLoad-endField').val(load.endField || 'end');
+          row.find('.extraLoad-valueField').val(load.valueField || 'consumptionPowerKw');
+          row.find('.extraLoad-valueField-current').val(load.valueField || 'extraConsumptionPower');
+          row.find('.extraLoad-endField-current').val(load.endField || 'end');
+
+          const updateExtraLoadVisibility = () => {
+            const source = row.find('.extraLoad-sourceType').val();
+            row.find('.extraLoad-message').toggle(source === 'message');
+            row.find('.extraLoad-current').toggle(source === 'current');
+          };
+          row.find('.extraLoad-sourceType').on('change', updateExtraLoadVisibility);
+          updateExtraLoadVisibility();
+          container.append(row);
+        });
+
+        container.find('.extraLoad-remove').on('click', function() {
+          $(this).closest('.energy-timeseries-extraLoad').remove();
+        });
+      };
+
+      const collectExtraLoads = () => {
+        const loads = [];
+        $('#energy-timeseries-extraLoads-list .energy-timeseries-extraLoad').each(function() {
+          const row = $(this);
+          const sourceType = row.find('.extraLoad-sourceType').val() || 'message';
+          loads.push({
+            name: row.find('.extraLoad-name').val(),
+            sourceType,
+            path: row.find('.extraLoad-path').val(),
+            startField: row.find('.extraLoad-startField').val() || 'start',
+            endField:
+              sourceType === 'current'
+                ? row.find('.extraLoad-endField-current').val() || 'end'
+                : row.find('.extraLoad-endField').val() || 'end',
+            valueField:
+              sourceType === 'current'
+                ? row.find('.extraLoad-valueField-current').val() || 'extraConsumptionPower'
+                : row.find('.extraLoad-valueField').val() || 'consumptionPowerKw',
+          });
+        });
+        return loads;
+      };
+
+      $('#node-input-extraLoads-add').on('click', () => {
+        const loads = collectExtraLoads();
+        loads.push({
+          name: '',
+          sourceType: 'message',
+          path: '',
+          startField: 'start',
+          endField: 'end',
+          valueField: 'consumptionPowerKw',
+        });
+        $('#node-input-extraLoads').val(JSON.stringify(loads));
+        renderExtraLoads();
+      });
+
+      renderExtraLoads();
+    },
+    oneditsave: function() {
+      const loads = [];
+      $('#energy-timeseries-extraLoads-list .energy-timeseries-extraLoad').each(function() {
+        const row = $(this);
+        const sourceType = row.find('.extraLoad-sourceType').val() || 'message';
+        loads.push({
+          name: row.find('.extraLoad-name').val(),
+          sourceType,
+          path: row.find('.extraLoad-path').val(),
+          startField: row.find('.extraLoad-startField').val() || 'start',
+          endField:
+            sourceType === 'current'
+              ? row.find('.extraLoad-endField-current').val() || 'end'
+              : row.find('.extraLoad-endField').val() || 'end',
+          valueField:
+            sourceType === 'current'
+              ? row.find('.extraLoad-valueField-current').val() || 'extraConsumptionPower'
+              : row.find('.extraLoad-valueField').val() || 'consumptionPowerKw',
+        });
+      });
+      $('#node-input-extraLoads').val(JSON.stringify(loads));
     }
   });
 </script>
@@ -320,6 +464,15 @@
       <input id="node-input-loadConsumptionValueField" type="text" placeholder="consumptionPowerKw" />
     </div>
   </div>
+  <h4>Extra loads</h4>
+  <p>Extra loads can either be read from a message array or from a current load on the message. For current-load mode, the start is msg.time, the power field contains kW and the end-timestamp field contains the absolute end time.</p>
+  <div id="energy-timeseries-extraLoads-list"></div>
+  <div class="form-row">
+    <button type="button" class="red-ui-button" id="node-input-extraLoads-add">
+      <i class="fa fa-plus"></i> Add extra load
+    </button>
+  </div>
+  <input type="hidden" id="node-input-extraLoads" />
 </script>
 
 <script type="text/html" data-help-name="energy-timeseries">
@@ -336,6 +489,9 @@
 
     <dt>Future</dt>
     <dd>Number of hours for which timesteps are created. The start time is taken from <code>msg.time</code> and rounded down to the selected interval.</dd>
+
+    <dt>Extra loads</dt>
+    <dd>One or more extra-load sources can be configured. A source can be a message array with start/end/power fields, or a current load where start is msg.time and the message provides power in kW plus remaining minutes. No fixed load times or power values are stored in the node.</dd>
 
     <dt>Grid import price, Grid export price, Spot price</dt>
     <dd>The grid target can use <em>None</em>, a <em>Fixed target</em>, a <em>Message attribute</em>, or <em>Day / night</em>. In day/night mode, configure the day start/end times and separate day/night target powers. Grid import and export prices can independently use <em>None</em>, a <em>Fixed price</em>, or a <em>Message attribute</em>. Spot price uses <em>None</em> or a <em>Message attribute</em>. Expected PV production and expected consumption use <em>None</em> or a <em>Message attribute</em>. For a message attribute, configure the message path and the start, end and value fields of each array entry.</dd>

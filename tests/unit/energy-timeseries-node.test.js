@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import '../../src/index.js';
 import energyTimeSeriesNode from '../../nodes/energy-timeseries/energy-timeseries.js';
 
 describe('energy-timeseries Node-RED adapter', () => {
@@ -385,6 +386,138 @@ describe('energy-timeseries Node-RED adapter', () => {
     expect(errors).toHaveLength(0);
     expect(warnings).toHaveLength(0);
     expect(sent[0].payload.timeSeries[0].load.consumptionPowerKw).toBe(0.8);
+
+    vi.useRealTimers();
+  });
+
+  it('maps configured extra loads from message attributes to overlapping timesteps', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-01-01T12:00:00Z'));
+
+    const { RED, sent, errors, warnings, inputHandlers } = createRED();
+    energyTimeSeriesNode(RED);
+    RED.constructor.call(
+      {},
+      {
+        intervalMinutes: '60',
+        horizonHours: '3',
+        extraLoads: JSON.stringify([
+          {
+            name: 'car',
+            path: 'payload.carLoads',
+            startField: 'start',
+            endField: 'end',
+            valueField: 'power',
+          },
+          {
+            name: 'heater',
+            path: 'payload.heaterLoads',
+            startField: 'from',
+            endField: 'to',
+            valueField: 'kw',
+          },
+        ]),
+      }
+    );
+
+    await inputHandlers[0]({
+      time: '2026-01-01T12:00:00Z',
+      payload: {
+        carLoads: [
+          {
+            start: '2026-01-01T12:30:00Z',
+            end: '2026-01-01T13:30:00Z',
+            power: 3.7,
+          },
+        ],
+        heaterLoads: [
+          {
+            from: '2026-01-01T14:00:00Z',
+            to: '2026-01-01T16:00:00Z',
+            kw: 1.2,
+          },
+        ],
+      },
+    });
+
+    expect(errors).toHaveLength(0);
+    expect(warnings).toHaveLength(0);
+    expect(sent[0].payload.timeSeries[0].load.extraLoads).toEqual([
+      {
+        name: 'car',
+        consumptionPowerKw: 3.7,
+        start: '2026-01-01T12:30:00.000Z',
+        end: '2026-01-01T13:30:00.000Z',
+      },
+    ]);
+    expect(sent[0].payload.timeSeries[1].load.extraLoads).toEqual([
+      {
+        name: 'car',
+        consumptionPowerKw: 3.7,
+        start: '2026-01-01T12:30:00.000Z',
+        end: '2026-01-01T13:30:00.000Z',
+      },
+    ]);
+    expect(sent[0].payload.timeSeries[2].load.extraLoads).toEqual([
+      {
+        name: 'heater',
+        consumptionPowerKw: 1.2,
+        start: '2026-01-01T14:00:00.000Z',
+        end: '2026-01-01T16:00:00.000Z',
+      },
+    ]);
+
+    vi.useRealTimers();
+  });
+
+  it('maps a current extra load directly from msg.time, power and end timestamp', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-01-01T12:00:00Z'));
+
+    const { RED, sent, errors, warnings, inputHandlers } = createRED();
+    energyTimeSeriesNode(RED);
+    RED.constructor.call(
+      {},
+      {
+        intervalMinutes: '60',
+        horizonHours: '3',
+        extraLoads: JSON.stringify([
+          {
+            name: 'car',
+            sourceType: 'current',
+            valueField: 'extraConsumptionPower',
+            endField: 'end',
+          },
+        ]),
+      }
+    );
+
+    await inputHandlers[0]({
+      time: '2026-01-01T12:30:00Z',
+      payload: {},
+      extraConsumptionPower: 3.7,
+      end: '2026-01-01T14:00:00Z',
+    });
+
+    expect(errors).toHaveLength(0);
+    expect(warnings).toHaveLength(0);
+    expect(sent[0].payload.timeSeries[0].load.extraLoads).toEqual([
+      {
+        name: 'car',
+        consumptionPowerKw: 3.7,
+        start: '2026-01-01T12:30:00.000Z',
+        end: '2026-01-01T14:00:00.000Z',
+      },
+    ]);
+    expect(sent[0].payload.timeSeries[1].load.extraLoads).toEqual([
+      {
+        name: 'car',
+        consumptionPowerKw: 3.7,
+        start: '2026-01-01T12:30:00.000Z',
+        end: '2026-01-01T14:00:00.000Z',
+      },
+    ]);
+    expect(sent[0].payload.timeSeries[2].load.extraLoads).toEqual([]);
 
     vi.useRealTimers();
   });
