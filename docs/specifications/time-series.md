@@ -23,8 +23,9 @@ Purpose: create an empty TimeSeries with regular timesteps that can be enriched 
 - `spotPriceStartField`, `spotPriceEndField`, `spotPriceValueField`: configurable fields for spot-price entries
 - `solarProductionPath`, `solarProductionStartField`, `solarProductionEndField`, `solarProductionValueField`: message mapping for expected PV production
 - `loadConsumptionPath`, `loadConsumptionStartField`, `loadConsumptionEndField`, `loadConsumptionValueField`: message mapping for expected consumption
-- `spotPricePath`: path to the array of time/value objects when using a message attribute
-- `spotPriceStartField`, `spotPriceEndField`, `spotPriceValueField`: configurable fields inside each source object
+- `extraLoads`: one or more extra-load source definitions
+  - message-array mode maps a message array using configurable path, start, end and power fields
+  - current-load mode uses `msg.time` as the start, a configurable message power field in kW, and a configurable absolute end timestamp field
 
 The start time is read from `msg.time` and rounded down to the selected interval.
 
@@ -45,4 +46,4 @@ The node preserves the incoming message and writes the generated series to `msg.
 - `grid.buyPerKwh` and `grid.sellPerKwh` are `null` for `none`, fixed for `fixed`, or populated from the configured message attribute for `message`
 - `grid.spotPerKwh` is `null` for `none` or populated from the configured message attribute for `message`
 
-The node intentionally does not assume a particular tariff. Import and export prices can be configured independently. Time-dependent prices, expected PV production and expected consumption can be read from message attributes using configurable start, end and value fields. For a target interval, an exact source interval is preferred; a containing larger interval is accepted; fully covering smaller intervals are combined using a duration-weighted average, so longer source intervals have proportionally more influence. Incomplete price coverage leaves the target price unset. Incomplete forecast coverage leaves expected PV production or consumption at zero and produces a warning. Extra loads can be configured from message data; current-load entries use `msg.time` as their start and an absolute end timestamp from the configured message field.
+The node intentionally does not assume a particular tariff. Import and export prices can be configured independently. Time-dependent prices, expected PV production and expected consumption can be read from message attributes using configurable start, end and value fields. For a target interval, an exact source interval is preferred; a containing larger interval is accepted; fully covering smaller intervals are combined using a duration-weighted average, so longer source intervals have proportionally more influence. Incomplete price coverage leaves the target price unset. Incomplete forecast coverage leaves expected PV production or consumption at zero and produces a warning. Extra loads can be configured from message data; current-load entries use `msg.time` as their start, a configurable power field in kW, and an absolute end timestamp from the configured message field.

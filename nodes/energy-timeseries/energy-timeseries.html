@@ -479,8 +479,8 @@
 <script type="text/html" data-help-name="energy-timeseries">
   <p>
     Creates an empty, simulation-ready TimeSeries for a configurable future
-    horizon. The start time is the current time rounded down to the selected
-    interval.
+    horizon. The start time is read from <code>msg.time</code> and rounded down
+    to the selected interval.
   </p>
 
   <h3>Configuration</h3>
@@ -508,7 +508,8 @@
     <code>null</code>; unconfigured expected PV production and consumption remain
     <code>0</code>. Message-based values are matched by time: exact source
     intervals are preferred, a containing larger interval is accepted, and
-    fully covering smaller intervals are averaged arithmetically. Incomplete
+    fully covering smaller intervals are combined using a duration-weighted
+    average. Incomplete
     coverage leaves price values unset; expected PV production and consumption
     remain at zero and produce a warning.
   </p>

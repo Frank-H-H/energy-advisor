@@ -66,11 +66,12 @@ The Advisor does not execute actions; execution remains the responsibility of th
 
 ## Features
 
-- Forecast engine to compute interval-based forecasts (based on consumption, PV, prices).
-  - Iterates through all provided timesteps. You can choose the accurracy (tested with 15 minutes)
+- Forecast engine to compute forecasts from consumption, PV, prices and grid targets.
+  - Iterates through all provided timesteps and supports the TimeSeries resolution supplied by `energy-timeseries`.
   - Dynamically splitting timesteps (when battery gets full during a timestep, we can't just handle this as a single step)
 - Advisor engine to create Plans from Strategy proposals. Currently supported actions: `set-grid-target`.
 - Node-RED nodes for easy integration into flows:
+  - `energy-timeseries` - create and enrich a simulation TimeSeries
   - `energy-forecast` - run forecast engine
   - `energy-advisor` - run Advisor strategies and produce a Plan
   - Config nodes: `energy-battery-config`, `energy-grid-config`
