@@ -18,7 +18,7 @@ class TestStrategy extends Strategy {
     return this._id;
   }
 
-  createPlan(_timeSeries) {
+  createPlan() {
     return {
       strategyId: this.id,
       proposals: [

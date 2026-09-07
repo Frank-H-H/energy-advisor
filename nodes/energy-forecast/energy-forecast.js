@@ -32,6 +32,8 @@ module.exports = function (RED) {
           return;
         }
 
+        let batteryConfigObject = null;
+        let gridConfigObject = null;
         if (node.battery_config) {
           const batteryConfigNode = RED.nodes.getNode(node.battery_config);
           if (batteryConfigNode) {
