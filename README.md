@@ -9,7 +9,7 @@ Migration tasks:
 - [x] Setup repository
 - [x] Add node for forecast
 - [x] Add node for advisor strategies
-- [x] Add configuration nodes for battery, grid, whole system
+- [x] Add configuration nodes for battery and grid
 - [x] Add logic for single time step computation
 - [x] Add tests for single time step computation
 - [x] Add logic for iterating through the timesteps
@@ -73,7 +73,7 @@ The Advisor does not execute actions; execution remains the responsibility of th
 - Node-RED nodes for easy integration into flows:
   - `energy-forecast` - run forecast engine
   - `energy-advisor` - run Advisor strategies and produce a Plan
-  - Config nodes: `energy-system-config`, `energy-battery-config`, `energy-grid-config`
+  - Config nodes: `energy-battery-config`, `energy-grid-config`
 
 ---
 
