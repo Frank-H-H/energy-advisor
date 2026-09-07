@@ -60,7 +60,7 @@ export function extractTimeSeriesValues(
  * 1. An exact source interval wins.
  * 2. A single larger source interval containing the target wins.
  * 3. Smaller source intervals are accepted when they completely and
- *    continuously cover the target; their values are averaged arithmetically.
+ *    continuously cover the target; their values are averaged by duration.
  *
  * @param {Array<{startMs:number,endMs:number,value:number}>} entries Source entries.
  * @param {string|Date|number} targetStart Target interval start.
@@ -96,9 +96,21 @@ export function findTimeSeriesValue(entries, targetStart, targetEnd) {
     if (entry.startMs !== cursor) return null;
     cursor = entry.endMs;
     if (cursor === endMs) {
-      return smaller
-        .filter((candidate) => candidate.startMs >= startMs && candidate.endMs <= endMs)
-        .reduce((sum, candidate) => sum + candidate.value, 0) / smaller.length;
+      const coveredEntries = smaller.filter(
+        (candidate) =>
+          candidate.startMs >= startMs && candidate.endMs <= endMs
+      );
+      const totalDurationMs = coveredEntries.reduce(
+        (sum, candidate) => sum + (candidate.endMs - candidate.startMs),
+        0
+      );
+      const weightedValue = coveredEntries.reduce(
+        (sum, candidate) =>
+          sum + candidate.value * (candidate.endMs - candidate.startMs),
+        0
+      );
+
+      return weightedValue / totalDurationMs;
     }
     if (cursor > endMs) return null;
   }

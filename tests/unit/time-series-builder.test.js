@@ -165,6 +165,39 @@ describe('time-series value mapping', () => {
     ).toBe(0.15);
   });
 
+  it('calculates a duration-weighted average for smaller source intervals', () => {
+    const { entries } = extractTimeSeriesValues(
+      {
+        data: [
+          {
+            start: '2026-01-01T14:00:00Z',
+            end: '2026-01-01T14:15:00Z',
+            value: 1,
+          },
+          {
+            start: '2026-01-01T14:15:00Z',
+            end: '2026-01-01T15:00:00Z',
+            value: 5,
+          },
+        ],
+      },
+      {
+        path: 'data',
+        startField: 'start',
+        endField: 'end',
+        valueField: 'value',
+      }
+    );
+
+    expect(
+      findTimeSeriesValue(
+        entries,
+        '2026-01-01T14:00:00Z',
+        '2026-01-01T15:00:00Z'
+      )
+    ).toBe(4);
+  });
+
   it('averages smaller source intervals when they fully cover the target', () => {
     const { entries } = extractTimeSeriesValues(
       {
