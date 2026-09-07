@@ -68,7 +68,7 @@ The ForecastEngine returns a TimeSeries containing one result per input interval
 
 `battery.energyKwh` is the battery energy at the end of the interval. `battery.chargeKwh` and `battery.dischargeKwh` describe the energy charged or discharged during the interval.
 
-The ForecastEngine does not emit a `values` wrapper. It also does not expose `prematureExportPowerKw`; premature export is an Advisor decision represented by an Action, not a forecast input.
+The ForecastEngine does not emit a `values` wrapper. Export decisions are represented by Advisor Actions, not forecast inputs.
 
 ## Rationale
 

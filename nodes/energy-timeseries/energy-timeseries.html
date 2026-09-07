@@ -131,7 +131,7 @@
               <div class="extraLoad-current">
                 <div class="form-row">
                   <label>Power field (kW)</label>
-                  <input class="extraLoad-valueField-current" type="text" placeholder="extraConsumptionPower" />
+                  <input class="extraLoad-valueField-current" type="text" placeholder="consumptionPowerKw" />
                 </div>
                 <div class="form-row">
                   <label>End timestamp field</label>
@@ -148,7 +148,7 @@
           row.find('.extraLoad-startField').val(load.startField || 'start');
           row.find('.extraLoad-endField').val(load.endField || 'end');
           row.find('.extraLoad-valueField').val(load.valueField || 'consumptionPowerKw');
-          row.find('.extraLoad-valueField-current').val(load.valueField || 'extraConsumptionPower');
+          row.find('.extraLoad-valueField-current').val(load.valueField || 'consumptionPowerKw');
           row.find('.extraLoad-endField-current').val(load.endField || 'end');
 
           const updateExtraLoadVisibility = () => {
@@ -182,7 +182,7 @@
                 : row.find('.extraLoad-endField').val() || 'end',
             valueField:
               sourceType === 'current'
-                ? row.find('.extraLoad-valueField-current').val() || 'extraConsumptionPower'
+                ? row.find('.extraLoad-valueField-current').val() || 'consumptionPowerKw'
                 : row.find('.extraLoad-valueField').val() || 'consumptionPowerKw',
           });
         });
@@ -221,7 +221,7 @@
               : row.find('.extraLoad-endField').val() || 'end',
           valueField:
             sourceType === 'current'
-              ? row.find('.extraLoad-valueField-current').val() || 'extraConsumptionPower'
+              ? row.find('.extraLoad-valueField-current').val() || 'consumptionPowerKw'
               : row.find('.extraLoad-valueField').val() || 'consumptionPowerKw',
         });
       });

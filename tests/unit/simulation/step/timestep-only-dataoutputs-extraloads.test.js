@@ -5,7 +5,7 @@ import {
   defaultSimpleTestSettingsForFullStepFixture,
 } from '../../../helpers/simulation.js';
 
-describe('simulateTimestep - computation of extraConsumedEnergyKwh', () => {
+describe('simulateTimestep - computation of extraLoadConsumedEnergyKwh', () => {
   describe('for partial current frame', () => {
     it('ends before frame -> 0', () => {
       const testFixture = defaultSimpleTestSettingsForPartialStepFixture(
@@ -18,7 +18,7 @@ describe('simulateTimestep - computation of extraConsumedEnergyKwh', () => {
       const { nextState } = simulateTimestep(testFixture);
 
       expect(
-        nextState.extraConsumedEnergyKwh,
+        nextState.extraLoadConsumedEnergyKwh,
         'extraLoad: already stopped'
       ).toBeCloseTo(0, 6);
     });
@@ -33,7 +33,7 @@ describe('simulateTimestep - computation of extraConsumedEnergyKwh', () => {
       const { nextState } = simulateTimestep(testFixture);
 
       expect(
-        nextState.extraConsumedEnergyKwh,
+        nextState.extraLoadConsumedEnergyKwh,
         'extraLoad: 2.1 kW * (10/60)h = 0.35 kWh'
       ).toBeCloseTo(0.35, 6);
     });
@@ -48,7 +48,7 @@ describe('simulateTimestep - computation of extraConsumedEnergyKwh', () => {
       const { nextState } = simulateTimestep(testFixture);
 
       expect(
-        nextState.extraConsumedEnergyKwh,
+        nextState.extraLoadConsumedEnergyKwh,
         'extraLoad: already stopped'
       ).toBeCloseTo(0, 6);
     });
@@ -63,7 +63,7 @@ describe('simulateTimestep - computation of extraConsumedEnergyKwh', () => {
       const { nextState } = simulateTimestep(testFixture);
 
       expect(
-        nextState.extraConsumedEnergyKwh,
+        nextState.extraLoadConsumedEnergyKwh,
         'extraLoad: 2.1 kW * (6/60)h = 0.21 kWh'
       ).toBeCloseTo(0.21, 6);
     });
@@ -78,7 +78,7 @@ describe('simulateTimestep - computation of extraConsumedEnergyKwh', () => {
       const { nextState } = simulateTimestep(testFixture);
 
       expect(
-        nextState.extraConsumedEnergyKwh,
+        nextState.extraLoadConsumedEnergyKwh,
         'extraLoad: 0 kW * (10/60)h = 0.35 kWh'
       ).toBeCloseTo(0, 6);
     });
@@ -95,7 +95,7 @@ describe('simulateTimestep - computation of extraConsumedEnergyKwh', () => {
       const { nextState } = simulateTimestep(testFixture);
 
       expect(
-        nextState.extraConsumedEnergyKwh,
+        nextState.extraLoadConsumedEnergyKwh,
         'extraLoad: already stopped'
       ).toBeCloseTo(0, 6);
     });
@@ -110,7 +110,7 @@ describe('simulateTimestep - computation of extraConsumedEnergyKwh', () => {
       const { nextState } = simulateTimestep(testFixture);
 
       expect(
-        nextState.extraConsumedEnergyKwh,
+        nextState.extraLoadConsumedEnergyKwh,
         'extraLoad: 2.1 kW * (15/60)h = 0.525 kWh'
       ).toBeCloseTo(0.525, 6);
     });
@@ -125,7 +125,7 @@ describe('simulateTimestep - computation of extraConsumedEnergyKwh', () => {
       const { nextState } = simulateTimestep(testFixture);
 
       expect(
-        nextState.extraConsumedEnergyKwh,
+        nextState.extraLoadConsumedEnergyKwh,
         'extraLoad: 2.1 kW * (6/60)h = 0.21 kWh'
       ).toBeCloseTo(0.21, 6);
     });
@@ -140,7 +140,7 @@ describe('simulateTimestep - computation of extraConsumedEnergyKwh', () => {
       const { nextState } = simulateTimestep(testFixture);
 
       expect(
-        nextState.extraConsumedEnergyKwh,
+        nextState.extraLoadConsumedEnergyKwh,
         'extraLoad: 0 kW * (15/60)h = 0.525 kWh'
       ).toBeCloseTo(0.0, 6);
     });
@@ -161,7 +161,7 @@ describe('simulateTimestep - computation of extraConsumedEnergyKwh', () => {
 
     const { nextState } = simulateTimestep(testFixture);
 
-    expect(nextState.extraConsumedEnergyKwh).toBeCloseTo(
+    expect(nextState.extraLoadConsumedEnergyKwh).toBeCloseTo(
       2.1 * (9 / 60),
       6
     );
@@ -184,7 +184,7 @@ describe('simulateTimestep - computation of extraConsumedEnergyKwh', () => {
 
     const { nextState } = simulateTimestep(testFixture);
 
-    expect(nextState.extraConsumedEnergyKwh).toBeCloseTo(
+    expect(nextState.extraLoadConsumedEnergyKwh).toBeCloseTo(
       2.1 * (5 / 60),
       6
     );

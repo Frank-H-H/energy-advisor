@@ -549,7 +549,7 @@ describe('energy-timeseries Node-RED adapter', () => {
           {
             name: 'car',
             sourceType: 'current',
-            valueField: 'extraConsumptionPower',
+            valueField: 'consumptionPowerKw',
             endField: 'end',
           },
         ]),
@@ -559,7 +559,7 @@ describe('energy-timeseries Node-RED adapter', () => {
     await inputHandlers[0]({
       time: '2026-01-01T12:30:00Z',
       payload: {},
-      extraConsumptionPower: 3.7,
+      consumptionPowerKw: 3.7,
       end: '2026-01-01T14:00:00Z',
     });
 
