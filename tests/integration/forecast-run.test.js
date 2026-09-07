@@ -1,6 +1,6 @@
 // tests/integration/forecast-run.test.js
 import { describe, it, expect } from 'vitest'
-import { simulateTimestep } from '../../src/simulation/step.js'
+import { simulateTimestep } from '../../src/simulation/timestep.js'
 import {
   makeInterval,
   makeComponents
