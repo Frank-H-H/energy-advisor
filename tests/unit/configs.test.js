@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { mapConfigsToComponents } from '../../src/configs/schemas.js'
 
-describe.skip('config mapping', () => {
+describe('config mapping', () => {
   it('maps default battery and grid inline configs correctly', () => {
     const sys = {
       battery: {

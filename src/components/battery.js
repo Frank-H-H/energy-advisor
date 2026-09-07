@@ -85,6 +85,8 @@ export class Battery {
     }
 
     result.energyKWh = appliedPowerKw * result.actualDurationHours
+    // Avoid exposing JavaScript's -0 when no energy is transferred.
+    if (Object.is(result.energyKWh, -0)) result.energyKWh = 0
     this.soc += result.energyKWh
     this.soc = Math.max(this.minSoc, Math.min(this.capacity, this.soc))
     result.socAtEndKWh = this.soc
