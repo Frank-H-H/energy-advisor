@@ -44,7 +44,15 @@
   }
 ]</pre>
   <h4>Output</h4>
-  <pre>msg.payload = { actions, strategyPlans, rejectedProposals }</pre>
+  <p>
+    The Forecast result in <code>msg.payload</code> is left unchanged. The
+    generated Advisor Plan is added separately as <code>msg.plan</code>. This
+    allows the plan to be passed to a subsequent <code>energy-forecast</code>
+    node for a plan-aware forecast.
+  </p>
+  <pre>
+msg.payload = { timeSeries, summary, initialState }
+msg.plan = { actions, strategyPlans, rejectedProposals }</pre>
   <h4>Strategies</h4>
   <p>Strategies use the actual duration of each TimeSeries timestep from <code>start</code> and <code>end</code>. There is no separate strategy interval setting; the TimeSeries is the source of truth for timestep duration.</p>
   <p><code>immediate-negative-price-export</code> exports the energy that would otherwise be exported during negative spot prices in the nearest earlier timesteps.</p>

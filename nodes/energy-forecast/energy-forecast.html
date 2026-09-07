@@ -132,55 +132,68 @@
   <h3>Output</h3>
 
   <p>
-    The node outputs the calculated TimeSeries as <code>msg.payload</code>. It
-    can be connected directly to an <code>energy-advisor</code> node.
+    The node outputs the complete Forecast result as <code>msg.payload</code>.
+    The result contains the simulated <code>timeSeries</code>, a
+    <code>summary</code> of the forecast, and the original
+    <code>initialState</code>. It can be connected directly to an
+    <code>energy-advisor</code> node.
   </p>
 
   <pre>
 {
-  "start": "2026-08-29T12:00:00Z",
-  "end": "2026-08-29T12:15:00Z",
-  "durationMs": 900000,
-  "solar": {
-    "productionPowerKw": 4.2,
-    "missedProductionKwh": 0
+  "timeSeries": [
+    {
+      "start": "2026-08-29T12:00:00Z",
+      "end": "2026-08-29T12:15:00Z",
+      "solar": {
+        "productionPowerKw": 4.2,
+        "missedProductionKwh": 0
+      },
+      "load": {
+        "consumptionPowerKw": 1.8,
+        "extraLoads": [{ "name": "car", "consumptionPowerKw": 7.4 }]
+      },
+      "battery": {
+        "energyKwh": 21.6,
+        "chargeKwh": 0.6,
+        "dischargeKwh": 0,
+        "stateOfChargePercent": 86.4
+      },
+      "grid": {
+        "targetPowerKw": 0,
+        "importKwh": 0,
+        "exportKwh": 0,
+        "buyPerKwh": 0.32,
+        "sellPerKwh": 0.08,
+        "spotPerKwh": 0.11
+      },
+      "economics": {
+        "cost": 0,
+        "revenue": 0
+      }
+    }
+  ],
+  "summary": {
+    "economics": { "cost": 0, "revenue": 0, "netCost": 0 },
+    "grid": { "importKwh": 0, "exportKwh": 0 },
+    "solar": { "productionKwh": 0, "missedProductionKwh": 0 },
+    "battery": { "startEnergyKwh": 21, "endEnergyKwh": 21.6 }
   },
-  "load": {
-    "consumptionPowerKw": 1.8,
-    "extraLoads": [{ "name": "car", "consumptionPowerKw": 7.4 }]
-  },
-  "battery": {
-    "energyKwh": 21.6,
-    "chargeKwh": 0.6,
-    "dischargeKwh": 0
-  },
-  "grid": {
-    "targetPowerKw": 0,
-    "importKwh": 0,
-    "exportKwh": 0,
-    "buyPerKwh": 0.32,
-    "sellPerKwh": 0.08,
-    "spotPerKwh": 0.11
-  },
-  "economics": {
-    "cost": 0,
-    "revenue": 0
+  "initialState": {
+    "batteryEnergyKwh": 21
   }
-}</pre
-  >
+}</pre>
 
   <p>
-    Output values are grouped by the component where they occur. The
-    <code>battery</code> and <code>economics</code> sections are calculated by
-    the Forecast node and are not required in each input interval.
+    The <code>timeSeries</code> contains the simulated timestep results. The
+    <code>summary</code> aggregates the forecast, and <code>initialState</code>
+    preserves the state supplied to the simulation.
   </p>
 
   <h3>Configuration</h3>
-
   <p>The node can use the following configuration nodes:</p>
 
   <ul>
-    <li><b>System config</b> - system-wide simulation settings</li>
     <li>
       <b>Battery config</b> - battery capacity, power limits and efficiencies
     </li>
