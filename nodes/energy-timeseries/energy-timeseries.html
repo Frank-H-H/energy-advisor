@@ -286,6 +286,7 @@
     </div>
   </div>
   <div id="energy-timeseries-gridTarget-dayNight">
+    <p>Day/night times are interpreted in the local timezone of the Node-RED process. Timestamp values are absolute points in time.</p>
     <div class="form-row">
       <label for="node-input-gridTargetDayStart">Day starts</label>
       <input id="node-input-gridTargetDayStart" type="time" />
@@ -491,7 +492,10 @@
     <dd>Number of hours for which timesteps are created. The start time is taken from <code>msg.time</code> and rounded down to the selected interval.</dd>
 
     <dt>Extra loads</dt>
-    <dd>One or more extra-load sources can be configured. A source can be a message array with start/end/power fields, or a current load where start is msg.time and the message provides power in kW plus remaining minutes. No fixed load times or power values are stored in the node.</dd>
+    <dd>One or more extra-load sources can be configured. A source can be a message array with start/end/power fields, or a current load where start is msg.time and the message provides power in kW plus an absolute end timestamp. No fixed load times or power values are stored in the node.</dd>
+
+    <dt>Time zone</dt>
+    <dd>Day/night boundaries are interpreted in the local timezone of the Node-RED process. Timestamps are handled as absolute points in time and should include an explicit timezone, for example ISO 8601 with <code>Z</code> or an offset.</dd>
 
     <dt>Grid import price, Grid export price, Spot price</dt>
     <dd>The grid target can use <em>None</em>, a <em>Fixed target</em>, a <em>Message attribute</em>, or <em>Day / night</em>. In day/night mode, configure the day start/end times and separate day/night target powers. Grid import and export prices can independently use <em>None</em>, a <em>Fixed price</em>, or a <em>Message attribute</em>. Spot price uses <em>None</em> or a <em>Message attribute</em>. Expected PV production and expected consumption use <em>None</em> or a <em>Message attribute</em>. For a message attribute, configure the message path and the start, end and value fields of each array entry.</dd>

@@ -28,6 +28,12 @@ Purpose: create an empty TimeSeries with regular timesteps that can be enriched 
 
 The start time is read from `msg.time` and rounded down to the selected interval.
 
+## Time model
+
+- Timestamps represent absolute points in time and should use an explicit timezone, preferably ISO 8601 with `Z` or a numeric offset.
+- Day/night boundaries configured as `HH:mm` are interpreted in the local timezone of the Node-RED process. The node intentionally does not have a separate timezone setting.
+- Consequently, the local timezone and daylight-saving rules of the Node-RED process determine which day/night target applies to a timestamp.
+
 ## Output
 
 The node preserves the incoming message and writes the generated series to `msg.payload.timeSeries`. Each timestep contains:
@@ -39,4 +45,4 @@ The node preserves the incoming message and writes the generated series to `msg.
 - `grid.buyPerKwh` and `grid.sellPerKwh` are `null` for `none`, fixed for `fixed`, or populated from the configured message attribute for `message`
 - `grid.spotPerKwh` is `null` for `none` or populated from the configured message attribute for `message`
 
-The node intentionally does not assume a particular tariff. Import and export prices can be configured independently. Time-dependent prices, expected PV production and expected consumption can be read from message attributes using configurable start, end and value fields. For a target interval, an exact source interval is preferred; a containing larger interval is accepted; fully covering smaller intervals are averaged arithmetically. Incomplete price coverage leaves the target price unset. Incomplete forecast coverage leaves expected PV production or consumption at zero and produces a warning. Extra loads are not configured by this node yet.
+The node intentionally does not assume a particular tariff. Import and export prices can be configured independently. Time-dependent prices, expected PV production and expected consumption can be read from message attributes using configurable start, end and value fields. For a target interval, an exact source interval is preferred; a containing larger interval is accepted; fully covering smaller intervals are averaged arithmetically. Incomplete price coverage leaves the target price unset. Incomplete forecast coverage leaves expected PV production or consumption at zero and produces a warning. Extra loads can be configured from message data; current-load entries use `msg.time` as their start and an absolute end timestamp from the configured message field.

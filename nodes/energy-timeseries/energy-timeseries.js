@@ -232,6 +232,7 @@ function applyGridTarget(core, timeSeries, msg, config, node) {
 
   if (config.sourceType === 'dayNight') {
     for (const timestep of timeSeries) {
+      // Day/night boundaries intentionally use the Node-RED process timezone.
       const hour = new Date(timestep.start).getHours();
       const minute = new Date(timestep.start).getMinutes();
       const timeMinutes = hour * 60 + minute;
