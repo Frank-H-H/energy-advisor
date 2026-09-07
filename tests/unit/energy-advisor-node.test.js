@@ -67,6 +67,56 @@ describe('energy-advisor Node-RED adapter', () => {
     expect(sent[0].plan.actions[0].gridTargetPowerKw).toBeCloseTo(-7, 10);
   });
 
+  it('uses TimeSeries duration instead of a configured strategy interval', async () => {
+    const sent = [];
+    const errors = [];
+    const inputHandlers = [];
+
+    const RED = {
+      nodes: {
+        createNode(node) {
+          node.on = (event, handler) => {
+            if (event === 'input') inputHandlers.push(handler);
+          };
+          node.send = (msg) => sent.push(msg);
+          node.error = (error) => errors.push(error);
+        },
+        registerType(name, constructor) {
+          RED.constructor = constructor;
+        },
+      },
+    };
+
+    energyAdvisorNode(RED);
+    const node = {};
+    RED.constructor.call(node, {
+      strategies: 'immediate-negative-price-export',
+      maxExportPowerKw: '4',
+      intervalMinutes: '15',
+    });
+
+    const forecast = {
+      timeSeries: [
+        {
+          start: '2026-01-01T00:00:00Z',
+          end: '2026-01-01T01:00:00Z',
+          grid: { spotPerKwh: 0.2, exportKwh: 0, targetPowerKw: 0 },
+        },
+        {
+          start: '2026-01-01T01:00:00Z',
+          end: '2026-01-01T02:00:00Z',
+          grid: { spotPerKwh: -0.1, exportKwh: 3, targetPowerKw: 0 },
+        },
+      ],
+    };
+
+    await inputHandlers[0]({ payload: forecast });
+
+    expect(errors).toHaveLength(0);
+    expect(sent).toHaveLength(1);
+    expect(sent[0].plan.actions[0].gridTargetPowerKw).toBeCloseTo(-3, 10);
+  });
+
   it('supports the distributed negative-price export strategy', async () => {
     const sent = [];
     const errors = [];

@@ -40,11 +40,6 @@ module.exports = function (RED) {
                   config.maxExportPowerKw === undefined
                     ? 7.46
                     : Number(config.maxExportPowerKw),
-                intervalMinutes:
-                  config.intervalMinutes === '' ||
-                  config.intervalMinutes === undefined
-                    ? 15
-                    : Number(config.intervalMinutes),
                 priority:
                   config.priority === '' || config.priority === undefined
                     ? 50
@@ -57,11 +52,6 @@ module.exports = function (RED) {
                   config.maxExportPowerKw === undefined
                     ? 7.46
                     : Number(config.maxExportPowerKw),
-                intervalMinutes:
-                  config.intervalMinutes === '' ||
-                  config.intervalMinutes === undefined
-                    ? 15
-                    : Number(config.intervalMinutes),
                 priority:
                   config.priority === '' || config.priority === undefined
                     ? 50

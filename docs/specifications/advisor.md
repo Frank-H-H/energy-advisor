@@ -23,6 +23,8 @@ A Strategy consumes the TimeSeries produced by the ForecastEngine directly. A ti
 
 Strategies must not mutate the TimeSeries. Power values use `kW` in property names and energy values use `kWh`. The canonical grid target is `grid.targetPowerKw`: negative means export, zero means neither import nor export, and positive means import.
 
+Timestep duration is always derived from each TimeSeries entry's `start` and `end` timestamps. Strategies must not define or use a separate interval setting for timestep duration. The TimeSeries is the source of truth, so a strategy must correctly handle TimeSeries entries with different durations.
+
 ## Strategy
 
 A Strategy analyzes a TimeSeries and creates a strategy plan. A Strategy does not execute Actions and does not modify the TimeSeries.

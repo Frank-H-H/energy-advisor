@@ -1,9 +1,9 @@
 import { Action } from '../action.js';
 import { ActionProposal } from '../action-proposal.js';
 import { Strategy } from '../strategy.js';
+import { getTimestepDurationHours } from '../timestep-duration.js';
 
 const DEFAULT_MAX_EXPORT_POWER_KW = 7.46;
-const DEFAULT_INTERVAL_MINUTES = 15;
 const DEFAULT_PRIORITY = 50;
 
 /**
@@ -16,15 +16,12 @@ const DEFAULT_PRIORITY = 50;
 export class ImmediateNegativePriceExportStrategy extends Strategy {
   constructor({
     maxExportPowerKw = DEFAULT_MAX_EXPORT_POWER_KW,
-    intervalMinutes = DEFAULT_INTERVAL_MINUTES,
     priority = DEFAULT_PRIORITY,
   } = {}) {
     super();
     validatePositiveOrZero(maxExportPowerKw, 'maxExportPowerKw');
-    validatePositive(intervalMinutes, 'intervalMinutes');
     validatePriority(priority);
     this.maxExportPowerKw = maxExportPowerKw;
-    this.intervalMinutes = intervalMinutes;
     this.priority = priority;
   }
 
@@ -37,10 +34,8 @@ export class ImmediateNegativePriceExportStrategy extends Strategy {
       throw new Error('timeSeries must be an array');
 
     const maxExportPowerKw = options.maxExportPowerKw ?? this.maxExportPowerKw;
-    const intervalMinutes = options.intervalMinutes ?? this.intervalMinutes;
     const priority = options.priority ?? this.priority;
     validatePositiveOrZero(maxExportPowerKw, 'maxExportPowerKw');
-    validatePositive(intervalMinutes, 'intervalMinutes');
     validatePriority(priority);
 
     let remainingExportEnergyKwh = 0;
@@ -54,14 +49,12 @@ export class ImmediateNegativePriceExportStrategy extends Strategy {
 
       const start = new Date(timestep.start);
       const end = new Date(timestep.end);
-      const durationHours = (end.getTime() - start.getTime()) / 3600000;
-      const effectiveDurationHours =
-        durationHours > 0 ? durationHours : intervalMinutes / 60;
+      const durationHours = getTimestepDurationHours(start, end);
 
       if (spotPerKwh < 0) {
         // gridTargetPowerKw < 0 means export.
         const allowedExportEnergyKwh =
-          Math.max(0, -gridTargetPowerKw) * effectiveDurationHours;
+          Math.max(0, -gridTargetPowerKw) * durationHours;
         remainingExportEnergyKwh += Math.max(
           0,
           gridExportKwh - allowedExportEnergyKwh
@@ -73,11 +66,11 @@ export class ImmediateNegativePriceExportStrategy extends Strategy {
 
       const actionPowerKw = Math.min(
         maxExportPowerKw,
-        remainingExportEnergyKwh / effectiveDurationHours
+        remainingExportEnergyKwh / durationHours
       );
       const actionEnergyKwh = Math.min(
         remainingExportEnergyKwh,
-        actionPowerKw * effectiveDurationHours
+        actionPowerKw * durationHours
       );
       if (actionEnergyKwh <= 0) continue;
 
@@ -123,11 +116,6 @@ export class ImmediateNegativePriceExportStrategy extends Strategy {
 function validatePositiveOrZero(value, name) {
   if (!Number.isFinite(value) || value < 0)
     throw new Error(`${name} must be a non-negative finite number`);
-}
-
-function validatePositive(value, name) {
-  if (!Number.isFinite(value) || value <= 0)
-    throw new Error(`${name} must be a positive finite number`);
 }
 
 function validatePriority(value) {
