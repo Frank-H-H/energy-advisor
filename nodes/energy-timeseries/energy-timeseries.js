@@ -29,12 +29,7 @@ module.exports = function (RED) {
     node.on('input', async function (msg) {
       try {
         // Parse extra loads during input handling so errors trigger status update
-        let extraLoadConfigs;
-        try {
-          extraLoadConfigs = readExtraLoadConfigs(extraLoadsConfig);
-        } catch (err) {
-          throw err;
-        }
+        const extraLoadConfigs = readExtraLoadConfigs(extraLoadsConfig);
 
         const core = await corePromise;
         const timeSeries = core.createTimeSeries({
