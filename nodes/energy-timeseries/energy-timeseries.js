@@ -35,8 +35,13 @@ module.exports = function (RED) {
           horizonHours,
         });
 
+        const statusTracker = {
+          timestepCount: timeSeries.length,
+          missingData: null,
+        };
+
         const fixedPrices = {};
-        applyGridTarget(core, timeSeries, msg, gridTargetConfig, node);
+        applyGridTarget(core, timeSeries, msg, gridTargetConfig, node, statusTracker);
         applyExtraLoads(core, timeSeries, msg, extraLoadConfigs, node);
 
         for (const [gridField, priceConfig] of Object.entries(priceConfigs)) {
@@ -74,6 +79,9 @@ module.exports = function (RED) {
               node.warn(
                 `No ${priceConfig.label} found for ${result.missing} time-series interval(s)`
               );
+              if (!statusTracker.missingData) {
+                statusTracker.missingData = priceConfig.label;
+              }
             }
           }
         }
@@ -109,8 +117,14 @@ module.exports = function (RED) {
             node.warn(
               `No ${forecastConfig.label} found for ${result.missing} time-series interval(s)`
             );
+            if (!statusTracker.missingData) {
+              statusTracker.missingData = forecastConfig.label;
+            }
           }
         }
+
+        // Set node status
+        updateNodeStatus(node, statusTracker);
 
         node.send({
           ...msg,
@@ -123,12 +137,29 @@ module.exports = function (RED) {
         });
       } catch (err) {
         node.error(err && err.stack ? err.stack : String(err));
+        node.status({ fill: 'red', shape: 'ring', text: 'error' });
       }
     });
   }
 
   RED.nodes.registerType('energy-timeseries', EnergyTimeSeriesNode);
 };
+
+function updateNodeStatus(node, statusTracker) {
+  if (statusTracker.missingData) {
+    node.status({
+      fill: 'yellow',
+      shape: 'dot',
+      text: `⚠ Missing: ${statusTracker.missingData} (${statusTracker.timestepCount} timesteps)`,
+    });
+  } else {
+    node.status({
+      fill: 'green',
+      shape: 'dot',
+      text: `✓ Created ${statusTracker.timestepCount} timesteps`,
+    });
+  }
+}
 
 function readPriceConfig(config, prefix) {
   const sourceType = config[`${prefix}PriceSourceType`] ?? 'none';
@@ -195,7 +226,7 @@ function readGridTargetConfig(config) {
   };
 }
 
-function applyGridTarget(core, timeSeries, msg, config, node) {
+function applyGridTarget(core, timeSeries, msg, config, node, statusTracker) {
   if (config.sourceType === 'fixed') {
     for (const timestep of timeSeries) {
       timestep.grid.targetPowerKw = config.value ?? 0;
@@ -226,6 +257,9 @@ function applyGridTarget(core, timeSeries, msg, config, node) {
       node.warn(
         `No grid target found for ${result.missing} time-series interval(s)`
       );
+      if (!statusTracker.missingData) {
+        statusTracker.missingData = 'grid target';
+      }
     }
     return;
   }
