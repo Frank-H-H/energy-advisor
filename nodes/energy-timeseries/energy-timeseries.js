@@ -24,10 +24,18 @@ module.exports = function (RED) {
       consumptionPowerKw: readForecastConfig(config, 'loadConsumption'),
     };
     const gridTargetConfig = readGridTargetConfig(config);
-    const extraLoadConfigs = readExtraLoadConfigs(config);
+    const extraLoadsConfig = config.extraLoads;
 
     node.on('input', async function (msg) {
       try {
+        // Parse extra loads during input handling so errors trigger status update
+        let extraLoadConfigs;
+        try {
+          extraLoadConfigs = readExtraLoadConfigs(extraLoadsConfig);
+        } catch (err) {
+          throw err;
+        }
+
         const core = await corePromise;
         const timeSeries = core.createTimeSeries({
           start: msg.time,
@@ -302,7 +310,7 @@ function parseClockMinutes(value) {
 
 
 function readExtraLoadConfigs(config) {
-  let configs = config.extraLoads ?? '[]';
+  let configs = config ?? '[]';
 
   if (typeof configs === 'string') {
     try {
