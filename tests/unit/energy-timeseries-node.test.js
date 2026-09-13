@@ -7,6 +7,7 @@ describe('energy-timeseries Node-RED adapter', () => {
     const sent = [];
     const errors = [];
     const warnings = [];
+    const statuses = [];
     const inputHandlers = [];
     const RED = {
       nodes: {
@@ -17,6 +18,7 @@ describe('energy-timeseries Node-RED adapter', () => {
           node.send = (msg) => sent.push(msg);
           node.error = (error) => errors.push(error);
           node.warn = (warning) => warnings.push(warning);
+          node.status = (status) => statuses.push(status);
         },
         registerType(name, constructor) {
           expect(name).toBe('energy-timeseries');
@@ -24,7 +26,7 @@ describe('energy-timeseries Node-RED adapter', () => {
         },
       },
     };
-    return { RED, sent, errors, warnings, inputHandlers };
+    return { RED, sent, errors, warnings, statuses, inputHandlers };
   }
 
   it('creates 15-minute timesteps for the configured horizon', async () => {
@@ -608,5 +610,241 @@ describe('energy-timeseries Node-RED adapter', () => {
     expect(sent[0].payload.timeSeries[2].end).toBe('2026-01-01T17:00:00.000Z');
 
     vi.useRealTimers();
+  });
+
+  describe('node status display', () => {
+    it('displays success status with correct timestep count', async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-01-01T12:00:00Z'));
+
+      const { RED, statuses, inputHandlers } = createRED();
+      energyTimeSeriesNode(RED);
+      RED.constructor.call(
+        {},
+        {
+          intervalMinutes: '60',
+          horizonHours: '2',
+          buyPriceSourceType: 'fixed',
+          buyPerKwh: '0.32',
+        }
+      );
+
+      await inputHandlers[0]({
+        time: '2026-01-01T12:00:00Z',
+        payload: {},
+      });
+
+      expect(statuses).toHaveLength(1);
+      expect(statuses[0]).toMatchObject({
+        fill: 'green',
+        shape: 'dot',
+        text: '✓ Created 2 timesteps',
+      });
+
+      vi.useRealTimers();
+    });
+
+    it('displays missing data status when message-based price data is incomplete', async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-01-01T12:00:00Z'));
+
+      const { RED, statuses, inputHandlers } = createRED();
+      energyTimeSeriesNode(RED);
+      RED.constructor.call(
+        {},
+        {
+          intervalMinutes: '60',
+          horizonHours: '2',
+          buyPriceSourceType: 'message',
+          buyPricePath: 'payload.prices',
+        }
+      );
+
+      await inputHandlers[0]({
+        time: '2026-01-01T12:00:00Z',
+        payload: {
+          prices: [
+            { start: '2026-01-01T12:00:00Z', end: '2026-01-01T13:00:00Z', value: 0.32 },
+          ],
+        },
+      });
+
+      expect(statuses).toHaveLength(1);
+      expect(statuses[0]).toMatchObject({
+        fill: 'yellow',
+        shape: 'dot',
+        text: '⚠ Missing: grid import price (2 timesteps)',
+      });
+
+      vi.useRealTimers();
+    });
+
+    it('displays missing data status when message-based forecast data is incomplete', async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-01-01T12:00:00Z'));
+
+      const { RED, statuses, inputHandlers } = createRED();
+      energyTimeSeriesNode(RED);
+      RED.constructor.call(
+        {},
+        {
+          intervalMinutes: '60',
+          horizonHours: '2',
+          solarProductionSourceType: 'message',
+          solarProductionPath: 'payload.pvForecast',
+        }
+      );
+
+      await inputHandlers[0]({
+        time: '2026-01-01T12:00:00Z',
+        payload: {
+          pvForecast: [
+            { from: '2026-01-01T12:00:00Z', to: '2026-01-01T13:00:00Z', power: 2.4 },
+          ],
+        },
+      });
+
+      expect(statuses).toHaveLength(1);
+      expect(statuses[0]).toMatchObject({
+        fill: 'yellow',
+        shape: 'dot',
+        text: '⚠ Missing: expected PV production (2 timesteps)',
+      });
+
+      vi.useRealTimers();
+    });
+
+    it('displays missing data status when message-based grid target data is incomplete', async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-01-01T12:00:00Z'));
+
+      const { RED, statuses, inputHandlers } = createRED();
+      energyTimeSeriesNode(RED);
+      RED.constructor.call(
+        {},
+        {
+          intervalMinutes: '60',
+          horizonHours: '2',
+          gridTargetSourceType: 'message',
+          gridTargetPath: 'payload.gridTargets',
+        }
+      );
+
+      await inputHandlers[0]({
+        time: '2026-01-01T12:00:00Z',
+        payload: {
+          gridTargets: [
+            { start: '2026-01-01T12:00:00Z', end: '2026-01-01T13:00:00Z', value: 1.5 },
+          ],
+        },
+      });
+
+      expect(statuses).toHaveLength(1);
+      expect(statuses[0]).toMatchObject({
+        fill: 'yellow',
+        shape: 'dot',
+        text: '⚠ Missing: grid target (2 timesteps)',
+      });
+
+      vi.useRealTimers();
+    });
+
+    it('does not report missing data for "none"-configured sources', async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-01-01T12:00:00Z'));
+
+      const { RED, statuses, inputHandlers } = createRED();
+      energyTimeSeriesNode(RED);
+      RED.constructor.call(
+        {},
+        {
+          intervalMinutes: '60',
+          horizonHours: '2',
+          buyPriceSourceType: 'none',
+          sellPriceSourceType: 'none',
+          spotPriceSourceType: 'none',
+          solarProductionSourceType: 'none',
+          loadConsumptionSourceType: 'none',
+          gridTargetSourceType: 'none',
+        }
+      );
+
+      await inputHandlers[0]({
+        time: '2026-01-01T12:00:00Z',
+        payload: {},
+      });
+
+      expect(statuses).toHaveLength(1);
+      expect(statuses[0]).toMatchObject({
+        fill: 'green',
+        shape: 'dot',
+        text: '✓ Created 2 timesteps',
+      });
+
+      vi.useRealTimers();
+    });
+
+    it('reports only the first missing data type when multiple are incomplete', async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-01-01T12:00:00Z'));
+
+      const { RED, statuses, inputHandlers } = createRED();
+      energyTimeSeriesNode(RED);
+      RED.constructor.call(
+        {},
+        {
+          intervalMinutes: '60',
+          horizonHours: '2',
+          buyPriceSourceType: 'message',
+          buyPricePath: 'payload.prices',
+          solarProductionSourceType: 'message',
+          solarProductionPath: 'payload.pvForecast',
+        }
+      );
+
+      await inputHandlers[0]({
+        time: '2026-01-01T12:00:00Z',
+        payload: {
+          prices: [],
+          pvForecast: [],
+        },
+      });
+
+      expect(statuses).toHaveLength(1);
+      // Buy price is processed first, so it should be reported
+      expect(statuses[0].text).toContain('grid import price');
+
+      vi.useRealTimers();
+    });
+
+    it('sets error status when an exception occurs', async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-01-01T12:00:00Z'));
+
+      const { RED, statuses, inputHandlers } = createRED();
+      energyTimeSeriesNode(RED);
+      RED.constructor.call(
+        {},
+        {
+          intervalMinutes: '60',
+          horizonHours: '2',
+          gridTargetPowerKw: 'invalid',
+        }
+      );
+
+      await inputHandlers[0]({
+        time: '2026-01-01T12:00:00Z',
+        payload: {},
+      });
+
+      expect(statuses).toHaveLength(1);
+      expect(statuses[0]).toMatchObject({
+        fill: 'red',
+        shape: 'ring',
+        text: 'error',
+      });
+
+      vi.useRealTimers();
+    });
   });
 });
