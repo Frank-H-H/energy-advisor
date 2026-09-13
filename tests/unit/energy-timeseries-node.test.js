@@ -817,7 +817,7 @@ describe('energy-timeseries Node-RED adapter', () => {
       vi.useRealTimers();
     });
 
-    it('sets error status when an exception occurs', async () => {
+    it('sets error status when an exception occurs during message processing', async () => {
       vi.useFakeTimers();
       vi.setSystemTime(new Date('2026-01-01T12:00:00Z'));
 
@@ -828,7 +828,7 @@ describe('energy-timeseries Node-RED adapter', () => {
         {
           intervalMinutes: '60',
           horizonHours: '2',
-          gridTargetPowerKw: 'invalid',
+          extraLoads: 'invalid json',
         }
       );
 
