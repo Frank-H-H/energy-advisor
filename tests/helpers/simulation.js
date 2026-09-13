@@ -41,8 +41,6 @@ export function expectStandardNextStateAttributesPresent(timestep) {
   assert.isFinite(timestep.exportedEnergyKwh);
   assert.isFinite(timestep.importedEnergyKwh);
   assert.isFinite(timestep.missedProductionEnergyKwh);
-  assert.isFinite(timestep.extraConsumedEnergyKwh);
-  assert.isFinite(timestep.prematureExportPowerKw);
 }
 
 export function makeTimestep(startISO, endISO, values = {}) {

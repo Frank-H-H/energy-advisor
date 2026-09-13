@@ -18,17 +18,16 @@ describe('PowerBalance domain model', () => {
     expect(balance.powerKw).toBe(4)
   })
 
-  it('subtracts premature export power', () => {
+  it('adds a positive grid target as additional demand', () => {
     const balance = PowerBalance.fromTimestep({
       productionPowerKw: 8,
       consumptionPowerKw: 3,
-      gridTargetPowerKw: 0,
-      prematureExportPowerKw: 2,
+      gridTargetPowerKw: 2,
       start,
       end,
     })
 
-    expect(balance.powerKw).toBe(3)
+    expect(balance.powerKw).toBe(7)
   })
 
   it('subtracts extra consumption while it is active', () => {

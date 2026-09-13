@@ -91,6 +91,43 @@ describe('ImmediateNegativePriceExportStrategy', () => {
     expect(result.proposals[1].action.gridTargetPowerKw).toBeCloseTo(-7.46, 10);
   });
 
+  it('uses TimeSeries duration even when timestep lengths differ', () => {
+    const timeSeries = [
+      {
+        start: '2026-01-01T00:00:00Z',
+        end: '2026-01-01T00:15:00Z',
+        grid: { spotPerKwh: 0.2, exportKwh: 0, targetPowerKw: 0 },
+      },
+      {
+        start: '2026-01-01T00:15:00Z',
+        end: '2026-01-01T01:15:00Z',
+        grid: { spotPerKwh: -0.1, exportKwh: 3, targetPowerKw: 0 },
+      },
+    ];
+
+    const result = new ImmediateNegativePriceExportStrategy({
+      maxExportPowerKw: 4,
+    }).createPlan(timeSeries);
+
+    expect(result.proposals[0].action.gridTargetPowerKw).toBeCloseTo(-4, 10);
+    expect(result.totalPlannedExportEnergyKwh).toBeCloseTo(1, 10);
+    expect(result.remainingExportEnergyKwh).toBeCloseTo(2, 10);
+  });
+
+  it('rejects a timestep with non-positive duration', () => {
+    const timeSeries = [
+      {
+        start: '2026-01-01T00:00:00Z',
+        end: '2026-01-01T00:00:00Z',
+        grid: { spotPerKwh: -0.1, exportKwh: 1, targetPowerKw: 0 },
+      },
+    ];
+
+    expect(() =>
+      new ImmediateNegativePriceExportStrategy().createPlan(timeSeries)
+    ).toThrow('TimeSeries timestep must have a positive duration');
+  });
+
   it('does not mutate the TimeSeries', () => {
     const timeSeries = [timestep(0, 0.2, 0), timestep(15, -0.1, 2, -1)];
     const original = structuredClone(timeSeries);
@@ -98,7 +135,7 @@ describe('ImmediateNegativePriceExportStrategy', () => {
     expect(timeSeries).toEqual(original);
   });
 
-  it('supports configured export power, timestep duration and priority', () => {
+  it('uses the actual timestep duration together with configured export power and priority', () => {
     const timeSeries = [
       {
         start: '2026-01-01T00:00:00Z',
@@ -114,7 +151,6 @@ describe('ImmediateNegativePriceExportStrategy', () => {
 
     const result = new ImmediateNegativePriceExportStrategy({
       maxExportPowerKw: 4,
-      intervalMinutes: 30,
       priority: 80,
     }).createPlan(timeSeries);
 

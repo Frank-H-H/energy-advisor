@@ -184,6 +184,70 @@ describe('energy-timeseries Node-RED adapter', () => {
     vi.useRealTimers();
   });
 
+  it('interprets day/night boundaries in the Node-RED process timezone', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-01-01T00:00:00Z'));
+
+    const { RED, sent, errors, inputHandlers } = createRED();
+    energyTimeSeriesNode(RED);
+    RED.constructor.call(
+      {},
+      {
+        intervalMinutes: '60',
+        horizonHours: '2',
+        gridTargetSourceType: 'dayNight',
+        gridTargetDayStart: '06:00',
+        gridTargetDayEnd: '20:00',
+        gridTargetDayPowerKw: '2',
+        gridTargetNightPowerKw: '0',
+      }
+    );
+
+    await inputHandlers[0]({
+      time: '2026-01-01T05:00:00Z',
+      payload: {},
+    });
+
+    expect(errors).toHaveLength(0);
+    expect(
+      sent[0].payload.timeSeries.map((timestep) => timestep.grid.targetPowerKw)
+    ).toEqual([2, 2]);
+
+    vi.useRealTimers();
+  });
+
+  it('uses daylight-saving time when interpreting day/night boundaries', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-07-01T00:00:00Z'));
+
+    const { RED, sent, errors, inputHandlers } = createRED();
+    energyTimeSeriesNode(RED);
+    RED.constructor.call(
+      {},
+      {
+        intervalMinutes: '60',
+        horizonHours: '2',
+        gridTargetSourceType: 'dayNight',
+        gridTargetDayStart: '06:00',
+        gridTargetDayEnd: '20:00',
+        gridTargetDayPowerKw: '2',
+        gridTargetNightPowerKw: '0',
+      }
+    );
+
+    await inputHandlers[0]({
+      time: '2026-07-01T04:00:00Z',
+      payload: {},
+    });
+
+    expect(errors).toHaveLength(0);
+    expect(
+      sent[0].payload.timeSeries.map((timestep) => timestep.grid.targetPowerKw)
+    ).toEqual([2, 2]);
+
+    vi.useRealTimers();
+  });
+
   it('applies configured fixed buy and sell prices to every timestep', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-01-01T12:07:30Z'));
@@ -485,7 +549,7 @@ describe('energy-timeseries Node-RED adapter', () => {
           {
             name: 'car',
             sourceType: 'current',
-            valueField: 'extraConsumptionPower',
+            valueField: 'consumptionPowerKw',
             endField: 'end',
           },
         ]),
@@ -495,7 +559,7 @@ describe('energy-timeseries Node-RED adapter', () => {
     await inputHandlers[0]({
       time: '2026-01-01T12:30:00Z',
       payload: {},
-      extraConsumptionPower: 3.7,
+      consumptionPowerKw: 3.7,
       end: '2026-01-01T14:00:00Z',
     });
 

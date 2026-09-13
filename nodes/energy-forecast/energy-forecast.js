@@ -7,8 +7,6 @@ module.exports = function (RED) {
     RED.nodes.createNode(this, config);
     const node = this;
 
-    // store selected system config id (empty string if none)
-    node.systemConfigId = config.system_config || '';
     node.battery_config = config.battery_config || '';
     node.grid_config = config.grid_config || '';
 
@@ -34,19 +32,8 @@ module.exports = function (RED) {
           return;
         }
 
-        // Resolve system-config and referenced battery/grid config nodes (if any)
-        let systemConfigObject = null;
         let batteryConfigObject = null;
         let gridConfigObject = null;
-        if (node.systemConfigId) {
-          const sysNode = RED.nodes.getNode(node.systemConfigId);
-          if (sysNode) {
-            // sysNode has properties we stored on creation: battery_config, grid_ref, analysis_interval_minutes
-            systemConfigObject = {
-              analysis_interval_minutes: sysNode.analysis_interval_minutes,
-            };
-          }
-        }
         if (node.battery_config) {
           const batteryConfigNode = RED.nodes.getNode(node.battery_config);
           if (batteryConfigNode) {
@@ -90,9 +77,8 @@ module.exports = function (RED) {
         if (inputCopy.initialState === undefined && msg.initialState !== undefined) {
           inputCopy.initialState = msg.initialState;
         }
-        if (systemConfigObject || batteryConfigObject || gridConfigObject) {
-          inputCopy.components = schemas.mapSystemConfigToComponents(
-            systemConfigObject || {},
+        if (batteryConfigObject || gridConfigObject) {
+          inputCopy.components = schemas.mapConfigsToComponents(
             batteryConfigObject || {},
             gridConfigObject || {}
           );

@@ -17,10 +17,6 @@ export class PowerBalance {
       timestep.consumptionPowerKw +
       timestep.gridTargetPowerKw
 
-    if (typeof timestep.prematureExportPowerKw !== 'undefined') {
-      powerBalance -= timestep.prematureExportPowerKw
-    }
-
     powerBalance -= getExtraLoadPowerKw(
       timestep.extraLoads,
       timestep.start,

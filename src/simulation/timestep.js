@@ -22,7 +22,7 @@ import {
  * - inputs are power values (kW) and converted to energy (kWh) using interval duration
  * - respects battery power limits and SOC bounds
  * - splits the timestep into sub-parts when the battery fills or empties during the timestep
- * - computes exportedEnergyKwh, importedEnergyKwh, missedProductionEnergyKwh, extraConsumedEnergyKwh and resulting SOC
+ * - computes exportedEnergyKwh, importedEnergyKwh, missedProductionEnergyKwh, extraLoadConsumedEnergyKwh and resulting SOC
  *
  * Signature:
  *   simulateTimestep({ state, timestep, components, options })
@@ -40,9 +40,6 @@ export function simulateTimestep({ state = {}, timestep, components = {} }) {
   timestep.productionPowerKw = Number(timestep.productionPowerKw || 0);
   timestep.consumptionPowerKw = Number(timestep.consumptionPowerKw || 0);
   timestep.gridTargetPowerKw = Number(timestep.gridTargetPowerKw || 0);
-  timestep.prematureExportPowerKw = Number(
-    timestep.prematureExportPowerKw || 0
-  );
   timestep.extraLoads = normalizeExtraLoads(timestep.extraLoads);
 
   timestep.importPricePerKwh = timestep.importPricePerKwh || null;
@@ -161,7 +158,7 @@ export function simulateTimestep({ state = {}, timestep, components = {} }) {
         timestep.productionPowerKw,
         Math.max(0, unconstrainedPowerBalance - constrainedPowerBalance)
       ) * timestepFraction;
-    timestep.extraConsumedEnergyKwh = getExtraLoadEnergyKwh(
+    timestep.extraLoadConsumedEnergyKwh = getExtraLoadEnergyKwh(
       timestep.extraLoads,
       timestep.start,
       timestep.end
@@ -324,7 +321,7 @@ export function simulateTimestep({ state = {}, timestep, components = {} }) {
       delete timestep.exportedEnergyKwh;
       delete timestep.importedEnergyKwh;
       delete timestep.missedProductionEnergyKwh;
-      delete timestep.extraConsumedEnergyKwh;
+      delete timestep.extraLoadConsumedEnergyKwh;
     }
   }
 

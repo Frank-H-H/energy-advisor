@@ -10,7 +10,7 @@ export class Strategy {
     throw new Error('Strategy.id must be implemented by a concrete strategy')
   }
 
-  createPlan(_timeSeries, _options = {}) {
+  createPlan() {
     throw new Error('Strategy.createPlan() must be implemented by a concrete strategy')
   }
 }

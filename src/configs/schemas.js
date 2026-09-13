@@ -20,19 +20,9 @@ export const gridConfigSchema = {
   }
 }
 
-export const systemConfigSchema = {
-  type: 'energy-system-config',
-  defaults: {
-    name: '',
-    // either 15 or 60
-    analysis_interval_minutes: 15
-  }
-}
-
-export function mapSystemConfigToComponents(systemConfig = {}, batteryConfig = null, gridConfig = null) {
-  // Resolve battery source: either referenced object or provided batteryConfig
-  const b = batteryConfig || systemConfig.battery || {}
-  const g = gridConfig || systemConfig.grid || {}
+export function mapConfigsToComponents(batteryConfig = null, gridConfig = null) {
+  const b = batteryConfig || {}
+  const g = gridConfig || {}
 
   const components = {
     battery: {
@@ -46,9 +36,6 @@ export function mapSystemConfigToComponents(systemConfig = {}, batteryConfig = n
     },
     grid: {
       max_export_power_kw: Number(g.max_export_power_kw ?? g.maxExportKw ?? 0)
-    },
-    analysis: {
-      interval_minutes: Number(systemConfig.analysis_interval_minutes ?? 15)
     }
   }
 

@@ -1,7 +1,7 @@
 import path from 'path'
 import { pathToFileURL } from 'url'
 
-export async function runForecast(input, systemConfigObject = null, batteryConfigObject = null, gridConfigObject = null) {
+export async function runForecast(input, batteryConfigObject = null, gridConfigObject = null) {
   // resolve core and schemas via file URLs so dynamic import works in different environments
   const coreUrl = pathToFileURL(path.join(process.cwd(), 'src', 'index.js')).href
   const schemasUrl = pathToFileURL(path.join(process.cwd(), 'src', 'configs', 'schemas.js')).href
@@ -11,8 +11,8 @@ export async function runForecast(input, systemConfigObject = null, batteryConfi
   const ForecastEngine = core.ForecastEngine
 
   const inputCopy = { ...input }
-  if (systemConfigObject || batteryConfigObject || gridConfigObject) {
-    inputCopy.components = schemas.mapSystemConfigToComponents(systemConfigObject || {}, batteryConfigObject, gridConfigObject)
+  if (batteryConfigObject || gridConfigObject) {
+    inputCopy.components = schemas.mapConfigsToComponents(batteryConfigObject, gridConfigObject)
   }
 
   const out = ForecastEngine.run(inputCopy)

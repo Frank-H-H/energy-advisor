@@ -131,7 +131,7 @@
               <div class="extraLoad-current">
                 <div class="form-row">
                   <label>Power field (kW)</label>
-                  <input class="extraLoad-valueField-current" type="text" placeholder="extraConsumptionPower" />
+                  <input class="extraLoad-valueField-current" type="text" placeholder="consumptionPowerKw" />
                 </div>
                 <div class="form-row">
                   <label>End timestamp field</label>
@@ -148,7 +148,7 @@
           row.find('.extraLoad-startField').val(load.startField || 'start');
           row.find('.extraLoad-endField').val(load.endField || 'end');
           row.find('.extraLoad-valueField').val(load.valueField || 'consumptionPowerKw');
-          row.find('.extraLoad-valueField-current').val(load.valueField || 'extraConsumptionPower');
+          row.find('.extraLoad-valueField-current').val(load.valueField || 'consumptionPowerKw');
           row.find('.extraLoad-endField-current').val(load.endField || 'end');
 
           const updateExtraLoadVisibility = () => {
@@ -182,7 +182,7 @@
                 : row.find('.extraLoad-endField').val() || 'end',
             valueField:
               sourceType === 'current'
-                ? row.find('.extraLoad-valueField-current').val() || 'extraConsumptionPower'
+                ? row.find('.extraLoad-valueField-current').val() || 'consumptionPowerKw'
                 : row.find('.extraLoad-valueField').val() || 'consumptionPowerKw',
           });
         });
@@ -221,7 +221,7 @@
               : row.find('.extraLoad-endField').val() || 'end',
           valueField:
             sourceType === 'current'
-              ? row.find('.extraLoad-valueField-current').val() || 'extraConsumptionPower'
+              ? row.find('.extraLoad-valueField-current').val() || 'consumptionPowerKw'
               : row.find('.extraLoad-valueField').val() || 'consumptionPowerKw',
         });
       });
@@ -286,6 +286,7 @@
     </div>
   </div>
   <div id="energy-timeseries-gridTarget-dayNight">
+    <p>Day/night times are interpreted in the local timezone of the Node-RED process. Timestamp values are absolute points in time.</p>
     <div class="form-row">
       <label for="node-input-gridTargetDayStart">Day starts</label>
       <input id="node-input-gridTargetDayStart" type="time" />
@@ -478,8 +479,8 @@
 <script type="text/html" data-help-name="energy-timeseries">
   <p>
     Creates an empty, simulation-ready TimeSeries for a configurable future
-    horizon. The start time is the current time rounded down to the selected
-    interval.
+    horizon. The start time is read from <code>msg.time</code> and rounded down
+    to the selected interval.
   </p>
 
   <h3>Configuration</h3>
@@ -491,7 +492,10 @@
     <dd>Number of hours for which timesteps are created. The start time is taken from <code>msg.time</code> and rounded down to the selected interval.</dd>
 
     <dt>Extra loads</dt>
-    <dd>One or more extra-load sources can be configured. A source can be a message array with start/end/power fields, or a current load where start is msg.time and the message provides power in kW plus remaining minutes. No fixed load times or power values are stored in the node.</dd>
+    <dd>One or more extra-load sources can be configured. A source can be a message array with start/end/power fields, or a current load where start is msg.time and the message provides power in kW plus an absolute end timestamp. No fixed load times or power values are stored in the node.</dd>
+
+    <dt>Time zone</dt>
+    <dd>Day/night boundaries are interpreted in the local timezone of the Node-RED process. Timestamps are handled as absolute points in time and should include an explicit timezone, for example ISO 8601 with <code>Z</code> or an offset.</dd>
 
     <dt>Grid import price, Grid export price, Spot price</dt>
     <dd>The grid target can use <em>None</em>, a <em>Fixed target</em>, a <em>Message attribute</em>, or <em>Day / night</em>. In day/night mode, configure the day start/end times and separate day/night target powers. Grid import and export prices can independently use <em>None</em>, a <em>Fixed price</em>, or a <em>Message attribute</em>. Spot price uses <em>None</em> or a <em>Message attribute</em>. Expected PV production and expected consumption use <em>None</em> or a <em>Message attribute</em>. For a message attribute, configure the message path and the start, end and value fields of each array entry.</dd>
@@ -504,7 +508,8 @@
     <code>null</code>; unconfigured expected PV production and consumption remain
     <code>0</code>. Message-based values are matched by time: exact source
     intervals are preferred, a containing larger interval is accepted, and
-    fully covering smaller intervals are averaged arithmetically. Incomplete
+    fully covering smaller intervals are combined using a duration-weighted
+    average. Incomplete
     coverage leaves price values unset; expected PV production and consumption
     remain at zero and produce a warning.
   </p>

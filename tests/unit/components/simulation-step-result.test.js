@@ -8,7 +8,7 @@ describe('SimulationStepResult', () => {
       exportedEnergyKwh: 1.2,
       importedEnergyKwh: 0.3,
       missedProductionEnergyKwh: 0.4,
-      extraConsumedEnergyKwh: 0.5,
+      extraLoadConsumedEnergyKwh: 0.5,
     };
 
     const result = SimulationStepResult.fromTimestep(timestep);
@@ -18,7 +18,7 @@ describe('SimulationStepResult', () => {
       exportedEnergyKwh: 1.2,
       importedEnergyKwh: 0.3,
       missedProductionEnergyKwh: 0.4,
-      extraConsumedEnergyKwh: 0.5,
+      extraLoadConsumedEnergyKwh: 0.5,
     });
   });
 
@@ -28,14 +28,14 @@ describe('SimulationStepResult', () => {
       exportedEnergyKwh: 1,
       importedEnergyKwh: 0.2,
       missedProductionEnergyKwh: 0.3,
-      extraConsumedEnergyKwh: 0.4,
+      extraLoadConsumedEnergyKwh: 0.4,
     });
     const second = new SimulationStepResult({
       batteryEnergyAtEndKwh: 9,
       exportedEnergyKwh: 2,
       importedEnergyKwh: 0.5,
       missedProductionEnergyKwh: 0.6,
-      extraConsumedEnergyKwh: 0.7,
+      extraLoadConsumedEnergyKwh: 0.7,
     });
 
     const result = SimulationStepResult.combine(first, second);
@@ -44,7 +44,7 @@ describe('SimulationStepResult', () => {
     expect(result.exportedEnergyKwh).toBe(3);
     expect(result.importedEnergyKwh).toBeCloseTo(0.7);
     expect(result.missedProductionEnergyKwh).toBeCloseTo(0.9);
-    expect(result.extraConsumedEnergyKwh).toBeCloseTo(1.1);
+    expect(result.extraLoadConsumedEnergyKwh).toBeCloseTo(1.1);
   });
 
   it('uses the second result as the end state of a combined interval', () => {
@@ -67,7 +67,7 @@ describe('SimulationStepResult', () => {
       exportedEnergyKwh: 1,
       importedEnergyKwh: 2,
       missedProductionEnergyKwh: 3,
-      extraConsumedEnergyKwh: 4,
+      extraLoadConsumedEnergyKwh: 4,
     });
 
     const returned = result.applyTo(timestep);
@@ -80,7 +80,7 @@ describe('SimulationStepResult', () => {
       exportedEnergyKwh: 1,
       importedEnergyKwh: 2,
       missedProductionEnergyKwh: 3,
-      extraConsumedEnergyKwh: 4,
+      extraLoadConsumedEnergyKwh: 4,
     });
   });
 });

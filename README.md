@@ -8,20 +8,20 @@ Migration tasks:
 
 - [x] Setup repository
 - [x] Add node for forecast
-- [x] Add node for advisories
-- [x] Add configuration nodes for battery, grid, whole system
+- [x] Add node for advisor strategies
+- [x] Add configuration nodes for battery and grid
 - [x] Add logic for single time step computation
 - [x] Add tests for single time step computation
 - [x] Add logic for iterating through the timesteps
 - [x] Add tests for iterating
-- [x] Add logic for advisory (currently called actions)
-- [x] Add tests for advisory (currently called actions)
+- [x] Add logic for Advisor Plans and Actions
+- [x] Add tests for Advisor Plans and Actions
 - [x] Have the algorithms use the config objects for battery, grid, etc.
 - [x] Refactor! Introduce (or use existing) data objects like "Battery.charge(2)"
-- [x] Change advisory algorithm to support different advisory strategies
+- [x] Support different Advisor Strategies
 - [x] Run first test in my Home Assistant environment
 - [x] Enable rerunning the forecast with the planned actions
-- [x] Migrate from single extraConsumption to multiple extraLoads
+- [x] Migrate from a single extra load to multiple extraLoads
 - [x] Compute the total effects of the plans (total savings or so)
 - [x] Introduce helper node to prepare a TimeSeries
 - [ ] Add examples to documentation
@@ -54,252 +54,27 @@ Energy TimeSeries -> Forecast -> Advisor -> Forecast
 
 ## Vision
 
-Example forecast image.
-![Example forecast image (visual mock)](docs/example-graph.png). Shows forecasted battery SOC, expected grid import + export, times of negative energy prices, extra loads like car charging. Also preemptive counter-measures are computed:
+The current Advisor implementation focuses on strategy-based planning. Currently supported actions:
 
-- Sell energy in advance of times with negative prices (useful for summertime)
-- TODO: buy energy in times with lowest prices (useful for wintertime)
-- TODO: trade energy (buy low, sell high)
-- TODO: compute start + stop times for extra loads
-- TODO: add support nodes to convert data into the expected timestep format
+- `set-grid-target`
 
-<details>
+The Advisor does not execute actions; execution remains the responsibility of the surrounding automation.
 
-<summary>Example config for apex card</summary>
 
-```yaml
-type: custom:apexcharts-card
-header:
-  show: true
-  title: Batterieoptimierung
-  show_states: true
-  colorize_states: true
-graph_span: 36h
-span:
-  start: hour
-now:
-  show: true
-  label: Jetzt
-yaxis:
-  - decimals: 0
-    id: SOC
-    min: ~0
-    max: ~100
-  - decimals: 2
-    id: price
-    opposite: true
-    show: false
-    min: ~0
-    max: ~0
-  - decimals: 2
-    id: kW
-    opposite: true
-    show: true
-    min: ~-1
-    max: ~1
-experimental:
-  color_threshold: true
-series:
-  - entity: sensor.solarsteuerung_testsimulationmitgegenmassnahmen
-    float_precision: 2
-    name: Preis
-    yaxis_id: price
-    type: column
-    time_delta: +7.5m
-    curve: stepline
-    opacity: 0.1
-    data_generator: |
-      return entity.attributes.simulationdata.map((entry) => {
-        return [new Date(entry.interval.start), (entry.electricityPrice < 0) ? 999 : 1000];
-      });
-    show:
-      in_header: false
-      in_legend: false
-    color_threshold:
-      - value: 0
-        color: red
-      - value: 999.5
-        color: white
-  - entity: sensor.solarsteuerung_testsimulationmitgegenmassnahmen
-    name: Batterie
-    yaxis_id: SOC
-    type: line
-    curve: monotoneCubic
-    unit: '%'
-    extend_to: false
-    float_precision: 3
-    stroke_width: 2
-    data_generator: |
-      const now = new Date();
-      return entity.attributes.simulationdata.map((entry) => {
-        const start = entry.interval.start
-        if(now > start) {
-          const emulatedStartValue = entry.batteryEnergyAtStartKwh - (entry.batteryEnergyAtEndKwh - entry.batteryEnergyAtStartKwh) * (60 - now.getMinutes()) / 60
-          return [start, emulatedStartValue / 43.52 * 100 || 0];
-        } else {
-          return [start, entry.batteryEnergyAtStartKwh / 43.52 * 100 || 0];
-        }
-      });
-    color_threshold:
-      - value: 0
-        color: green
-      - value: 100
-        color: green
-      - value: 100.1
-        color: red
-    show:
-      in_header: false
-      in_legend: false
-  - entity: sensor.solarsteuerung_testsolarsimulation
-    name: Batterie (KI)
-    yaxis_id: SOC
-    type: line
-    curve: monotoneCubic
-    unit: '%'
-    extend_to: false
-    float_precision: 3
-    stroke_width: 1
-    stroke_dash: 1
-    data_generator: |
-      const now = new Date();
-      return entity.attributes.simulationdata.map((entry) => {
-        const start = entry.interval.start
-        if(now > start) {
-          const emulatedStartValue = entry.batteryEnergyAtStartKwh - (entry.batteryEnergyAtEndKwh - entry.batteryEnergyAtStartKwh) * (60 - now.getMinutes()) / 60
-          return [start, emulatedStartValue / 43.52 * 100];
-        } else {
-          return [start, entry.batteryEnergyAtStartKwh / 43.52 * 100];
-        }
-      });
-    color_threshold:
-      - value: 0
-        color: green
-      - value: 100
-        color: green
-      - value: 100.01
-        color: red
-    show:
-      in_header: false
-      in_legend: false
-  - entity: sensor.solarsteuerung_testsolargegenmassnahmen
-    name: Gegenmaßnamen
-    yaxis_id: kW
-    unit: kW
-    type: line
-    curve: stepline
-    extend_to: false
-    float_precision: 3
-    stroke_width: 3
-    stroke_dash: 1
-    data_generator: |
-      const now = new Date();
-      return entity.attributes.simulationdata.map((entry) => {
-        return [entry.interval.start, - entry.prematureExportPowerKw];
-      });
-    color_threshold:
-      - value: 0
-        color: green
-      - value: 43.52
-        color: green
-      - value: 43.5201
-        color: red
-    show:
-      in_header: false
-      in_legend: false
-  - entity: sensor.solarsteuerung_testsimulationmitgegenmassnahmen
-    name: Ein-/Verkauf
-    yaxis_id: kW
-    unit: kW
-    type: area
-    curve: stepline
-    extend_to: false
-    float_precision: 3
-    stroke_width: 1
-    stroke_dash: 0
-    opacity: 0.3
-    data_generator: |
-      return entity.attributes.simulationdata.map((entry) => {
-        return [entry.interval.start, (entry.importedEnergyKwh - entry.exportedEnergyKwh) * 4 - entry.prematureExportPowerKw];
-      });
-    color_threshold:
-      - value: -7.4
-        color: red
-      - value: -7.3
-        color: darkorange
-      - value: 0
-        color: darkorange
-      - value: 1
-        color: green
-    show:
-      in_header: false
-      in_legend: false
-  - entity: sensor.solarsteuerung_testsimulationmitgegenmassnahmen
-    name: Autoladung
-    yaxis_id: kW
-    unit: kW
-    type: line
-    curve: stepline
-    extend_to: false
-    float_precision: 3
-    stroke_width: 1
-    stroke_dash: 3
-    data_generator: |
-      return entity.attributes.simulationdata.map((entry) => {
-        return [entry.interval.start, entry.extraConsumedEnergyKwh * 4];
-      });
-    color_threshold:
-      - value: 0
-        color: green
-      - value: 0.01
-        color: green
-      - value: 0.02
-        color: blue
-    show:
-      in_header: false
-      in_legend: false
-  - entity: sensor.solarsteuerung_testsimulationmitgegenmassnahmen
-    name: Batterieladung
-    yaxis_id: kW
-    unit: kW
-    type: area
-    opacity: 0.1
-    curve: stepline
-    extend_to: false
-    float_precision: 3
-    stroke_width: 0.5
-    stroke_dash: 2
-    data_generator: |
-      return entity.attributes.simulationdata.map((entry) => {
-        return [entry.interval.start, (entry.batteryEnergyAtEndKwh - entry.batteryEnergyAtStartKwh) * 4];
-      });
-    color_threshold:
-      - value: -0.01
-        color: purple
-      - value: 0
-        color: cyan
-    show:
-      in_header: false
-      in_legend: false
-apex_config:
-  plotOptions:
-    bar:
-      columnWidth: 100%
-```
-
-</details>
 
 ---
 
 ## Features
 
-- Forecast engine to compute interval-based forecasts (based on consumption, PV, prices).
-  - Iterates through all provided timesteps. You can choose the accurracy (tested with 15 minutes)
+- Forecast engine to compute forecasts from consumption, PV, prices and grid targets.
+  - Iterates through all provided timesteps and supports the TimeSeries resolution supplied by `energy-timeseries`.
   - Dynamically splitting timesteps (when battery gets full during a timestep, we can't just handle this as a single step)
-- Advisor engine to propose actions (battery charge/discharge, grid import/export) to reduce cost or maximize revenue.
+- Advisor engine to create Plans from Strategy proposals. Currently supported actions: `set-grid-target`.
 - Node-RED nodes for easy integration into flows:
+  - `energy-timeseries` - create and enrich a simulation TimeSeries
   - `energy-forecast` - run forecast engine
-  - `energy-advisor` - run advisor to produce recommendations
-  - Config nodes: `energy-system-config`, `energy-battery-config`, `energy-grid-config`
+  - `energy-advisor` - run Advisor strategies and produce a Plan
+  - Config nodes: `energy-battery-config`, `energy-grid-config`
 
 ---
 
