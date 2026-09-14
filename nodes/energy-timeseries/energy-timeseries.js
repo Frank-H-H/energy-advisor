@@ -40,7 +40,7 @@ module.exports = function (RED) {
 
         const statusTracker = {
           timestepCount: timeSeries.length,
-          missingData: null,
+          missingData: [],
         };
 
         const fixedPrices = {};
@@ -82,8 +82,8 @@ module.exports = function (RED) {
               node.warn(
                 `No ${priceConfig.label} found for ${result.missing} time-series interval(s)`
               );
-              if (!statusTracker.missingData) {
-                statusTracker.missingData = priceConfig.label;
+              if (result.matched === 0) {
+                statusTracker.missingData.push(priceConfig.label);
               }
             }
           }
@@ -120,8 +120,8 @@ module.exports = function (RED) {
             node.warn(
               `No ${forecastConfig.label} found for ${result.missing} time-series interval(s)`
             );
-            if (!statusTracker.missingData) {
-              statusTracker.missingData = forecastConfig.label;
+            if (result.matched === 0) {
+              statusTracker.missingData.push(forecastConfig.label);
             }
           }
         }
@@ -149,17 +149,17 @@ module.exports = function (RED) {
 };
 
 function updateNodeStatus(node, statusTracker) {
-  if (statusTracker.missingData) {
+  if (statusTracker.missingData.length > 0) {
     node.status({
-      fill: 'yellow',
+      fill: 'red',
       shape: 'dot',
-      text: `⚠ Missing: ${statusTracker.missingData} (${statusTracker.timestepCount} timesteps)`,
+      text: `✕ Missing: ${statusTracker.missingData.join(', ')}`,
     });
   } else {
     node.status({
       fill: 'green',
       shape: 'dot',
-      text: `✓ Created ${statusTracker.timestepCount} timesteps`,
+      text: `✓ ${statusTracker.timestepCount} steps · data OK`,
     });
   }
 }
@@ -260,8 +260,8 @@ function applyGridTarget(core, timeSeries, msg, config, node, statusTracker) {
       node.warn(
         `No grid target found for ${result.missing} time-series interval(s)`
       );
-      if (!statusTracker.missingData) {
-        statusTracker.missingData = 'grid target';
+      if (result.matched === 0) {
+        statusTracker.missingData.push('grid target');
       }
     }
     return;

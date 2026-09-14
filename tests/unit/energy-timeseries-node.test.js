@@ -638,13 +638,13 @@ describe('energy-timeseries Node-RED adapter', () => {
       expect(statuses[0]).toMatchObject({
         fill: 'green',
         shape: 'dot',
-        text: '✓ Created 2 timesteps',
+        text: '✓ 2 steps · data OK',
       });
 
       vi.useRealTimers();
     });
 
-    it('displays missing data status when message-based price data is incomplete', async () => {
+    it('keeps green status when message-based price data has partial coverage', async () => {
       vi.useFakeTimers();
       vi.setSystemTime(new Date('2026-01-01T12:00:00Z'));
 
@@ -671,15 +671,15 @@ describe('energy-timeseries Node-RED adapter', () => {
 
       expect(statuses).toHaveLength(1);
       expect(statuses[0]).toMatchObject({
-        fill: 'yellow',
+        fill: 'green',
         shape: 'dot',
-        text: '⚠ Missing: grid import price (2 timesteps)',
+        text: '✓ 2 steps · data OK',
       });
 
       vi.useRealTimers();
     });
 
-    it('displays missing data status when message-based forecast data is incomplete', async () => {
+    it('keeps green status when message-based forecast data has partial coverage', async () => {
       vi.useFakeTimers();
       vi.setSystemTime(new Date('2026-01-01T12:00:00Z'));
 
@@ -692,6 +692,9 @@ describe('energy-timeseries Node-RED adapter', () => {
           horizonHours: '2',
           solarProductionSourceType: 'message',
           solarProductionPath: 'payload.pvForecast',
+          solarProductionStartField: 'from',
+          solarProductionEndField: 'to',
+          solarProductionValueField: 'power',
         }
       );
 
@@ -706,15 +709,15 @@ describe('energy-timeseries Node-RED adapter', () => {
 
       expect(statuses).toHaveLength(1);
       expect(statuses[0]).toMatchObject({
-        fill: 'yellow',
+        fill: 'green',
         shape: 'dot',
-        text: '⚠ Missing: expected PV production (2 timesteps)',
+        text: '✓ 2 steps · data OK',
       });
 
       vi.useRealTimers();
     });
 
-    it('displays missing data status when message-based grid target data is incomplete', async () => {
+    it('keeps green status when message-based grid target data has partial coverage', async () => {
       vi.useFakeTimers();
       vi.setSystemTime(new Date('2026-01-01T12:00:00Z'));
 
@@ -741,9 +744,9 @@ describe('energy-timeseries Node-RED adapter', () => {
 
       expect(statuses).toHaveLength(1);
       expect(statuses[0]).toMatchObject({
-        fill: 'yellow',
+        fill: 'green',
         shape: 'dot',
-        text: '⚠ Missing: grid target (2 timesteps)',
+        text: '✓ 2 steps · data OK',
       });
 
       vi.useRealTimers();
@@ -778,13 +781,49 @@ describe('energy-timeseries Node-RED adapter', () => {
       expect(statuses[0]).toMatchObject({
         fill: 'green',
         shape: 'dot',
-        text: '✓ Created 2 timesteps',
+        text: '✓ 2 steps · data OK',
       });
 
       vi.useRealTimers();
     });
 
-    it('reports only the first missing data type when multiple are incomplete', async () => {
+    it('ignores missing extra-load data for node status', async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-01-01T12:00:00Z'));
+
+      const { RED, statuses, inputHandlers } = createRED();
+      energyTimeSeriesNode(RED);
+      RED.constructor.call(
+        {},
+        {
+          intervalMinutes: '60',
+          horizonHours: '2',
+          extraLoads: JSON.stringify([
+            {
+              name: 'car',
+              sourceType: 'message',
+              path: 'payload.carLoads',
+            },
+          ]),
+        }
+      );
+
+      await inputHandlers[0]({
+        time: '2026-01-01T12:00:00Z',
+        payload: { carLoads: [] },
+      });
+
+      expect(statuses).toHaveLength(1);
+      expect(statuses[0]).toMatchObject({
+        fill: 'green',
+        shape: 'dot',
+        text: '✓ 2 steps · data OK',
+      });
+
+      vi.useRealTimers();
+    });
+
+    it('reports all completely missing data types', async () => {
       vi.useFakeTimers();
       vi.setSystemTime(new Date('2026-01-01T12:00:00Z'));
 
@@ -811,8 +850,11 @@ describe('energy-timeseries Node-RED adapter', () => {
       });
 
       expect(statuses).toHaveLength(1);
-      // Buy price is processed first, so it should be reported
-      expect(statuses[0].text).toContain('grid import price');
+      expect(statuses[0]).toMatchObject({
+        fill: 'red',
+        shape: 'dot',
+        text: '✕ Missing: grid import price, expected PV production',
+      });
 
       vi.useRealTimers();
     });
