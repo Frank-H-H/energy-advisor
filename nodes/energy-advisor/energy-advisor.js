@@ -59,6 +59,26 @@ module.exports = function (RED) {
                     ? 50
                     : Number(config.priority),
               });
+            case 'battery-min-soc-hold': {
+              const batteryConfigNode = config.batteryConfig
+                ? RED.nodes.getNode(config.batteryConfig)
+                : null;
+              if (!batteryConfigNode) {
+                throw new Error(
+                  'battery-min-soc-hold requires a battery config: select an energy-battery-config node in the advisor node configuration'
+                );
+              }
+              return new core.BatteryMinSocHoldStrategy({
+                capacityKwh: batteryConfigNode.capacity_kwh,
+                maxChargePowerKw: batteryConfigNode.max_charge_power_kw,
+                chargeEfficiencyCurve:
+                  batteryConfigNode.charge_efficiency_curve,
+                priority:
+                  config.priority === '' || config.priority === undefined
+                    ? 50
+                    : Number(config.priority),
+              });
+            }
             default:
               throw new Error('Unknown advisor strategy: ' + id);
           }

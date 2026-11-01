@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import energyAdvisorNode from '../../nodes/energy-advisor/energy-advisor.js';
 
-function createRed() {
+function createRed(batteryConfigs = {}) {
   const sent = [];
   const errors = [];
   const inputHandlers = [];
@@ -19,6 +19,7 @@ function createRed() {
         expect(name).toBe('energy-advisor');
         RED.constructor = constructor;
       },
+      getNode: (id) => batteryConfigs[id] ?? null,
     },
   };
 
@@ -181,5 +182,67 @@ describe('energy-advisor Node-RED adapter', () => {
     expect(sent[0].plan.actions[0].gridTargetPowerKw).toBeCloseTo(-7, 10);
     expect(sent[0].plan.actions[1].gridTargetPowerKw).toBeCloseTo(-7.46, 10);
   });
-});
 
+  it('supports the battery minimum SOC strategy with a referenced battery config', async () => {
+    const batteryConfigs = {
+      bat1: {
+        capacity_kwh: 10,
+        max_charge_power_kw: 4,
+        charge_efficiency_curve: [{ up_to_kw: 0, efficiency: 1 }],
+      },
+    };
+    const { sent, errors, inputHandlers, RED } = createRed(batteryConfigs);
+
+    energyAdvisorNode(RED);
+    const node = {};
+    RED.constructor.call(node, {
+      strategies: 'battery-min-soc-hold',
+      batteryConfig: 'bat1',
+    });
+
+    const forecast = {
+      timeSeries: [
+        {
+          start: '2026-01-01T00:00:00Z',
+          end: '2026-01-01T00:15:00Z',
+          battery: { energyKwh: 2.0 },
+          grid: { buyPerKwh: 0.05, targetPowerKw: 0 },
+        },
+        {
+          start: '2026-01-01T00:15:00Z',
+          end: '2026-01-01T00:30:00Z',
+          battery: { energyKwh: 0.5 },
+          grid: { buyPerKwh: 0.3, targetPowerKw: 0 },
+        },
+      ],
+    };
+
+    await inputHandlers[0]({ payload: forecast });
+
+    expect(errors).toHaveLength(0);
+    expect(sent).toHaveLength(1);
+    expect(sent[0].plan.actions).toHaveLength(1);
+    expect(sent[0].plan.actions[0].type).toBe('set-grid-target');
+    expect(sent[0].plan.actions[0].gridTargetPowerKw).toBeCloseTo(4, 10);
+    expect(sent[0].plan.actions[0].reason).toBe('HOLD_BATTERY_MIN_SOC');
+  });
+
+  it('errors when the battery minimum SOC strategy has no battery config reference', async () => {
+    const { sent, errors, inputHandlers, RED } = createRed();
+
+    energyAdvisorNode(RED);
+    const node = {};
+    RED.constructor.call(node, {
+      strategies: 'battery-min-soc-hold',
+      batteryConfig: '',
+    });
+
+    await inputHandlers[0]({ payload: { timeSeries: [] } });
+
+    expect(errors).toHaveLength(1);
+    expect(String(errors[0])).toContain(
+      'battery-min-soc-hold requires a battery config'
+    );
+    expect(sent).toHaveLength(0);
+  });
+});

@@ -6,18 +6,22 @@
   </div>
   <div class="form-row">
     <label for="node-input-strategies"><i class="fa fa-cogs"></i> Strategies</label>
-    <input type="text" id="node-input-strategies" placeholder="immediate-negative-price-export,distributed-negative-price-export">
+    <input type="text" id="node-input-strategies" placeholder="immediate-negative-price-export,distributed-negative-price-export,battery-min-soc-hold">
   </div>
   <div class="form-row">
     <label for="node-input-maxExportPowerKw">Max export kW</label>
     <input type="number" id="node-input-maxExportPowerKw" step="0.01" placeholder="7.46">
+  </div>
+  <div class="form-row">
+    <label for="node-input-batteryConfig"><i class="fa fa-battery-half-o"></i> Battery</label>
+    <input type="text" id="node-input-batteryConfig">
   </div>
 </script>
 
 <script type="text/html" data-help-name="energy-advisor">
   <p>
     The energy-advisor node accepts the TimeSeries produced by the simulation and creates a Plan.
-    Multiple strategies can be activated by entering their IDs separated by commas. Available strategies are <code>immediate-negative-price-export</code> and <code>distributed-negative-price-export</code>.
+    Multiple strategies can be activated by entering their IDs separated by commas. Available strategies are <code>immediate-negative-price-export</code>, <code>distributed-negative-price-export</code> and <code>battery-min-soc-hold</code>.
   </p>
   <h4>Input</h4>
   <p>
@@ -62,6 +66,7 @@ msg.plan = {
   <p>The strategies are applied to every timestep in chronological order. The order of the IDs in the Strategies field defines the order in which the strategies are applied within each timestep: a later strategy sees and builds on the grid target already planned by the earlier strategies.</p>
   <p><code>immediate-negative-price-export</code> exports the energy that would otherwise be exported during negative spot prices in the nearest earlier timesteps.</p>
   <p><code>distributed-negative-price-export</code> exports that energy distributed across all earlier non-negative spot-price timesteps. It does not optimize for the highest prices.</p>
+  <p><code>battery-min-soc-hold</code> keeps the battery SOC above a minimum (currently fixed at 15% of the battery capacity). It plans grid imports at the cheapest earlier timesteps based on <code>grid.buyPerKwh</code>, honouring the power dependent charge efficiency curve and the max charge power of the referenced battery config node. It requires a battery config reference; without one the node reports an error.</p>
   <p>Actions are proposals for external execution. This node does not control devices.</p>
 </script>
 
@@ -72,7 +77,8 @@ msg.plan = {
     defaults: {
       name: { value: '' },
       strategies: { value: 'immediate-negative-price-export' },
-      maxExportPowerKw: { value: 7.46 }
+      maxExportPowerKw: { value: 7.46 },
+      batteryConfig: { value: '', type: 'energy-battery-config' }
     },
     inputs: 1,
     outputs: 1,
@@ -82,4 +88,3 @@ msg.plan = {
     }
   });
 </script>
-

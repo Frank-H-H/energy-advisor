@@ -3,6 +3,7 @@
 All notable changes to this project will be documented in this file.
 
 ## Unreleased
+- Add `battery-min-soc-hold` advisor strategy: keeps the battery SOC above a minimum (currently fixed at 15% of the capacity) by planning grid imports at the cheapest earlier timesteps, honouring the power dependent charge efficiency curve and the max charge power. The energy-advisor node gains a battery config reference for the battery parameters.
 - Add `energy-timeseries` Node-RED helper node for creating simulation-ready TimeSeries.
 - Support 15-minute and 60-minute intervals and configurable future horizons in hours.
 - **Breaking:** Reworked the advisor processing model. `AdvisorEngine` now walks the TimeSeries timestep by timestep and applies every configured strategy to every timestep in the configured order, instead of running each strategy independently and merging the results at the end. Accepted actions are applied immediately to an internal working copy, so later strategies build on the results of earlier ones within a timestep. The caller's TimeSeries is never mutated.
@@ -19,4 +20,3 @@ All notable changes to this project will be documented in this file.
 - Forecast and advisor engines (representative scenario)
 - Node-RED node skeletons
 - Tests and CI
-
