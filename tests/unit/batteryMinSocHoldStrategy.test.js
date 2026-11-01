@@ -37,8 +37,7 @@ describe('BatteryMinSocHoldStrategy', () => {
     expect(strategyPlan.strategyId).toBe('battery-min-soc-hold');
     expect(strategyPlan.proposals).toHaveLength(1);
     expect(strategyPlan.proposals[0]).toMatchObject({
-      strategyId: 'battery-min-soc-hold',
-      priority: 50,
+      strategyId: 'battery-min-soc-hold'
     });
     expect(plan.actions).toHaveLength(1);
     expect(plan.actions[0]).toMatchObject({
@@ -245,6 +244,37 @@ describe('BatteryMinSocHoldStrategy', () => {
     expect(plan.strategyPlans[0].totalPlannedImportKwh).toBeCloseTo(0.1, 10);
   });
 
+  it('supports minSocPercent instead of the 15% default', () => {
+    const timeSeries = [
+      timestep(0, { socKwh: 2.0, buyPerKwh: 0.1 }),
+      timestep(15, { socKwh: 1.9, buyPerKwh: 0.2 }),
+    ];
+    const plan = run(
+      new BatteryMinSocHoldStrategy({
+        capacityKwh: 10,
+        maxChargePowerKw: 4,
+        minSocPercent: 0.2,
+      }),
+      timeSeries
+    );
+
+    // 20% of 10 kWh: the 0.1 kWh deficit is bought at the cheapest
+    // earlier timestep (0.4 kW for 15 minutes).
+    expect(plan.strategyPlans[0].minSocKwh).toBeCloseTo(2, 10);
+    expect(plan.actions).toHaveLength(1);
+    expect(plan.actions[0].gridTargetPowerKw).toBeCloseTo(0.4, 10);
+  });
+
+  it('prefers an explicit minSocKwh over minSocPercent', () => {
+    const strategy = new BatteryMinSocHoldStrategy({
+      capacityKwh: 10,
+      maxChargePowerKw: 4,
+      minSocKwh: 5,
+      minSocPercent: 0.2,
+    });
+    expect(strategy.minSocKwh).toBeCloseTo(5, 10);
+  });
+
   it('treats timesteps without battery data as purchase candidates but never as deficits', () => {
     const timeSeries = [
       { ...timestep(0, { buyPerKwh: 0.05 }) },
@@ -326,8 +356,8 @@ describe('BatteryMinSocHoldStrategy', () => {
         new BatteryMinSocHoldStrategy({
           capacityKwh: 10,
           maxChargePowerKw: 1,
-          priority: 'high',
+          minSocPercent: 1.5,
         })
-    ).toThrow('priority must be a finite number');
+    ).toThrow('minSocPercent must be between 0 and 1');
   });
 });

@@ -8,11 +8,10 @@ import { DistributedNegativePriceExportStrategy } from '../../src/advisor/strate
 
 /** Proposes fixed actions for exactly the timesteps they match. */
 class FixedActionStrategy extends Strategy {
-  constructor(id, actions, priority = 50) {
+  constructor(id, actions) {
     super();
     this._id = id;
     this.actions = actions;
-    this.priority = priority;
   }
 
   get id() {
@@ -32,7 +31,6 @@ class FixedActionStrategy extends Strategy {
         (action) =>
           new ActionProposal({
             strategyId: this.id,
-            priority: this.priority,
             action: new Action({
               type: 'set-grid-target',
               start: action.start,
@@ -47,11 +45,10 @@ class FixedActionStrategy extends Strategy {
 
 /** Adds a fixed export delta on top of the current working target. */
 class AddExportStrategy extends Strategy {
-  constructor(id, deltaKw, priority = 50) {
+  constructor(id, deltaKw) {
     super();
     this._id = id;
     this.deltaKw = deltaKw;
-    this.priority = priority;
   }
 
   get id() {
@@ -63,7 +60,6 @@ class AddExportStrategy extends Strategy {
     return [
       new ActionProposal({
         strategyId: this.id,
-        priority: this.priority,
         action: new Action({
           type: 'set-grid-target',
           start: timestep.start,
@@ -88,7 +84,6 @@ class OverlappingStrategy extends Strategy {
     return [
       new ActionProposal({
         strategyId: this.id,
-        priority: 90,
         action: new Action({
           type: 'set-grid-target',
           start: first.start,
@@ -114,7 +109,6 @@ class StatefulStrategy extends Strategy {
     return [
       new ActionProposal({
         strategyId: this.id,
-        priority: 50,
         action: new Action({
           type: 'set-grid-target',
           start: timestep.start,
@@ -267,4 +261,3 @@ describe('AdvisorEngine', () => {
     ).toThrow('every strategy must implement planTimestep(timestep, context)');
   });
 });
-

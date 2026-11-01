@@ -34,8 +34,7 @@ describe('ImmediateNegativePriceExportStrategy', () => {
     expect(strategyPlan.strategyId).toBe('immediate-negative-price-export');
     expect(strategyPlan.proposals).toHaveLength(1);
     expect(strategyPlan.proposals[0]).toMatchObject({
-      strategyId: 'immediate-negative-price-export',
-      priority: 50,
+      strategyId: 'immediate-negative-price-export'
     });
     expect(plan.actions).toHaveLength(1);
     expect(plan.actions[0]).toMatchObject({
@@ -165,7 +164,7 @@ describe('ImmediateNegativePriceExportStrategy', () => {
     expect(timeSeries).toEqual(original);
   });
 
-  it('uses the actual timestep duration together with configured export power and priority', () => {
+  it('uses the actual timestep duration together with the configured export power', () => {
     const timeSeries = [
       {
         start: '2026-01-01T00:00:00Z',
@@ -182,13 +181,10 @@ describe('ImmediateNegativePriceExportStrategy', () => {
     const plan = run(
       new ImmediateNegativePriceExportStrategy({
         maxExportPowerKw: 4,
-        priority: 80,
       }),
       timeSeries
     );
 
-    expect(plan.strategyPlans[0].proposals[0].priority).toBe(80);
     expect(plan.actions[0].gridTargetPowerKw).toBe(-4);
   });
 });
-
