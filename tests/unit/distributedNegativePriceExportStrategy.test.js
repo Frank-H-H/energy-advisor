@@ -1,9 +1,14 @@
 import { describe, expect, it } from 'vitest';
+import { AdvisorEngine } from '../../src/advisor/advisorEngine.js';
 import { DistributedNegativePriceExportStrategy } from '../../src/advisor/strategies/distributedNegativePriceExportStrategy.js';
+
+function run(strategy, timeSeries) {
+  return AdvisorEngine.run({ timeSeries, strategies: [strategy] });
+}
 
 function timestep(startMinute, spotPerKwh, exportKwh, targetPowerKw = 0) {
   const start = new Date(
-    `2026-01-01T00:${String(startMinute).padStart(2, '0')}:00Z`
+    '2026-01-01T00:' + String(startMinute).padStart(2, '0') + ':00Z'
   );
   const end = new Date(start.getTime() + 15 * 60 * 1000);
   return {
@@ -22,19 +27,18 @@ describe('DistributedNegativePriceExportStrategy', () => {
       timestep(45, -0.1, 3),
     ];
 
-    const result = new DistributedNegativePriceExportStrategy().createPlan(
-      timeSeries
-    );
+    const plan = run(new DistributedNegativePriceExportStrategy(), timeSeries);
+    const strategyPlan = plan.strategyPlans[0];
 
-    expect(result.strategyId).toBe('distributed-negative-price-export');
-    expect(result.proposals).toHaveLength(3);
-    expect(result.proposals.map((proposal) => proposal.action.gridTargetPowerKw)).toEqual([
+    expect(strategyPlan.strategyId).toBe('distributed-negative-price-export');
+    expect(plan.actions).toHaveLength(3);
+    expect(plan.actions.map((action) => action.gridTargetPowerKw)).toEqual([
       -4,
       -4,
       -4,
     ]);
-    expect(result.totalPlannedExportEnergyKwh).toBeCloseTo(3, 10);
-    expect(result.remainingExportEnergyKwh).toBeCloseTo(0, 10);
+    expect(strategyPlan.totalPlannedExportEnergyKwh).toBeCloseTo(3, 10);
+    expect(strategyPlan.remainingExportEnergyKwh).toBeCloseTo(0, 10);
   });
 
   it('does not export during a negative-price timestep and only uses timesteps before the first negative price', () => {
@@ -44,16 +48,16 @@ describe('DistributedNegativePriceExportStrategy', () => {
       timestep(30, 0.4, 0),
     ];
 
-    const result = new DistributedNegativePriceExportStrategy().createPlan(
-      timeSeries
-    );
+    const plan = run(new DistributedNegativePriceExportStrategy(), timeSeries);
 
-    expect(result.proposals).toHaveLength(1);
-    expect(result.proposals[0].action.start.toISOString()).toBe(
+    expect(plan.actions).toHaveLength(1);
+    expect(plan.actions[0].start.toISOString()).toBe(
       '2026-01-01T00:00:00.000Z'
     );
-    expect(result.proposals[0].action.gridTargetPowerKw).toBeCloseTo(-7.46, 10);
-    expect(result.remainingExportEnergyKwh).toBeCloseTo(0.135, 10);
+    expect(plan.actions[0].gridTargetPowerKw).toBeCloseTo(-7.46, 10);
+    expect(
+      plan.strategyPlans[0].remainingExportEnergyKwh
+    ).toBeCloseTo(0.135, 10);
   });
 
   it('uses spot price rather than buy price to identify negative-price timesteps', () => {
@@ -80,12 +84,10 @@ describe('DistributedNegativePriceExportStrategy', () => {
       },
     ];
 
-    const result = new DistributedNegativePriceExportStrategy().createPlan(
-      timeSeries
-    );
+    const plan = run(new DistributedNegativePriceExportStrategy(), timeSeries);
 
-    expect(result.proposals).toHaveLength(1);
-    expect(result.proposals[0].action.gridTargetPowerKw).toBeCloseTo(-7, 10);
+    expect(plan.actions).toHaveLength(1);
+    expect(plan.actions[0].gridTargetPowerKw).toBeCloseTo(-7, 10);
   });
 
   it('uses the actual duration of each candidate timestep', () => {
@@ -107,15 +109,20 @@ describe('DistributedNegativePriceExportStrategy', () => {
       },
     ];
 
-    const result = new DistributedNegativePriceExportStrategy({
-      maxExportPowerKw: 10,
-    }).createPlan(timeSeries);
+    const plan = run(
+      new DistributedNegativePriceExportStrategy({ maxExportPowerKw: 10 }),
+      timeSeries
+    );
 
-    expect(result.proposals).toHaveLength(2);
-    expect(result.proposals[0].action.gridTargetPowerKw).toBeCloseTo(-6, 10);
-    expect(result.proposals[1].action.gridTargetPowerKw).toBeCloseTo(-1.5, 10);
-    expect(result.totalPlannedExportEnergyKwh).toBeCloseTo(3, 10);
-    expect(result.remainingExportEnergyKwh).toBeCloseTo(0, 10);
+    expect(plan.actions).toHaveLength(2);
+    expect(plan.actions[0].gridTargetPowerKw).toBeCloseTo(-6, 10);
+    expect(plan.actions[1].gridTargetPowerKw).toBeCloseTo(-1.5, 10);
+    expect(
+      plan.strategyPlans[0].totalPlannedExportEnergyKwh
+    ).toBeCloseTo(3, 10);
+    expect(
+      plan.strategyPlans[0].remainingExportEnergyKwh
+    ).toBeCloseTo(0, 10);
   });
 
   it('rejects a timestep with non-positive duration', () => {
@@ -128,7 +135,7 @@ describe('DistributedNegativePriceExportStrategy', () => {
     ];
 
     expect(() =>
-      new DistributedNegativePriceExportStrategy().createPlan(timeSeries)
+      run(new DistributedNegativePriceExportStrategy(), timeSeries)
     ).toThrow('TimeSeries timestep must have a positive duration');
   });
 
@@ -136,8 +143,9 @@ describe('DistributedNegativePriceExportStrategy', () => {
     const timeSeries = [timestep(0, 0.2, 0), timestep(15, -0.1, 2)];
     const original = structuredClone(timeSeries);
 
-    new DistributedNegativePriceExportStrategy().createPlan(timeSeries);
+    run(new DistributedNegativePriceExportStrategy(), timeSeries);
 
     expect(timeSeries).toEqual(original);
   });
 });
+
