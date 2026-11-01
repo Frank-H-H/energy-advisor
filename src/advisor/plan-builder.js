@@ -8,23 +8,17 @@ import { Plan } from './plan.js';
  * their actions immediately, so there is no merge-at-the-end step anymore.
  * The class is kept as a utility for callers that still want to consolidate
  * independently created strategy plans. For the currently supported action
- * type, overlapping set-grid-target actions conflict. Higher priority
- * wins; equal priorities are resolved deterministically by proposal order.
+ * type, overlapping set-grid-target actions conflict. Conflicts are
+ * resolved deterministically by proposal order: the earlier proposal wins.
  */
 export class PlanBuilder {
   build(strategyPlans = []) {
     const proposals = strategyPlans.flatMap((plan) => plan.proposals ?? []);
-    const ordered = proposals
-      .map((proposal, index) => ({ proposal, index }))
-      .sort((a, b) => {
-        const priorityDiff = b.proposal.priority - a.proposal.priority;
-        return priorityDiff || a.index - b.index;
-      });
 
     const actions = [];
     const rejectedProposals = [];
 
-    for (const { proposal } of ordered) {
+    for (const proposal of proposals) {
       const conflict = actions.find((action) =>
         overlaps(action, proposal.action)
       );

@@ -5,7 +5,6 @@ import { getTimestepDurationHours } from '../timestep-duration.js';
 import { lookupEfficiency } from '../../components/battery.js';
 
 const DEFAULT_MIN_SOC_PERCENT = 0.15;
-const DEFAULT_PRIORITY = 50;
 const EPSILON = 1e-9;
 
 /**
@@ -40,17 +39,21 @@ export class BatteryMinSocHoldStrategy extends Strategy {
   constructor({
     capacityKwh,
     minSocKwh,
+    minSocPercent,
     maxChargePowerKw,
     chargeEfficiencyCurve = null,
-    priority = DEFAULT_PRIORITY,
   } = {}) {
     super();
     if (!Number.isFinite(capacityKwh) || capacityKwh <= 0) {
       throw new Error('capacityKwh must be a positive finite number');
     }
     if (minSocKwh === undefined) {
-      // Fixed for now; will become configurable on the advisor node.
-      minSocKwh = capacityKwh * DEFAULT_MIN_SOC_PERCENT;
+      const percent =
+        minSocPercent === undefined ? DEFAULT_MIN_SOC_PERCENT : minSocPercent;
+      if (!Number.isFinite(percent) || percent < 0 || percent > 1) {
+        throw new Error('minSocPercent must be between 0 and 1');
+      }
+      minSocKwh = capacityKwh * percent;
     }
     if (
       !Number.isFinite(minSocKwh) ||
@@ -62,14 +65,10 @@ export class BatteryMinSocHoldStrategy extends Strategy {
     if (!Number.isFinite(maxChargePowerKw) || maxChargePowerKw < 0) {
       throw new Error('maxChargePowerKw must be a non-negative finite number');
     }
-    if (!Number.isFinite(priority)) {
-      throw new Error('priority must be a finite number');
-    }
     this.capacityKwh = capacityKwh;
     this.minSocKwh = minSocKwh;
     this.maxChargePowerKw = maxChargePowerKw;
     this.chargeEfficiencyCurve = chargeEfficiencyCurve;
-    this.priority = priority;
   }
 
   get id() {
@@ -97,7 +96,6 @@ export class BatteryMinSocHoldStrategy extends Strategy {
     return [
       new ActionProposal({
         strategyId: this.id,
-        priority: this.priority,
         action: new Action({
           type: 'set-grid-target',
           start,
