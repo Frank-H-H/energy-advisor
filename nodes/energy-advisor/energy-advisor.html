@@ -102,6 +102,33 @@ msg.plan = {
         return descriptors[0];
       }
 
+      // Config nodes are not returned by RED.nodes.filterNodes() (which
+      // only covers flow nodes); they are stored in RED.nodes.configs.
+      function getBatteryConfigNodes() {
+        var configNodes = [];
+        var seen = {};
+        function add(configNode) {
+          if (!configNode || configNode.type !== 'energy-battery-config' || seen[configNode.id]) return;
+          seen[configNode.id] = true;
+          configNodes.push(configNode);
+        }
+        var configs = RED.nodes.configs;
+        if (configs) {
+          if (Array.isArray(configs)) {
+            configs.forEach(add);
+          } else {
+            Object.keys(configs).forEach(function (id) { add(configs[id]); });
+          }
+        }
+        if (typeof RED.nodes.filterNodes === 'function') {
+          RED.nodes.filterNodes({ type: 'energy-battery-config' }).forEach(add);
+        }
+        configNodes.sort(function (a, b) {
+          return String(a.name || a.id).localeCompare(String(b.name || b.id));
+        });
+        return configNodes;
+      }
+
       function renderOptions(optionsDiv, entry) {
         optionsDiv.empty();
         var descriptor = findDescriptor(entry.type);
@@ -115,7 +142,11 @@ msg.plan = {
               'data-option-name': option.name,
               'data-option-type': 'battery-config'
             }).appendTo(optionRow);
-            RED.nodes.filterNodes({ type: 'energy-battery-config' }).forEach(function(configNode) {
+            var batteryOptions = getBatteryConfigNodes();
+            if (batteryOptions.length === 0) {
+              $('<option/>').val('').text('(no battery config available)').appendTo(select);
+            }
+            batteryOptions.forEach(function(configNode) {
               $('<option/>').val(configNode.id).text(configNode.name || configNode.id).appendTo(select);
             });
             if (value) select.val(value);
