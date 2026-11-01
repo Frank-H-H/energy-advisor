@@ -22,9 +22,10 @@
     const rows = [];
     $(listId + ' .curve-row').each(function () {
       const upToKw = Number($(this).find('.curve-up-to').val());
-      const efficiency = Number($(this).find('.curve-efficiency').val());
-      if (!Number.isFinite(upToKw) || !Number.isFinite(efficiency)) return;
-      rows.push({ up_to_kw: upToKw, efficiency: efficiency });
+      // UI works in percent (0..100), storage in 0..1
+      const efficiencyPercent = Number($(this).find('.curve-efficiency').val());
+      if (!Number.isFinite(upToKw) || !Number.isFinite(efficiencyPercent)) return;
+      rows.push({ up_to_kw: upToKw, efficiency: efficiencyPercent / 100 });
     });
     rows.sort(function (a, b) { return a.up_to_kw - b.up_to_kw; });
     return JSON.stringify(rows);
@@ -33,16 +34,16 @@
   function addCurveHeaderRow(listId) {
     const header = $('<div/>', { class: 'curve-row curve-row-header', style: 'display:flex; gap:4px; margin-bottom:4px;' });
     const upToLabel = $('<span/>', { class: 'curve-up-to-header', style: 'width:45%; font-weight:bold;' }).text('Up to power (kW)');
-    const efficiencyLabel = $('<span/>', { class: 'curve-efficiency-header', style: 'width:45%; font-weight:bold;' }).text('Efficiency (0..1)');
-    const spacer = $('<span/>', { style: 'width:16px;' });
+    const efficiencyLabel = $('<span/>', { class: 'curve-efficiency-header', style: 'width:45%; font-weight:bold;' }).text('Efficiency (%)');
+    const spacer = $('<span/>', style: 'width:16px;' });
     header.append(upToLabel).append(efficiencyLabel).append(spacer);
     $(listId).append(header);
   }
 
-  function addCurveRow(listId, upToKw, efficiency) {
+  function addCurveRow(listId, upToKw, efficiencyPercent) {
     const row = $('<div/>', { class: 'curve-row', style: 'display:flex; gap:4px; margin-bottom:4px;' });
     row.append($('<input/>', { type: 'number', class: 'curve-up-to', min: '0', step: '0.1', style: 'width:45%;', value: upToKw ?? '' }));
-    row.append($('<input/>', { type: 'number', class: 'curve-efficiency', min: '0.0001', max: '1', step: '0.005', style: 'width:45%;', value: efficiency ?? '' }));
+    row.append($('<input/>', { type: 'number', class: 'curve-efficiency', min: '0.01', max: '100', step: '0.5', style: 'width:45%;', value: efficiencyPercent ?? '' }));
     const removeButton = $('<a/>', { href: '#', class: 'editor-button editor-button-small', title: 'Remove point' });
     removeButton.append($('<i/>', { class: 'fa fa-remove' }));
     removeButton.on('click', function (event) {
@@ -64,12 +65,23 @@
     $(listId).empty();
     addCurveHeaderRow(listId);
     for (const point of points) {
-      addCurveRow(listId, point.up_to_kw, point.efficiency);
+      // convert stored 0..1 to percent for display
+      addCurveRow(listId, point.up_to_kw, Number(point.efficiency) * 100);
     }
     $(addButtonId).off('click').on('click', function (event) {
       event.preventDefault();
       addCurveRow(listId, '', '');
     });
+  }
+
+  function displayPercent(inputId, value) {
+    const percent = Number(value ?? 0) * 100;
+    $(inputId).val(Number.isFinite(percent) ? percent : '');
+  }
+
+  function storeFraction(inputId) {
+    const percent = Number($(inputId).val());
+    $(inputId).val(Number.isFinite(percent) ? percent / 100 : 0);
   }
 
   RED.nodes.registerType('energy-battery-config', {
@@ -94,6 +106,8 @@
       return this.name || 'energy-battery-config';
     },
     oneditprepare: function() {
+      displayPercent('#node-config-input-charge_efficiency', this.charge_efficiency);
+      displayPercent('#node-config-input-discharge_efficiency', this.discharge_efficiency);
       setupCurveEditor(
         '#node-config-input-charge-efficiency-curve-rows',
         '#node-config-input-charge-efficiency-curve-add',
@@ -106,6 +120,9 @@
       );
     },
     oneditsave: function() {
+      // convert percent inputs back to 0..1 before Node-RED collects the values
+      storeFraction('#node-config-input-charge_efficiency');
+      storeFraction('#node-config-input-discharge_efficiency');
       this.charge_efficiency_curve = readCurveRows(
         '#node-config-input-charge-efficiency-curve-rows'
       );
@@ -134,18 +151,18 @@
     <input id="node-config-input-max_discharge_power_kw" type="number" min="0" step="0.01">
   </div>
   <div class="form-row">
-    <label for="node-config-input-charge_efficiency"><i class="fa fa-bookmark"></i> Charge efficiency (0..1)</label>
-    <input id="node-config-input-charge_efficiency" type="number" min="0" max="1" step="0.01">
+    <label for="node-config-input-charge_efficiency"><i class="fa fa-bookmark"></i> Charge efficiency (%)</label>
+    <input id="node-config-input-charge_efficiency" type="number" min="0" max="100" step="0.5">
   </div>
   <div class="form-row">
-    <label for="node-config-input-discharge_efficiency"><i class="fa fa-bookmark"></i> Discharge efficiency (0..1)</label>
-    <input id="node-config-input-discharge_efficiency" type="number" min="0" max="1" step="0.01">
+    <label for="node-config-input-discharge_efficiency"><i class="fa fa-bookmark"></i> Discharge efficiency (%)</label>
+    <input id="node-config-input-discharge_efficiency" type="number" min="0" max="100" step="0.5">
   </div>
   <div class="form-row">
     <label style="width:auto;"><i class="fa fa-bolt"></i> Charge efficiency curve (optional, overrides scalar efficiency)</label>
     <div id="node-config-input-charge-efficiency-curve-rows"></div>
     <div class="curve-row-hint" style="font-size:0.8em; color:#888;">
-      One point per power level: "up to kW" and efficiency (0..1). Values between points are interpolated. Leave empty to use the scalar charge efficiency.
+      One point per power level: "up to kW" and efficiency in percent (0..100). Values between points are interpolated. Leave empty to use the scalar charge efficiency.
     </div>
     <a href="#" id="node-config-input-charge-efficiency-curve-add" class="editor-button editor-button-small"><i class="fa fa-plus"></i> Add point</a>
   </div>
@@ -153,7 +170,7 @@
     <label style="width:auto;"><i class="fa fa-bolt"></i> Discharge efficiency curve (optional, overrides scalar efficiency)</label>
     <div id="node-config-input-discharge-efficiency-curve-rows"></div>
     <div class="curve-row-hint" style="font-size:0.8em; color:#888;">
-      One point per power level: "up to kW" and efficiency (0..1). Values between points are interpolated. Leave empty to use the scalar discharge efficiency.
+      One point per power level: "up to kW" and efficiency in percent (0..100). Values between points are interpolated. Leave empty to use the scalar discharge efficiency.
     </div>
     <a href="#" id="node-config-input-discharge-efficiency-curve-add" class="editor-button editor-button-small"><i class="fa fa-plus"></i> Add point</a>
   </div>
