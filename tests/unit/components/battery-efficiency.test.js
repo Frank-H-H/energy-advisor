@@ -85,7 +85,14 @@ describe('lookupEfficiency', () => {
     expect(lookupEfficiency(curve, 12)).toBeCloseTo(0.96, 12);
   });
 
-  it('falls back to the scalar efficiency when no curve is configured', () => {
+  it('treats a single point at 0 kW as a constant efficiency', () => {
+    const constant = [{ up_to_kw: 0, efficiency: 0.97 }];
+    expect(lookupEfficiency(constant, 0)).toBeCloseTo(0.97, 12);
+    expect(lookupEfficiency(constant, 0.5)).toBeCloseTo(0.97, 12);
+    expect(lookupEfficiency(constant, 100)).toBeCloseTo(0.97, 12);
+  });
+
+  it('falls back to the given fallback when no curve is configured', () => {
     expect(lookupEfficiency(null, 5, 0.9)).toBeCloseTo(0.9, 12);
     expect(lookupEfficiency([], 5, 0.9)).toBeCloseTo(0.9, 12);
   });
@@ -97,12 +104,12 @@ describe('lookupEfficiency', () => {
 });
 
 describe('Battery with efficiencies', () => {
-  it('applies scalar charge efficiency to the SOC gain only', () => {
+  it('applies a constant charge efficiency curve to the SOC gain only', () => {
     const battery = new Battery({
       capacity_kwh: 10,
       soc_kwh: 2,
       max_charge_power_kw: 5,
-      charge_efficiency: 0.9,
+      charge_efficiency_curve: [{ up_to_kw: 0, efficiency: 0.9 }],
     });
 
     const result = battery.applyPower(4, 1);
@@ -115,13 +122,13 @@ describe('Battery with efficiencies', () => {
     expect(battery.soc).toBeCloseTo(5.6, 12);
   });
 
-  it('applies scalar discharge efficiency to the SOC loss only', () => {
+  it('applies a constant discharge efficiency curve to the SOC loss only', () => {
     const battery = new Battery({
       capacity_kwh: 10,
       soc_kwh: 8,
       min_soc_kwh: 0,
       max_discharge_power_kw: 5,
-      discharge_efficiency: 0.9,
+      discharge_efficiency_curve: [{ up_to_kw: 0, efficiency: 0.9 }],
     });
 
     const result = battery.applyPower(-4, 1);
@@ -139,7 +146,6 @@ describe('Battery with efficiencies', () => {
       capacity_kwh: 10,
       soc_kwh: 2,
       max_charge_power_kw: 8,
-      charge_efficiency: 0.9,
       charge_efficiency_curve: [
         { up_to_kw: 5, efficiency: 0.98 },
         { up_to_kw: 8, efficiency: 0.96 },
@@ -162,7 +168,6 @@ describe('Battery with efficiencies', () => {
       soc_kwh: 8,
       min_soc_kwh: 0,
       max_discharge_power_kw: 8,
-      discharge_efficiency: 0.9,
       discharge_efficiency_curve: [
         { up_to_kw: 0.5, efficiency: 1 },
         { up_to_kw: 8, efficiency: 0.96 },
@@ -184,7 +189,7 @@ describe('Battery with efficiencies', () => {
       capacity_kwh: 10,
       soc_kwh: 8,
       max_charge_power_kw: 4,
-      charge_efficiency: 0.5,
+      charge_efficiency_curve: [{ up_to_kw: 0, efficiency: 0.5 }],
     });
 
     const result = battery.applyPower(4, 1);
@@ -202,7 +207,7 @@ describe('Battery with efficiencies', () => {
       soc_kwh: 3,
       min_soc_kwh: 1,
       max_discharge_power_kw: 4,
-      discharge_efficiency: 0.5,
+      discharge_efficiency_curve: [{ up_to_kw: 0, efficiency: 0.5 }],
     });
 
     const result = battery.applyPower(-4, 1);
@@ -214,7 +219,7 @@ describe('Battery with efficiencies', () => {
     expect(result.externalEnergyKwh).toBeCloseTo(-1, 12);
   });
 
-  it('defaults to loss-free behavior when no efficiencies are configured', () => {
+  it('defaults to loss-free behavior when no curves are configured', () => {
     const battery = new Battery({
       capacity_kwh: 10,
       soc_kwh: 2,
@@ -235,7 +240,7 @@ describe('Battery with efficiencies', () => {
       capacity_kwh: 10,
       soc_kwh: 10,
       max_charge_power_kw: 5,
-      charge_efficiency: 0.9,
+      charge_efficiency_curve: [{ up_to_kw: 0, efficiency: 0.9 }],
     });
     expect(full.applyPower(5, 1)).toMatchObject({
       energyKWh: 0,
@@ -247,7 +252,7 @@ describe('Battery with efficiencies', () => {
       soc_kwh: 2,
       min_soc_kwh: 2,
       max_discharge_power_kw: 5,
-      discharge_efficiency: 0.9,
+      discharge_efficiency_curve: [{ up_to_kw: 0, efficiency: 0.9 }],
     });
     expect(empty.applyPower(-5, 1)).toMatchObject({
       energyKWh: 0,
@@ -262,8 +267,8 @@ describe('Battery with efficiencies', () => {
       min_soc_kwh: 0,
       max_charge_power_kw: 4,
       max_discharge_power_kw: 4,
-      charge_efficiency: 0.9,
-      discharge_efficiency: 0.9,
+      charge_efficiency_curve: [{ up_to_kw: 0, efficiency: 0.9 }],
+      discharge_efficiency_curve: [{ up_to_kw: 0, efficiency: 0.9 }],
     });
 
     battery.applyPower(4, 1); // SOC: 5 + 3.6 = 8.6
