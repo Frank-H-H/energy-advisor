@@ -10,9 +10,7 @@ function timestep(
   startMinute,
   { socKwh, buyPerKwh, durationMinutes = 15, targetPowerKw = 0 }
 ) {
-  const start = new Date(
-    '2026-01-01T00:' + String(startMinute).padStart(2, '0') + ':00Z'
-  );
+  const start = new Date(Date.UTC(2026, 0, 1) + startMinute * 60 * 1000);
   const end = new Date(start.getTime() + durationMinutes * 60 * 1000);
   const timestep = {
     start: start.toISOString(),
