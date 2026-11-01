@@ -5,10 +5,14 @@
  * min_soc_kwh: kWh
  * max_charge_power_kw: kW (external / AC side)
  * max_discharge_power_kw: kW (external / AC side)
- * charge_efficiency: 0..1 (constant fallback, used when no curve is configured)
- * discharge_efficiency: 0..1 (constant fallback, used when no curve is configured)
  * charge_efficiency_curve: [{ up_to_kw, efficiency }] power dependent charge efficiency
  * discharge_efficiency_curve: [{ up_to_kw, efficiency }] power dependent discharge efficiency
+ *
+ * Efficiencies are configured exclusively via the power dependent curves.
+ * A curve with a single point at up_to_kw 0 acts as a constant efficiency.
+ * Without a configured curve the battery behaves loss-free. New battery
+ * config nodes default to a 97% charge and discharge efficiency from 0 kW
+ * upwards (see src/configs/schemas.js).
  */
 
 /**
@@ -19,7 +23,7 @@
  * Invalid points are dropped. Points are sorted by `up_to_kw`; later
  * duplicates of the same `up_to_kw` are dropped.
  *
- * Returns null when no valid points remain (=> scalar fallback).
+ * Returns null when no valid points remain (=> loss-free fallback).
  */
 export function normalizeEfficiencyCurve(curve) {
   if (typeof curve === 'string') {
@@ -96,8 +100,6 @@ export class Battery {
     this.minSoc = Number(cfg.min_soc_kwh ?? 0)
     this.maxChargePower = Number(cfg.max_charge_power_kw ?? Infinity)
     this.maxDischargePower = Number(cfg.max_discharge_power_kw ?? Infinity)
-    this.chargeEfficiency = Number(cfg.charge_efficiency ?? 1)
-    this.dischargeEfficiency = Number(cfg.discharge_efficiency ?? 1)
     this.chargeEfficiencyCurve = normalizeEfficiencyCurve(
       cfg.charge_efficiency_curve
     )
@@ -119,24 +121,18 @@ export class Battery {
 
   /**
    * Effective charge efficiency for the given external charge power.
+   * Without a configured curve the battery charges loss-free.
    */
   chargeEfficiencyAt(powerKw) {
-    return lookupEfficiency(
-      this.chargeEfficiencyCurve,
-      powerKw,
-      this.chargeEfficiency
-    )
+    return lookupEfficiency(this.chargeEfficiencyCurve, powerKw, 1)
   }
 
   /**
    * Effective discharge efficiency for the given external discharge power.
+   * Without a configured curve the battery discharges loss-free.
    */
   dischargeEfficiencyAt(powerKw) {
-    return lookupEfficiency(
-      this.dischargeEfficiencyCurve,
-      powerKw,
-      this.dischargeEfficiency
-    )
+    return lookupEfficiency(this.dischargeEfficiencyCurve, powerKw, 1)
   }
 
   /**
@@ -150,8 +146,8 @@ export class Battery {
    * - discharging: soc loss = external energy / discharge efficiency
    *
    * The battery enforces its own power and SOC limits. Efficiencies are
-   * either taken from the configured power dependent curves or from the
-   * scalar fallbacks.
+   * taken from the configured power dependent curves; without a curve the
+   * battery behaves loss-free.
    */
   applyPower(powerKw, durationHours) {
     if (!Number.isFinite(powerKw)) {
