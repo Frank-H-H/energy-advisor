@@ -7,6 +7,9 @@ function createRed(batteryConfigs = {}) {
   const inputHandlers = [];
 
   const RED = {
+    httpAdmin: {
+      get: () => {}
+    },
     nodes: {
       createNode(node) {
         node.on = (event, handler) => {
@@ -33,8 +36,7 @@ describe('energy-advisor Node-RED adapter', () => {
     energyAdvisorNode(RED);
     const node = {};
     RED.constructor.call(node, {
-      strategies: 'immediate-negative-price-export',
-      priority: '80',
+      strategies: [{ type: 'immediate-negative-price-export' }],
     });
 
     const forecast = {
@@ -80,9 +82,9 @@ describe('energy-advisor Node-RED adapter', () => {
     energyAdvisorNode(RED);
     const node = {};
     RED.constructor.call(node, {
-      strategies: 'immediate-negative-price-export',
-      maxExportPowerKw: '4',
-      intervalMinutes: '15',
+      strategies: [
+        { type: 'immediate-negative-price-export', maxExportPowerKw: 4 },
+      ],
     });
 
     const forecast = {
@@ -113,7 +115,7 @@ describe('energy-advisor Node-RED adapter', () => {
     energyAdvisorNode(RED);
     const node = {};
     RED.constructor.call(node, {
-      strategies: 'distributed-negative-price-export',
+      strategies: [{ type: 'distributed-negative-price-export' }],
     });
 
     const forecast = {
@@ -152,8 +154,10 @@ describe('energy-advisor Node-RED adapter', () => {
     energyAdvisorNode(RED);
     const node = {};
     RED.constructor.call(node, {
-      strategies:
-        'immediate-negative-price-export,distributed-negative-price-export',
+      strategies: [
+        { type: 'immediate-negative-price-export' },
+        { type: 'distributed-negative-price-export' },
+      ],
     });
 
     const forecast = {
@@ -196,8 +200,7 @@ describe('energy-advisor Node-RED adapter', () => {
     energyAdvisorNode(RED);
     const node = {};
     RED.constructor.call(node, {
-      strategies: 'battery-min-soc-hold',
-      batteryConfig: 'bat1',
+      strategies: [{ type: 'battery-min-soc-hold', batteryConfig: 'bat1' }],
     });
 
     const forecast = {
@@ -227,14 +230,63 @@ describe('energy-advisor Node-RED adapter', () => {
     expect(sent[0].plan.actions[0].reason).toBe('HOLD_BATTERY_MIN_SOC');
   });
 
+  it('passes minSocPercent from the strategy entry to the battery strategy', async () => {
+    const batteryConfigs = {
+      bat1: {
+        capacity_kwh: 10,
+        max_charge_power_kw: 4,
+        charge_efficiency_curve: [{ up_to_kw: 0, efficiency: 1 }],
+      },
+    };
+    const { sent, errors, inputHandlers, RED } = createRed(batteryConfigs);
+
+    energyAdvisorNode(RED);
+    const node = {};
+    RED.constructor.call(node, {
+      strategies: [
+        {
+          type: 'battery-min-soc-hold',
+          batteryConfig: 'bat1',
+          minSocPercent: 20,
+        },
+      ],
+    });
+
+    const forecast = {
+      timeSeries: [
+        {
+          start: '2026-01-01T00:00:00Z',
+          end: '2026-01-01T00:15:00Z',
+          battery: { energyKwh: 2.0 },
+          grid: { buyPerKwh: 0.05, targetPowerKw: 0 },
+        },
+        {
+          start: '2026-01-01T00:15:00Z',
+          end: '2026-01-01T00:30:00Z',
+          battery: { energyKwh: 0.5 },
+          grid: { buyPerKwh: 0.3, targetPowerKw: 0 },
+        },
+      ],
+    };
+
+    await inputHandlers[0]({ payload: forecast });
+
+    expect(errors).toHaveLength(0);
+    // minSocPercent 20 means the SOC must stay above 2.0 kWh: the first
+    // timestep charges at the max charge power and the remainder is bought
+    // in the deficit timestep itself.
+    expect(sent[0].plan.actions).toHaveLength(2);
+    expect(sent[0].plan.actions[0].gridTargetPowerKw).toBeCloseTo(4, 10);
+    expect(sent[0].plan.actions[1].gridTargetPowerKw).toBeCloseTo(2, 10);
+  });
+
   it('errors when the battery minimum SOC strategy has no battery config reference', async () => {
     const { sent, errors, inputHandlers, RED } = createRed();
 
     energyAdvisorNode(RED);
     const node = {};
     RED.constructor.call(node, {
-      strategies: 'battery-min-soc-hold',
-      batteryConfig: '',
+      strategies: [{ type: 'battery-min-soc-hold', batteryConfig: '' }],
     });
 
     await inputHandlers[0]({ payload: { timeSeries: [] } });
@@ -243,6 +295,95 @@ describe('energy-advisor Node-RED adapter', () => {
     expect(String(errors[0])).toContain(
       'battery-min-soc-hold requires a battery config'
     );
+    expect(sent).toHaveLength(0);
+  });
+
+  it('migrates the legacy comma-separated strategies string at runtime', async () => {
+    const { sent, errors, inputHandlers, RED } = createRed();
+
+    energyAdvisorNode(RED);
+    const node = {};
+    RED.constructor.call(node, {
+      strategies: 'immediate-negative-price-export',
+    });
+
+    const forecast = {
+      timeSeries: [
+        {
+          start: '2026-01-01T00:00:00Z',
+          end: '2026-01-01T00:15:00Z',
+          grid: { spotPerKwh: 0.2, exportKwh: 0, targetPowerKw: 0 },
+        },
+        {
+          start: '2026-01-01T00:15:00Z',
+          end: '2026-01-01T00:30:00Z',
+          grid: { spotPerKwh: -0.1, exportKwh: 2, targetPowerKw: -1 },
+        },
+      ],
+    };
+
+    await inputHandlers[0]({ payload: forecast });
+
+    expect(errors).toHaveLength(0);
+    expect(sent).toHaveLength(1);
+    expect(sent[0].plan.actions).toHaveLength(1);
+    expect(sent[0].plan.actions[0].gridTargetPowerKw).toBeCloseTo(-7, 10);
+  });
+
+  it('falls back to the node-level battery config of legacy flows', async () => {
+    const batteryConfigs = {
+      bat1: {
+        capacity_kwh: 10,
+        max_charge_power_kw: 4,
+        charge_efficiency_curve: [{ up_to_kw: 0, efficiency: 1 }],
+      },
+    };
+    const { sent, errors, inputHandlers, RED } = createRed(batteryConfigs);
+
+    energyAdvisorNode(RED);
+    const node = {};
+    RED.constructor.call(node, {
+      strategies: 'battery-min-soc-hold',
+      batteryConfig: 'bat1',
+    });
+
+    const forecast = {
+      timeSeries: [
+        {
+          start: '2026-01-01T00:00:00Z',
+          end: '2026-01-01T00:15:00Z',
+          battery: { energyKwh: 2.0 },
+          grid: { buyPerKwh: 0.05, targetPowerKw: 0 },
+        },
+        {
+          start: '2026-01-01T00:15:00Z',
+          end: '2026-01-01T00:30:00Z',
+          battery: { energyKwh: 0.5 },
+          grid: { buyPerKwh: 0.3, targetPowerKw: 0 },
+        },
+      ],
+    };
+
+    await inputHandlers[0]({ payload: forecast });
+
+    expect(errors).toHaveLength(0);
+    expect(sent[0].plan.actions).toHaveLength(1);
+    expect(sent[0].plan.actions[0].gridTargetPowerKw).toBeCloseTo(4, 10);
+  });
+
+  it('errors for an unknown strategy type', async () => {
+    const { sent, errors, inputHandlers, RED } = createRed();
+
+    energyAdvisorNode(RED);
+    const node = {};
+    RED.constructor.call(node, {
+      strategies: [{ type: 'unknown-strategy' }],
+    });
+
+    await inputHandlers[0]({ payload: { timeSeries: [] } });
+
+    expect(errors).toHaveLength(1);
+    expect(String(errors[0])).toContain('Unknown advisor strategy');
     expect(sent).toHaveLength(0);
   });
 });
