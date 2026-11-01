@@ -5,23 +5,20 @@
     <input type="text" id="node-input-name" placeholder="Name">
   </div>
   <div class="form-row">
-    <label for="node-input-strategies"><i class="fa fa-cogs"></i> Strategies</label>
-    <input type="text" id="node-input-strategies" placeholder="immediate-negative-price-export,distributed-negative-price-export,battery-min-soc-hold">
+    <label for="node-input-add-strategy"><i class="fa fa-cogs"></i> Strategies</label>
+    <select id="node-input-add-strategy"></select>
+    <button type="button" id="node-input-add-strategy-button" class="red-ui-button red-ui-button-small">Add</button>
   </div>
-  <div class="form-row">
-    <label for="node-input-maxExportPowerKw">Max export kW</label>
-    <input type="number" id="node-input-maxExportPowerKw" step="0.01" placeholder="7.46">
-  </div>
-  <div class="form-row">
-    <label for="node-input-batteryConfig"><i class="fa fa-battery-half-o"></i> Battery</label>
-    <input type="text" id="node-input-batteryConfig">
+  <div class="form-row" style="min-height: 200px;">
+    <ol id="node-input-strategies"></ol>
   </div>
 </script>
 
 <script type="text/html" data-help-name="energy-advisor">
   <p>
     The energy-advisor node accepts the TimeSeries produced by the simulation and creates a Plan.
-    Multiple strategies can be activated by entering their IDs separated by commas. Available strategies are <code>immediate-negative-price-export</code>, <code>distributed-negative-price-export</code> and <code>battery-min-soc-hold</code>.
+    Strategies are managed with the strategy editor: add a strategy type with the <b>Add</b> button, remove an entry with the <b>&times;</b> button and reorder the entries by dragging.
+    Available strategies are <code>immediate-negative-price-export</code>, <code>distributed-negative-price-export</code> and <code>battery-min-soc-hold</code>.
   </p>
   <h4>Input</h4>
   <p>
@@ -63,10 +60,10 @@ msg.plan = {
 }</pre>
   <h4>Strategies</h4>
   <p>Strategies use the actual duration of each TimeSeries timestep from <code>start</code> and <code>end</code>. There is no separate strategy interval setting; the TimeSeries is the source of truth for timestep duration.</p>
-  <p>The strategies are applied to every timestep in chronological order. The order of the IDs in the Strategies field defines the order in which the strategies are applied within each timestep: a later strategy sees and builds on the grid target already planned by the earlier strategies.</p>
-  <p><code>immediate-negative-price-export</code> exports the energy that would otherwise be exported during negative spot prices in the nearest earlier timesteps.</p>
-  <p><code>distributed-negative-price-export</code> exports that energy distributed across all earlier non-negative spot-price timesteps. It does not optimize for the highest prices.</p>
-  <p><code>battery-min-soc-hold</code> keeps the battery SOC above a minimum (currently fixed at 15% of the battery capacity). It plans grid imports at the cheapest earlier timesteps based on <code>grid.buyPerKwh</code>, honouring the power dependent charge efficiency curve and the max charge power of the referenced battery config node. It requires a battery config reference; without one the node reports an error.</p>
+  <p>The strategies are applied to every timestep in chronological order. The order of the entries in the strategy editor defines the order in which the strategies are applied within each timestep: a later strategy sees and builds on the grid target already planned by the earlier strategies.</p>
+  <p><code>immediate-negative-price-export</code> exports the energy that would otherwise be exported during negative spot prices in the nearest earlier timesteps. Option: <code>Max export kW</code> (default 7.46).</p>
+  <p><code>distributed-negative-price-export</code> exports that energy distributed across all earlier non-negative spot-price timesteps. It does not optimize for the highest prices. Option: <code>Max export kW</code> (default 7.46).</p>
+  <p><code>battery-min-soc-hold</code> keeps the battery SOC above a minimum configured per strategy with <code>Min SOC %</code> (default 15% of the battery capacity). It plans grid imports at the cheapest earlier timesteps based on <code>grid.buyPerKwh</code>, honouring the power dependent charge efficiency curve and the max charge power of the <code>energy-battery-config</code> node selected for this strategy. It requires the battery config reference; without one the node reports an error.</p>
   <p>Actions are proposals for external execution. This node does not control devices.</p>
 </script>
 
@@ -76,15 +73,137 @@ msg.plan = {
     color: '#f0d36a',
     defaults: {
       name: { value: '' },
-      strategies: { value: 'immediate-negative-price-export' },
-      maxExportPowerKw: { value: 7.46 },
-      batteryConfig: { value: '', type: 'energy-battery-config' }
+      strategies: { value: [] }
     },
     inputs: 1,
     outputs: 1,
     icon: 'font-awesome/fa-lightbulb-o',
     label: function() {
       return this.name || 'energy-advisor';
+    },
+    oneditprepare: function() {
+      var node = this;
+      var descriptors = [];
+
+      var list = $('#node-input-strategies').editableList({
+        header: false,
+        removable: true,
+        sortable: true,
+        addButton: false,
+        addItem: function(container, index, data) {
+          addStrategyRow(container, data);
+        }
+      });
+
+      function findDescriptor(id) {
+        for (var i = 0; i < descriptors.length; i++) {
+          if (descriptors[i].id === id) return descriptors[i];
+        }
+        return descriptors[0];
+      }
+
+      function renderOptions(optionsDiv, entry) {
+        optionsDiv.empty();
+        var descriptor = findDescriptor(entry.type);
+        (descriptor && descriptor.options ? descriptor.options : []).forEach(function(option) {
+          var optionRow = $('<div/>', { class: 'form-row' }).appendTo(optionsDiv);
+          $('<label/>').css({ width: 'auto', marginRight: '8px' }).text(option.label).appendTo(optionRow);
+          var value = entry[option.name];
+          if (option.type === 'battery-config') {
+            var select = $('<select/>', {
+              class: 'strategy-option-input',
+              'data-option-name': option.name,
+              'data-option-type': 'battery-config'
+            }).appendTo(optionRow);
+            RED.nodes.filterNodes({ type: 'energy-battery-config' }).forEach(function(configNode) {
+              $('<option/>').val(configNode.id).text(configNode.name || configNode.id).appendTo(select);
+            });
+            if (value) select.val(value);
+          } else {
+            var input = $('<input/>', {
+              type: 'number',
+              step: option.step || 'any',
+              class: 'strategy-option-input',
+              'data-option-name': option.name,
+              'data-option-type': 'number',
+              placeholder: String(option.default)
+            }).appendTo(optionRow);
+            if (option.min !== undefined) input.attr('min', option.min);
+            if (option.max !== undefined) input.attr('max', option.max);
+            if (value !== undefined && value !== '') input.val(value);
+          }
+        });
+      }
+
+      function addStrategyRow(container, data) {
+        var entry = typeof data === 'string' ? { type: data } : $.extend({}, data);
+        if (!entry.type && descriptors.length > 0) entry.type = descriptors[0].id;
+        var row = $('<div/>').appendTo(container);
+        var typeRow = $('<div/>', { class: 'form-row' }).appendTo(row);
+        var typeSelect = $('<select/>', { class: 'strategy-type-select' }).appendTo(typeRow);
+        descriptors.forEach(function(descriptor) {
+          $('<option/>').val(descriptor.id).text(descriptor.label).appendTo(typeSelect);
+        });
+        typeSelect.val(entry.type);
+        var optionsDiv = $('<div/>', { class: 'strategy-options' }).appendTo(row);
+        typeSelect.on('change', function() {
+          renderOptions(optionsDiv, { type: typeSelect.val() });
+        });
+        renderOptions(optionsDiv, entry);
+      }
+
+      $.getJSON('energy-advisor/strategies').done(function(result) {
+        descriptors = result || [];
+
+        var addSelect = $('#node-input-add-strategy');
+        descriptors.forEach(function(descriptor) {
+          $('<option/>').val(descriptor.id).text(descriptor.label).appendTo(addSelect);
+        });
+        $('#node-input-add-strategy-button').on('click', function() {
+          list.editableList('addItem', { type: addSelect.val() });
+        });
+
+        var stored = node.strategies;
+        if (typeof stored === 'string') {
+          stored = stored
+            .split(',')
+            .map(function(id) { return id.trim(); })
+            .filter(Boolean)
+            .map(function(type) {
+              var entry = { type: type };
+              if (type === 'battery-min-soc-hold' && node.batteryConfig) {
+                entry.batteryConfig = node.batteryConfig;
+              }
+              return entry;
+            });
+        }
+        (stored || []).forEach(function(entry) {
+          list.editableList('addItem', entry);
+        });
+      });
+    },
+    oneditsave: function() {
+      var strategies = [];
+      $('#node-input-strategies').editableList('items').each(function() {
+        var row = $(this);
+        var type = row.find('.strategy-type-select').val();
+        if (!type) return;
+        var entry = { type: type };
+        row.find('.strategy-option-input').each(function() {
+          var input = $(this);
+          var name = input.attr('data-option-name');
+          var value = input.val();
+          if (value === '' || value === null || value === undefined) return;
+          if (input.attr('data-option-type') === 'number') {
+            var parsed = Number(value);
+            if (Number.isFinite(parsed)) entry[name] = parsed;
+          } else {
+            entry[name] = value;
+          }
+        });
+        strategies.push(entry);
+      });
+      this.strategies = strategies;
     }
   });
 </script>
