@@ -27,7 +27,7 @@ export class Strategy {
    *   only this strategy sees and may use to carry data between timesteps.
    * @returns {Array} ActionProposals for this timestep (may be empty).
    */
-  planTimestep(timestep, context) {
+  planTimestep() {
     throw new Error(
       'Strategy.planTimestep() must be implemented by a concrete strategy'
     )
@@ -39,7 +39,7 @@ export class Strategy {
    * strategy-plan summary fields (e.g. energy totals); it is merged into
    * this strategy's entry in Plan.strategyPlans.
    */
-  summarizeRun(state) {
+  summarizeRun() {
     return undefined
   }
 }
