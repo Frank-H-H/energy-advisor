@@ -14,7 +14,14 @@ const DEFAULT_PRIORITY = 50;
  * simply spreads the required export energy across the available earlier
  * timesteps, subject to the configured maximum export power.
  *
- * The strategy only creates a Plan. It never changes the TimeSeries.
+ * Applied per timestep by the AdvisorEngine: on every candidate timestep
+ * (non-negative price, before the first negative-price timestep) it plans
+ * an even share of the still remaining surplus. Candidates, their count
+ * and the total surplus are precomputed once per run, which reproduces the
+ * previous whole-series distribution exactly.
+ *
+ * The strategy only creates proposals. It never changes the timestep it
+ * receives and never executes an action.
  */
 export class DistributedNegativePriceExportStrategy extends Strategy {
   constructor({
@@ -32,133 +39,129 @@ export class DistributedNegativePriceExportStrategy extends Strategy {
     return 'distributed-negative-price-export';
   }
 
-  createPlan(timeSeries, options = {}) {
-    if (!Array.isArray(timeSeries))
-      throw new Error('timeSeries must be an array');
-
-    const maxExportPowerKw = options.maxExportPowerKw ?? this.maxExportPowerKw;
-    const priority = options.priority ?? this.priority;
-    validatePositiveOrZero(maxExportPowerKw, 'maxExportPowerKw');
-    validatePriority(priority);
-
-    let requiredExportEnergyKwh = 0;
-
-    for (const timestep of timeSeries) {
-      const spotPerKwh = Number(timestep.grid?.spotPerKwh ?? 0);
-      if (spotPerKwh >= 0) continue;
-
-      const start = new Date(timestep.start);
-      const end = new Date(timestep.end);
-      const durationHours = getTimestepDurationHours(start, end);
-      const gridTargetPowerKw = Number(timestep.grid?.targetPowerKw ?? 0);
-      const gridExportKwh = Number(timestep.grid?.exportKwh ?? 0);
-      const allowedExportEnergyKwh =
-        Math.max(0, -gridTargetPowerKw) * durationHours;
-
-      requiredExportEnergyKwh += Math.max(
-        0,
-        gridExportKwh - allowedExportEnergyKwh
+  planTimestep(timestep, context = {}) {
+    const { series, index, state } = context;
+    if (!Array.isArray(series) || !Number.isInteger(index) || !state) {
+      throw new Error(
+        'planTimestep() requires a context with series, index and state'
       );
     }
+    initializeState(state, series);
 
-    if (requiredExportEnergyKwh <= 0) {
-      return createResult(this.id, [], 0);
-    }
+    if (!state.candidateIndices.has(index)) return [];
 
-    const candidates = timeSeries
-      .filter((timestep) => Number(timestep.grid?.spotPerKwh ?? 0) >= 0)
-      .map((timestep) => {
-        const start = new Date(timestep.start);
-        const end = new Date(timestep.end);
-        const durationHours = getTimestepDurationHours(start, end);
-        return { timestep, start, end, durationHours };
-      });
+    state.candidatesSeen += 1;
 
-    if (candidates.length === 0) {
-      return createResult(this.id, [], requiredExportEnergyKwh);
-    }
+    const remainingCandidates =
+      state.candidateIndices.size - state.candidatesSeen;
+    const remainingExportEnergyKwh =
+      state.totalRequiredKwh - state.plannedKwh;
+    if (remainingExportEnergyKwh <= 0 || remainingCandidates < 0) return [];
 
-    // Spread the required energy evenly over all earlier candidates. If the
-    // negative-price period is at the beginning, that period is not a valid
-    // candidate. A candidate after the negative-price period is also excluded.
-    const firstNegativeStart = timeSeries.reduce((earliest, timestep) => {
-      if (Number(timestep.grid?.spotPerKwh ?? 0) >= 0) return earliest;
-      const start = new Date(timestep.start);
-      return earliest === null || start < earliest ? start : earliest;
-    }, null);
+    const start = new Date(timestep.start);
+    const end = new Date(timestep.end);
+    const durationHours = getTimestepDurationHours(start, end);
+    const gridTargetPowerKw = Number(timestep.grid?.targetPowerKw ?? 0);
 
-    const earlierCandidates = candidates.filter(
-      ({ start }) => firstNegativeStart === null || start < firstNegativeStart
+    const desiredEnergyKwh =
+      remainingExportEnergyKwh / (remainingCandidates + 1);
+    const desiredPowerKw = Math.min(
+      desiredEnergyKwh / durationHours,
+      this.maxExportPowerKw
     );
+    // Never exceed the configured maximum export power in total, even when
+    // strategies applied earlier in the timestep already added export.
+    const newTargetPowerKw = Math.max(
+      gridTargetPowerKw - desiredPowerKw,
+      -this.maxExportPowerKw
+    );
+    const actionPowerKw = gridTargetPowerKw - newTargetPowerKw;
+    const actionEnergyKwh = actionPowerKw * durationHours;
+    if (actionEnergyKwh <= 0) return [];
 
-    if (earlierCandidates.length === 0) {
-      return createResult(this.id, [], requiredExportEnergyKwh);
-    }
+    state.plannedKwh += actionEnergyKwh;
 
-    let remainingExportEnergyKwh = requiredExportEnergyKwh;
-    const proposals = [];
+    return [
+      new ActionProposal({
+        strategyId: this.id,
+        priority: this.priority,
+        action: new Action({
+          type: 'set-grid-target',
+          start,
+          end,
+          gridTargetPowerKw: newTargetPowerKw,
+          reason: 'AVOID_NEGATIVE_PRICE_EXPORT_DISTRIBUTED',
+          expectedBenefit: {
+            type: 'avoided-negative-price-export',
+            estimatedEnergyKwh: actionEnergyKwh,
+          },
+          confidence: 1,
+        }),
+      }),
+    ];
+  }
 
-    // Iterate chronologically so the resulting actions are naturally ordered.
-    for (let index = 0; index < earlierCandidates.length; index += 1) {
-      const candidate = earlierCandidates[index];
-      const remainingCandidates = earlierCandidates.length - index;
-      const desiredEnergyKwh = remainingExportEnergyKwh / remainingCandidates;
-      const maxEnergyKwh =
-        maxExportPowerKw * candidate.durationHours;
-      const actionEnergyKwh = Math.min(desiredEnergyKwh, maxEnergyKwh);
-
-      if (actionEnergyKwh <= 0) continue;
-
-      const actionPowerKw = actionEnergyKwh / candidate.durationHours;
-      const gridTargetPowerKw = Number(
-        candidate.timestep.grid?.targetPowerKw ?? 0
-      );
-
-      proposals.push(
-        new ActionProposal({
-          strategyId: this.id,
-          priority,
-          action: new Action({
-            type: 'set-grid-target',
-            start: candidate.start,
-            end: candidate.end,
-            gridTargetPowerKw: gridTargetPowerKw - actionPowerKw,
-            reason: 'AVOID_NEGATIVE_PRICE_EXPORT_DISTRIBUTED',
-            expectedBenefit: {
-              type: 'avoided-negative-price-export',
-              estimatedEnergyKwh: actionEnergyKwh,
-            },
-            confidence: 1,
-          }),
-        })
-      );
-
-      remainingExportEnergyKwh = Math.max(
+  summarizeRun(state) {
+    return {
+      remainingExportEnergyKwh: Math.max(
         0,
-        remainingExportEnergyKwh - actionEnergyKwh
-      );
-    }
-
-    return createResult(this.id, proposals, remainingExportEnergyKwh);
+        state.totalRequiredKwh - state.plannedKwh
+      ),
+      totalPlannedExportEnergyKwh: state.plannedKwh,
+    };
   }
 }
 
-function createResult(strategyId, proposals, remainingExportEnergyKwh) {
-  return {
-    strategyId,
-    proposals,
-    remainingExportEnergyKwh,
-    totalPlannedExportEnergyKwh: proposals.reduce(
-      (sum, proposal) =>
-        sum + (proposal.action.expectedBenefit?.estimatedEnergyKwh ?? 0),
-      0
-    ),
-  };
+/**
+ * Precomputes, once per run, the total export surplus of all negative-price
+ * timesteps and the set of candidate timesteps (non-negative price and
+ * before the first negative-price timestep).
+ */
+function initializeState(state, series) {
+  if (state.initialized) return;
+
+  let firstNegativeStart = null;
+  let totalRequiredKwh = 0;
+
+  for (const timestep of series) {
+    const spotPerKwh = Number(timestep.grid?.spotPerKwh ?? 0);
+    const start = new Date(timestep.start);
+    const end = new Date(timestep.end);
+    const durationHours = getTimestepDurationHours(start, end);
+    if (spotPerKwh >= 0) continue;
+
+    if (firstNegativeStart === null || start < firstNegativeStart) {
+      firstNegativeStart = start;
+    }
+    const targetPowerKw = Number(timestep.grid?.targetPowerKw ?? 0);
+    const allowedExportEnergyKwh =
+      Math.max(0, -targetPowerKw) * durationHours;
+    totalRequiredKwh += Math.max(
+      0,
+      Number(timestep.grid?.exportKwh ?? 0) - allowedExportEnergyKwh
+    );
+  }
+
+  const candidateIndices = new Set();
+  for (let i = 0; i < series.length; i += 1) {
+    const timestep = series[i];
+    const spotPerKwh = Number(timestep.grid?.spotPerKwh ?? 0);
+    if (spotPerKwh < 0) continue;
+    const start = new Date(timestep.start);
+    if (firstNegativeStart !== null && start >= firstNegativeStart) continue;
+    candidateIndices.add(i);
+  }
+
+  state.totalRequiredKwh = totalRequiredKwh;
+  state.candidateIndices = candidateIndices;
+  state.candidatesSeen = 0;
+  state.plannedKwh = 0;
+  state.initialized = true;
 }
 
 function validatePositiveOrZero(value, name) {
   if (!Number.isFinite(value) || value < 0)
-    throw new Error(`${name} must be a non-negative finite number`);
+    throw new Error(name + ' must be a non-negative finite number');
 }
 
 function validatePriority(value) {

@@ -26,6 +26,8 @@ module.exports = function (RED) {
           return;
         }
 
+        // The order of the IDs in config.strategies defines the order in
+        // which the strategies are applied within every timestep.
         const strategyIds = (config.strategies || 'immediate-negative-price-export')
           .split(',')
           .map((id) => id.trim())
@@ -58,7 +60,7 @@ module.exports = function (RED) {
                     : Number(config.priority),
               });
             default:
-              throw new Error(`Unknown advisor strategy: ${id}`);
+              throw new Error('Unknown advisor strategy: ' + id);
           }
         });
 
