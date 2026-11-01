@@ -43,7 +43,7 @@
   function addCurveRow(listId, upToKw, efficiencyPercent) {
     const row = $('<div/>', { class: 'curve-row', style: 'display:flex; gap:4px; margin-bottom:4px;' });
     row.append($('<input/>', { type: 'number', class: 'curve-up-to', min: '0', step: '0.1', style: 'width:45%;', value: upToKw ?? '' }));
-    row.append($('<input/>', { type: 'number', class: 'curve-efficiency', min: '0.01', max: '100', step: '0.5', style: 'width:45%;', value: efficiencyPercent ?? '' }));
+    row.append($('<input/>', { type: 'number', class: 'curve-efficiency', min: '0.01', max: '100', step: '0.1', style: 'width:45%;', value: efficiencyPercent ?? '' }));
     const removeButton = $('<a/>', { href: '#', class: 'editor-button editor-button-small', title: 'Remove point' });
     removeButton.append($('<i/>', { class: 'fa fa-remove' }));
     removeButton.on('click', function (event) {
@@ -152,11 +152,11 @@
   </div>
   <div class="form-row">
     <label for="node-config-input-charge_efficiency"><i class="fa fa-bookmark"></i> Charge efficiency (%)</label>
-    <input id="node-config-input-charge_efficiency" type="number" min="0" max="100" step="0.5">
+    <input id="node-config-input-charge_efficiency" type="number" min="0" max="100" step="0.1">
   </div>
   <div class="form-row">
     <label for="node-config-input-discharge_efficiency"><i class="fa fa-bookmark"></i> Discharge efficiency (%)</label>
-    <input id="node-config-input-discharge_efficiency" type="number" min="0" max="100" step="0.5">
+    <input id="node-config-input-discharge_efficiency" type="number" min="0" max="100" step="0.1">
   </div>
   <div class="form-row">
     <label style="width:auto;"><i class="fa fa-bolt"></i> Charge efficiency curve (optional, overrides scalar efficiency)</label>
