@@ -269,10 +269,10 @@ describe('BatteryMinSocHoldStrategy', () => {
       timeSeries
     );
 
-    // One hour at 2 kW stores the whole required 1.0 kWh in the first
-    // timestep.
+    // The whole required 1.0 kWh SOC gain fits into the first, cheaper
+    // 60-minute timestep: 1 kWh over one hour equals 1 kW import power.
     expect(plan.actions).toHaveLength(1);
-    expect(plan.actions[0].gridTargetPowerKw).toBeCloseTo(2, 10);
+    expect(plan.actions[0].gridTargetPowerKw).toBeCloseTo(1, 10);
   });
 
   it('rejects a timestep with non-positive duration', () => {
