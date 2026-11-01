@@ -1,8 +1,14 @@
 import { Plan } from './plan.js';
 
 /**
- * Combines proposals from all active strategies. For the currently supported
- * action type, overlapping set-grid-target actions conflict. Higher priority
+ * Standalone helper that combines proposals from multiple strategy plans.
+ *
+ * Note: AdvisorEngine no longer uses this builder. The engine applies
+ * strategies timestep by timestep in the configured order and composes
+ * their actions immediately, so there is no merge-at-the-end step anymore.
+ * The class is kept as a utility for callers that still want to consolidate
+ * independently created strategy plans. For the currently supported action
+ * type, overlapping set-grid-target actions conflict. Higher priority
  * wins; equal priorities are resolved deterministically by proposal order.
  */
 export class PlanBuilder {

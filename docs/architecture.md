@@ -115,27 +115,26 @@ physical model independently testable and reusable by other callers.
 
 `src/advisor` contains the decision-making side of the application.
 
-The flow inside the advisor is:
+The flow inside the advisor is a sequential timestep loop:
 
 ```text
-TimeSeries
+TimeSeries (internal working copy)
    │
    ▼
-Strategy.createPlan(timeSeries)
-   │
-   ▼
-ActionProposal[]
-   │
-   ▼
-PlanBuilder
+for each timestep (chronological):
+   for each strategy (configured order):
+      Strategy.planTimestep(timestep, context)
+      accepted actions are applied to the working copy immediately
    │
    ▼
 Plan
 ```
 
-A strategy analyses the supplied forecast/simulation time series and proposes actions.
-`AdvisorEngine` executes all configured strategies and combines their proposals through
-`PlanBuilder`.
+`AdvisorEngine` applies every configured strategy to every timestep, in the configured
+order. Accepted actions are applied immediately to an internal working copy of the
+timestep, so strategies applied later in the order see - and build on - the results of
+the strategies applied before them. Proposals that overlap actions of other timesteps
+are rejected (`ACTION_CONFLICT`). There is no separate merge-at-the-end step.
 
 Strategies should remain independent of the simulation implementation. They consume
 forecast data and describe intended actions; they do not directly change battery state
@@ -278,8 +277,11 @@ The main extension points are:
 
 ### New advisor strategies
 
-Implement the strategy contract and return action proposals. The strategy should not
-perform the physical simulation itself.
+Implement the strategy contract (`planTimestep` plus the optional `summarizeRun` hook)
+and return action proposals for the current timestep. The strategy should not perform
+the physical simulation itself. Strategies may precompute run-wide data once in their
+run-scoped state and must not rely on being applied in isolation: strategies configured
+later in the order see the working results of the earlier ones.
 
 ### New plan action types
 
@@ -327,3 +329,4 @@ contracts remain in:
 
 When a public data contract changes, the corresponding specification and Node-RED help
 text should be updated together with the implementation and tests.
+

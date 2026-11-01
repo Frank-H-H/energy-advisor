@@ -1,27 +1,33 @@
 import { describe, expect, it } from 'vitest';
 import energyAdvisorNode from '../../nodes/energy-advisor/energy-advisor.js';
 
+function createRed() {
+  const sent = [];
+  const errors = [];
+  const inputHandlers = [];
+
+  const RED = {
+    nodes: {
+      createNode(node) {
+        node.on = (event, handler) => {
+          if (event === 'input') inputHandlers.push(handler);
+        };
+        node.send = (msg) => sent.push(msg);
+        node.error = (error) => errors.push(error);
+      },
+      registerType(name, constructor) {
+        expect(name).toBe('energy-advisor');
+        RED.constructor = constructor;
+      },
+    },
+  };
+
+  return { sent, errors, inputHandlers, RED };
+}
+
 describe('energy-advisor Node-RED adapter', () => {
   it('runs the configured active strategies and forwards the Plan', async () => {
-    const sent = [];
-    const errors = [];
-    const inputHandlers = [];
-
-    const RED = {
-      nodes: {
-        createNode(node) {
-          node.on = (event, handler) => {
-            if (event === 'input') inputHandlers.push(handler);
-          };
-          node.send = (msg) => sent.push(msg);
-          node.error = (error) => errors.push(error);
-        },
-        registerType(name, constructor) {
-          expect(name).toBe('energy-advisor');
-          RED.constructor = constructor;
-        },
-      },
-    };
+    const { sent, errors, inputHandlers, RED } = createRed();
 
     energyAdvisorNode(RED);
     const node = {};
@@ -68,24 +74,7 @@ describe('energy-advisor Node-RED adapter', () => {
   });
 
   it('uses TimeSeries duration instead of a configured strategy interval', async () => {
-    const sent = [];
-    const errors = [];
-    const inputHandlers = [];
-
-    const RED = {
-      nodes: {
-        createNode(node) {
-          node.on = (event, handler) => {
-            if (event === 'input') inputHandlers.push(handler);
-          };
-          node.send = (msg) => sent.push(msg);
-          node.error = (error) => errors.push(error);
-        },
-        registerType(name, constructor) {
-          RED.constructor = constructor;
-        },
-      },
-    };
+    const { sent, errors, inputHandlers, RED } = createRed();
 
     energyAdvisorNode(RED);
     const node = {};
@@ -118,24 +107,7 @@ describe('energy-advisor Node-RED adapter', () => {
   });
 
   it('supports the distributed negative-price export strategy', async () => {
-    const sent = [];
-    const errors = [];
-    const inputHandlers = [];
-
-    const RED = {
-      nodes: {
-        createNode(node) {
-          node.on = (event, handler) => {
-            if (event === 'input') inputHandlers.push(handler);
-          };
-          node.send = (msg) => sent.push(msg);
-          node.error = (error) => errors.push(error);
-        },
-        registerType(name, constructor) {
-          RED.constructor = constructor;
-        },
-      },
-    };
+    const { sent, errors, inputHandlers, RED } = createRed();
 
     energyAdvisorNode(RED);
     const node = {};
@@ -168,9 +140,46 @@ describe('energy-advisor Node-RED adapter', () => {
     expect(errors).toHaveLength(0);
     expect(sent).toHaveLength(1);
     expect(sent[0].plan.actions).toHaveLength(2);
-    expect(sent[0].plan.actions.map((action) => action.gridTargetPowerKw)).toEqual([
-      -4,
-      -4,
-    ]);
+    expect(
+      sent[0].plan.actions.map((action) => action.gridTargetPowerKw)
+    ).toEqual([-4, -4]);
+  });
+
+  it('applies the configured strategies in order within each timestep', async () => {
+    const { sent, errors, inputHandlers, RED } = createRed();
+
+    energyAdvisorNode(RED);
+    const node = {};
+    RED.constructor.call(node, {
+      strategies:
+        'immediate-negative-price-export,distributed-negative-price-export',
+    });
+
+    const forecast = {
+      timeSeries: [
+        {
+          start: '2026-01-01T00:00:00Z',
+          end: '2026-01-01T00:15:00Z',
+          grid: { spotPerKwh: 0.2, exportKwh: 0, targetPowerKw: 0 },
+        },
+        {
+          start: '2026-01-01T00:15:00Z',
+          end: '2026-01-01T00:30:00Z',
+          grid: { spotPerKwh: -0.1, exportKwh: 2, targetPowerKw: -1 },
+        },
+      ],
+    };
+
+    await inputHandlers[0]({ payload: forecast });
+
+    expect(errors).toHaveLength(0);
+    expect(sent).toHaveLength(1);
+    // Both strategies plan the same timestep. The immediate strategy
+    // sets -7 kW; the distributed strategy builds on that target and is
+    // capped at the maximum export power.
+    expect(sent[0].plan.actions).toHaveLength(2);
+    expect(sent[0].plan.actions[0].gridTargetPowerKw).toBeCloseTo(-7, 10);
+    expect(sent[0].plan.actions[1].gridTargetPowerKw).toBeCloseTo(-7.46, 10);
   });
 });
+
