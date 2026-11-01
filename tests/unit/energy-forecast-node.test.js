@@ -11,7 +11,7 @@ describe('energy-forecast node mapping', () => {
         { start: '2026-01-01T00:00:00Z', end: '2026-01-01T01:00:00Z', durationMs: 3600000, solar: { productionPowerKw: 2 }, load: { consumptionPowerKw: 1 } }
       ]
     }
-    const batteryCfg = { capacity_kwh: 2, max_charge_power_kw: 5, max_discharge_power_kw: 5, charge_efficiency: 0.95 }
+    const batteryCfg = { capacity_kwh: 2, max_charge_power_kw: 5, max_discharge_power_kw: 5, charge_efficiency_curve: [{ up_to_kw: 0, efficiency: 0.95 }] }
     const gridCfg = { max_export_power_kw: 3 }
 
     // map and run ForecastEngine directly
@@ -33,7 +33,7 @@ describe('energy-forecast node mapping', () => {
           { start: '2026-01-01T00:00:00Z', end: '2026-01-01T00:15:00Z', durationMs: 900000, solar: { productionPowerKw: 4 }, load: { consumptionPowerKw: 0.8 } }
         ]
       }
-        const battery = { capacity_kwh: 10, max_charge_power_kw: 8, charge_efficiency: 0.9 }
+        const battery = { capacity_kwh: 10, max_charge_power_kw: 8, charge_efficiency_curve: [{ up_to_kw: 0, efficiency: 0.9 }] }
       const grid = { max_export_power_kw: 5 }
 
       const forecast = await runForecast(fixture, battery, grid)

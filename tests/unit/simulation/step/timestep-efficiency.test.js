@@ -8,14 +8,14 @@ import {
 
 describe('simulateTimestep - power dependent efficiencies', () => {
   describe('charging with losses', () => {
-    it('reduces the SOC gain by the scalar charge efficiency', () => {
+    it('reduces the SOC gain by a constant charge efficiency curve', () => {
       const testFixture = defaultSimpleTestSettingsForPartialStepFixture(
         {},
         {
           productionPowerKw: 6,
         },
         {
-          charge_efficiency: 0.5,
+          charge_efficiency_curve: [{ up_to_kw: 0, efficiency: 0.5 }],
         }
       );
 
@@ -36,7 +36,6 @@ describe('simulateTimestep - power dependent efficiencies', () => {
           productionPowerKw: 6,
         },
         {
-          charge_efficiency: 0.9,
           charge_efficiency_curve: [
             { up_to_kw: 5, efficiency: 0.98 },
             { up_to_kw: 8, efficiency: 0.96 },
@@ -61,7 +60,7 @@ describe('simulateTimestep - power dependent efficiencies', () => {
           productionPowerKw: 6,
         },
         {
-          charge_efficiency: 0.5,
+          charge_efficiency_curve: [{ up_to_kw: 0, efficiency: 0.5 }],
         }
       );
 
@@ -75,14 +74,14 @@ describe('simulateTimestep - power dependent efficiencies', () => {
   });
 
   describe('discharging with losses', () => {
-    it('increases the SOC loss by the scalar discharge efficiency', () => {
+    it('increases the SOC loss by a constant discharge efficiency curve', () => {
       const testFixture = defaultSimpleTestSettingsForFullStepFixture(
         {},
         {
           consumptionPowerKw: 4,
         },
         {
-          discharge_efficiency: 0.5,
+          discharge_efficiency_curve: [{ up_to_kw: 0, efficiency: 0.5 }],
         }
       );
 
@@ -102,7 +101,7 @@ describe('simulateTimestep - power dependent efficiencies', () => {
           consumptionPowerKw: 4,
         },
         {
-          discharge_efficiency: 0.5,
+          discharge_efficiency_curve: [{ up_to_kw: 0, efficiency: 0.5 }],
         }
       );
 
@@ -120,7 +119,6 @@ describe('simulateTimestep - power dependent efficiencies', () => {
           consumptionPowerKw: 0.5,
         },
         {
-          discharge_efficiency: 0.9,
           discharge_efficiency_curve: [
             { up_to_kw: 0.5, efficiency: 1 },
             { up_to_kw: 8, efficiency: 0.9 },
@@ -146,7 +144,7 @@ describe('simulateTimestep - power dependent efficiencies', () => {
           productionPowerKw: 4,
         },
         {
-          charge_efficiency: 0.5,
+          charge_efficiency_curve: [{ up_to_kw: 0, efficiency: 0.5 }],
         }
       );
 
