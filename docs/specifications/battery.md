@@ -11,8 +11,8 @@ Inputs:
 - min_soc_kwh
 - max_charge_power_kw
 - max_discharge_power_kw
-- charge_efficiency
-- discharge_efficiency
+- charge_efficiency_curve: [{ up_to_kw, efficiency }] power dependent charge efficiency
+- discharge_efficiency_curve: [{ up_to_kw, efficiency }] power dependent discharge efficiency
 - idle_losses_kw
 
 Behavior:
@@ -22,6 +22,12 @@ Behavior:
 Invariants:
 - SOC never exceeds capacity
 - SOC never falls below min_soc
+
+Efficiency curves:
+- efficiencies are configured exclusively via the power dependent curves
+- a single point with up_to_kw 0 acts as a constant efficiency
+- when no curve is configured the battery behaves loss-free
+- new battery config nodes default to a charge and discharge efficiency of 97% from 0 kW upwards
 
 Idle losses:
 - `idle_losses_kw` is the constant standby power of the whole system in kW (e.g. inverters and accompanying components in idle mode)

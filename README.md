@@ -27,10 +27,10 @@ Migration tasks:
 - [ ] Add examples to documentation
 - [ ] Add more strategies
 - [ ] adapt node UI to make it better configurable
-- [ ] Added charge and discharge efficiency as configuration options
+- [x] Configure charge and discharge efficiency via power dependent curves (fixed scalar efficiency options removed)
 
 [![CI](https://github.com/Frank-H-H/energy-advisor/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Frank-H-H/energy-advisor/actions/workflows/ci.yml)
-[![Codecov](https://img.shields.io/codecov/c/github/Frank-H-H/energy-advisor/main.svg)](https://codecov.io/gh/Frank-H-H/energy-advisor)
+[![Codecov](https://img.shields.io/codecov/github/Frank-H-H/energy-advisor/main.svg)](https://codecov.io/gh/Frank-H-H/energy-advisor)
 [![npm version](https://img.shields.io/npm/v/energy-advisor.svg)](https://www.npmjs.com/package/energy-advisor)
 [![License](https://img.shields.io/github/license/Frank-H-H/energy-advisor.svg)](LICENSE)
 

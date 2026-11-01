@@ -32,7 +32,7 @@ describe('config mapping of efficiency curves', () => {
     const comps = mapConfigsToComponents(
       {
         charge_efficiency_curve: '[{"up_to_kw": 5, "efficiency": 0.98}]',
-        discharge_efficiency_curve: '[]',
+        discharge_efficiency_curve: '[{"up_to_kw": 6, "efficiency": 0.95}]',
       },
       null
     );
@@ -40,7 +40,9 @@ describe('config mapping of efficiency curves', () => {
     expect(comps.battery.charge_efficiency_curve).toEqual([
       { up_to_kw: 5, efficiency: 0.98 },
     ]);
-    expect(comps.battery.discharge_efficiency_curve).toEqual([]);
+    expect(comps.battery.discharge_efficiency_curve).toEqual([
+      { up_to_kw: 6, efficiency: 0.95 },
+    ]);
   });
 
   it('filters invalid curve points', () => {
@@ -60,15 +62,34 @@ describe('config mapping of efficiency curves', () => {
     expect(comps.battery.charge_efficiency_curve).toEqual([
       { up_to_kw: 5, efficiency: 0.98 },
     ]);
-    expect(comps.battery.discharge_efficiency_curve).toEqual([]);
+    // an unusable curve falls back to the 97% default
+    expect(comps.battery.discharge_efficiency_curve).toEqual([
+      { up_to_kw: 0, efficiency: 0.97 },
+    ]);
   });
 
-  it('defaults to empty curves and scalar efficiencies', () => {
+  it('defaults to the 97% efficiency curves when nothing is configured', () => {
     const comps = mapConfigsToComponents(null, null);
 
-    expect(comps.battery.charge_efficiency_curve).toEqual([]);
-    expect(comps.battery.discharge_efficiency_curve).toEqual([]);
-    expect(comps.battery.charge_efficiency).toBeCloseTo(0.9, 12);
-    expect(comps.battery.discharge_efficiency).toBeCloseTo(1, 12);
+    expect(comps.battery.charge_efficiency_curve).toEqual([
+      { up_to_kw: 0, efficiency: 0.97 },
+    ]);
+    expect(comps.battery.discharge_efficiency_curve).toEqual([
+      { up_to_kw: 0, efficiency: 0.97 },
+    ]);
+  });
+
+  it('falls back to the 97% default curve for empty curves', () => {
+    const comps = mapConfigsToComponents(
+      { charge_efficiency_curve: '[]', discharge_efficiency_curve: [] },
+      null
+    );
+
+    expect(comps.battery.charge_efficiency_curve).toEqual([
+      { up_to_kw: 0, efficiency: 0.97 },
+    ]);
+    expect(comps.battery.discharge_efficiency_curve).toEqual([
+      { up_to_kw: 0, efficiency: 0.97 },
+    ]);
   });
 });
