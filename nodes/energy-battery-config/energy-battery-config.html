@@ -35,7 +35,7 @@
     const header = $('<div/>', { class: 'curve-row curve-row-header', style: 'display:flex; gap:4px; margin-bottom:4px;' });
     const upToLabel = $('<span/>', { class: 'curve-up-to-header', style: 'width:45%; font-weight:bold;' }).text('Up to power (kW)');
     const efficiencyLabel = $('<span/>', { class: 'curve-efficiency-header', style: 'width:45%; font-weight:bold;' }).text('Efficiency (%)');
-    const spacer = $('<span/>', style: 'width:16px;' });
+    const spacer = $('<span/>', {style: 'width:16px;' });
     header.append(upToLabel).append(efficiencyLabel).append(spacer);
     $(listId).append(header);
   }
