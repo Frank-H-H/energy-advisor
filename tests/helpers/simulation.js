@@ -75,6 +75,7 @@ export function makeComponents({
   charge_efficiency_curve = null,
   discharge_efficiency_curve = null,
   min_soc_kwh = 0,
+  idle_losses_kw = 0,
 } = {}) {
   return {
     battery: {
@@ -86,6 +87,7 @@ export function makeComponents({
       charge_efficiency_curve,
       discharge_efficiency_curve,
       min_soc_kwh,
+      idle_losses_kw,
     },
     grid: {
       max_export_power_kw: max_export_kw,

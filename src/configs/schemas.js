@@ -9,6 +9,8 @@ export const batteryConfigSchema = {
     capacity_kwh: 43,
     max_charge_power_kw: 8,
     max_discharge_power_kw: 8,
+    // Constant standby/idle power of the whole system (kW)
+    idle_losses_kw: 0,
     charge_efficiency: 0.9,
     discharge_efficiency: 0.9,
     // Power dependent efficiency curves: [{ up_to_kw, efficiency }]
@@ -33,6 +35,7 @@ export function mapConfigsToComponents(batteryConfig = null, gridConfig = null) 
 
   const components = {
     battery: {
+      idle_losses_kw: Number(b.idle_losses_kw ?? b.idleLossesKw ?? 0),
       capacity_kwh: Number(b.capacity_kwh ?? b.capacity ?? 0),
       soc_kwh: Number(b.soc_kwh ?? b.initial_soc_kwh ?? 0),
       min_soc_kwh: Number(b.min_soc_kwh ?? 0),
