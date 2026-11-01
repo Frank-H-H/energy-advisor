@@ -6,9 +6,10 @@ Purpose: analyze a simulation TimeSeries and produce a Plan containing actionabl
 
 - The simulation produces the TimeSeries consumed by the Advisor.
 - Multiple Strategies may be active at the same time.
-- Each Strategy analyzes the same TimeSeries independently and creates a strategy plan containing ActionProposals.
-- The Advisor combines all strategy plans into one Plan and resolves conflicts between proposals.
-- The Advisor does not execute actions and does not modify the TimeSeries.
+- The Advisor walks the TimeSeries timestep by timestep in chronological order and applies every configured Strategy to every timestep, in the configured order.
+- Within a timestep, a Strategy sees the working state that the Strategies applied before it have already produced; its proposals build on that state (sequential composition).
+- A proposal is rejected only when it overlaps an action accepted for a different timestep (`ACTION_CONFLICT`).
+- The Advisor does not execute actions and does not modify the caller's TimeSeries; accepted actions are applied to an internal working copy only.
 - Device control happens outside this repository.
 
 ## TimeSeries
@@ -21,13 +22,20 @@ A Strategy consumes the TimeSeries produced by the ForecastEngine directly. A ti
 - `grid.targetPowerKw`, `grid.importKwh`, `grid.exportKwh`, `grid.buyPerKwh`, `grid.sellPerKwh`, `grid.spotPerKwh`
 - `economics.cost`, `economics.revenue`
 
-Strategies must not mutate the TimeSeries. Power values use `kW` in property names and energy values use `kWh`. The canonical grid target is `grid.targetPowerKw`: negative means export, zero means neither import nor export, and positive means import.
+Strategies must not mutate the timestep passed to `planTimestep()`. Power values use `kW` in property names and energy values use `kWh`. The canonical grid target is `grid.targetPowerKw`: negative means export, zero means neither import nor export, and positive means import.
 
 Timestep duration is always derived from each TimeSeries entry's `start` and `end` timestamps. Strategies must not define or use a separate interval setting for timestep duration. The TimeSeries is the source of truth, so a strategy must correctly handle TimeSeries entries with different durations.
 
 ## Strategy
 
-A Strategy analyzes a TimeSeries and creates a strategy plan. A Strategy does not execute Actions and does not modify the TimeSeries.
+A Strategy is applied once per timestep through `planTimestep(timestep, context)`:
+
+- `timestep`: the current working state of the timestep (already modified by earlier strategies in the same timestep, if any).
+- `context`: `{ series, index, state }` - the working copy of the whole TimeSeries, the index of the current timestep within it, and a run-scoped state object private to this strategy. The state may be used to precompute run-wide data (e.g. pending surpluses) and to carry information between timesteps.
+
+It returns an array of `ActionProposal` objects for the current timestep (possibly empty). A Strategy does not execute Actions, does not modify the timestep it receives and never mutates the caller's TimeSeries.
+
+After the timestep loop the Advisor calls the optional `summarizeRun(state)` hook. A Strategy may return summary fields there (e.g. energy totals); they are merged into its entry in `Plan.strategyPlans`.
 
 ## Action
 
@@ -45,23 +53,25 @@ It contains:
 
 The Action is only a description. It is not executed by the Advisor.
 
+When several strategies act on the same timestep, the Plan contains one Action per accepted proposal. Their `gridTargetPowerKw` values are absolute targets that already include the composition: the action of the second strategy in the configured order is calculated against the working target produced by the first. An external executor must therefore apply the actions of a timestep in Plan order (the Plan preserves the configured strategy order within a timestep).
+
 ## ActionProposal
 
 A Strategy does not directly decide the final Plan. It creates `ActionProposal` objects containing:
 
 - `strategyId`
-- `priority` (number; higher priority wins conflicts)
+- `priority` (number; informational for reporting and external executors)
 - `action`
 
-The Advisor may accept or reject a proposal when consolidating plans.
+Within a timestep the configured strategy order governs the composition; the `priority` field no longer decides conflicts there. The Advisor may still reject a proposal when it overlaps an action accepted for a different timestep.
 
 ## Plan
 
 The final Plan contains:
 
-- `actions`: accepted Actions, sorted chronologically
-- `strategyPlans`: the results of all active Strategies
-- `rejectedProposals`: proposals rejected during conflict resolution, including a machine-readable reason
+- `actions`: accepted Actions, sorted chronologically (stable within equal start times: the configured strategy order is preserved)
+- `strategyPlans`: the proposals (and optional summary fields) of all active Strategies
+- `rejectedProposals`: proposals rejected because they overlapped actions of other timesteps, including a machine-readable reason
 
 The Plan is output only. No Action is executed by the Advisor.
 
@@ -69,7 +79,8 @@ The Plan is output only. No Action is executed by the Advisor.
 
 The following strategies handle energy that would otherwise be exported during negative spot-price timesteps:
 
-- `ImmediateNegativePriceExportStrategy` (`immediate-negative-price-export`): moves the required export to the nearest earlier non-negative-price timesteps, working backwards from the negative-price periods.
+- `ImmediateNegativePriceExportStrategy` (`immediate-negative-price-export`): moves the required export to the nearest earlier non-negative-price timesteps. The pending surplus per timestep is precomputed once per run (backwards pass), so the timestep-wise application is equivalent to the previous whole-series backwards planning.
 - `DistributedNegativePriceExportStrategy` (`distributed-negative-price-export`): distributes the required export energy across all earlier non-negative-price timesteps. It intentionally does not select timesteps by the highest spot price.
 
-Both strategies use `grid.spotPerKwh` to detect negative-price periods. They produce `set-grid-target` ActionProposals and never modify the TimeSeries.
+Both strategies use `grid.spotPerKwh` to detect negative-price periods. They produce `set-grid-target` ActionProposals and never modify the TimeSeries. Their `maxExportPowerKw` configuration caps the total export target of a timestep: when strategies applied earlier in the timestep already added export, a later strategy never plans beyond this maximum.
+
