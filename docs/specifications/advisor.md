@@ -60,10 +60,9 @@ When several strategies act on the same timestep, the Plan contains one Action p
 A Strategy does not directly decide the final Plan. It creates `ActionProposal` objects containing:
 
 - `strategyId`
-- `priority` (number; informational for reporting and external executors)
 - `action`
 
-Within a timestep the configured strategy order governs the composition; the `priority` field no longer decides conflicts there. The Advisor may still reject a proposal when it overlaps an action accepted for a different timestep.
+Within a timestep the configured strategy order governs the composition; the order in which the strategies are configured decides which strategy builds on which. The Advisor may still reject a proposal when it overlaps an action accepted for a different timestep.
 
 ## Plan
 
@@ -84,6 +83,9 @@ The following strategies handle energy that would otherwise be exported during n
 
 Both strategies use `grid.spotPerKwh` to detect negative-price periods. They produce `set-grid-target` ActionProposals and never modify the TimeSeries. Their `maxExportPowerKw` configuration caps the total export target of a timestep: when strategies applied earlier in the timestep already added export, a later strategy never plans beyond this maximum.
 
+Configuration (both):
+
+- `maxExportPowerKw` (optional, default 7.46): maximum export power in kW; caps the export target of a timestep.
 
 ## Battery minimum SOC strategy
 
@@ -92,10 +94,10 @@ Both strategies use `grid.spotPerKwh` to detect negative-price periods. They pro
 Configuration:
 
 - `capacityKwh` (required): battery capacity in kWh.
-- `minSocKwh` (optional): minimum SOC in kWh. Defaults to 15% of `capacityKwh`; a per-node configuration will be added later.
+- `minSocKwh` (optional): minimum SOC in kWh. Takes precedence over `minSocPercent`.
+- `minSocPercent` (optional): minimum SOC as a fraction of the capacity (0..1). Defaults to 0.15 (15% of `capacityKwh`).
 - `maxChargePowerKw` (required): maximum charge power in kW; caps the planned import of a timestep.
 - `chargeEfficiencyCurve` (optional): power dependent charge efficiency curve. Without a curve charging is planned loss-free.
-- `priority` (optional, default 50).
 
 Planning model:
 
@@ -107,4 +109,29 @@ Planning model:
 
 Actions: positive `set-grid-target` import additions on top of the existing target of the timestep. The strategy never modifies the TimeSeries. Summary fields: `minSocKwh`, `totalPlannedImportKwh`, `totalPlannedSocGainKwh`, `uncoveredDeficitKwh`.
 
-In the Node-RED node the battery parameters (capacity, max charge power, charge efficiency curve) are read from a referenced `energy-battery-config` node. The minimum SOC is a strategy setting of the advisor node (currently fixed at 15% of the capacity). The strategy requires the battery config reference; without it the node reports an error.
+## Node-RED node configuration
+
+The `energy-advisor` Node-RED node is configured with a strategy editor instead of a comma-separated id list. The node stores the strategies as an ordered array of configuration entries, one entry per active strategy:
+
+```json
+"strategies": [
+  { "type": "battery-min-soc-hold", "minSocPercent": 15, "batteryConfig": "<config node id>" },
+  { "type": "distributed-negative-price-export", "maxExportPowerKw": 7.46 }
+]
+```
+
+- The list order defines the order in which the strategies are applied within every timestep. Strategies can be added, removed and reordered in the editor.
+- Each entry carries the options of its strategy: `maxExportPowerKw` for the negative-price export strategies; `minSocPercent` (in percent, default 15) and an `energy-battery-config` node reference for `battery-min-soc-hold`.
+- The battery parameters (capacity, max charge power, charge efficiency curve) are read from the referenced `energy-battery-config` node. The `battery-min-soc-hold` strategy requires the reference; without it the node reports an error.
+- The editor fetches the available strategy types and their options from the node's admin endpoint (`GET /energy-advisor/strategies`), which serves the strategy registry descriptors. New strategies only need to register themselves there.
+- Migration: flows saved before the strategy editor keep working. The legacy comma-separated id string is normalized at runtime, and a node-level `batteryConfig` reference of old flows is used as the fallback for `battery-min-soc-hold` entries until the node is re-saved in the editor.
+
+## Strategy registry
+
+`src/advisor/strategyRegistry.js` is the single source of truth for the strategies available to the Node-RED node. Each entry provides:
+
+- `id` and `label` for the editor,
+- `options`: descriptors of the per-strategy configuration options (editor type, default, bounds),
+- `create(config, ctx)`: a factory turning a stored configuration entry into a strategy instance; `ctx.getBatteryConfig(id)` resolves battery config node references.
+
+The registry also normalizes the stored configuration (`normalizeStrategyConfigs`) including the legacy string migration and creates the strategy instances in the configured order (`createStrategies`).

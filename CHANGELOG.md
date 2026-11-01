@@ -3,6 +3,10 @@
 All notable changes to this project will be documented in this file.
 
 ## Unreleased
+- Rework the energy-advisor node configuration: strategies are managed in a strategy editor (add, remove, reorder by dragging) instead of a comma-separated ID list. Each strategy entry carries its own options: `maxExportPowerKw` for the negative-price export strategies, `minSocPercent` plus an `energy-battery-config` reference for `battery-min-soc-hold`. Existing flows keep working: the stored comma-separated list and the node-level battery config reference are migrated automatically at runtime and in the editor.
+- Add a strategy registry (`src/advisor/strategyRegistry.js`) as the single source of truth for the strategies available to the Node-RED node, serving both the node editor (via `GET /energy-advisor/strategies`) and the node runtime.
+- Add `minSocPercent` option to `BatteryMinSocHoldStrategy` (fraction 0..1, default 0.15); previously the minimum SOC was fixed at 15% of the capacity.
+- **Breaking:** Removed the `priority` concept. The application order of the strategies is given by their order in the node configuration and within a timestep by the configured strategy order. `ActionProposal` no longer has a `priority` field, the strategies no longer accept a `priority` option and `PlanBuilder` resolves conflicts deterministically by proposal order (the earlier proposal wins).
 - Add `battery-min-soc-hold` advisor strategy: keeps the battery SOC above a minimum (currently fixed at 15% of the capacity) by planning grid imports at the cheapest earlier timesteps, honouring the power dependent charge efficiency curve and the max charge power. The energy-advisor node gains a battery config reference for the battery parameters.
 - Add `energy-timeseries` Node-RED helper node for creating simulation-ready TimeSeries.
 - Support 15-minute and 60-minute intervals and configurable future horizons in hours.

@@ -26,7 +26,7 @@ Migration tasks:
 - [x] Introduce helper node to prepare a TimeSeries
 - [ ] Add examples to documentation
 - [ ] Add more strategies
-- [ ] adapt node UI to make it better configurable
+- [x] adapt node UI to make it better configurable (strategy editor with per-strategy options)
 - [x] Configure charge and discharge efficiency via power dependent curves (fixed scalar efficiency options removed)
 
 [![CI](https://github.com/Frank-H-H/energy-advisor/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Frank-H-H/energy-advisor/actions/workflows/ci.yml)
