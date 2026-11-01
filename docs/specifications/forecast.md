@@ -10,6 +10,7 @@ The input object contains:
 - `initialState`: optional current simulation state
   - `initialState.batteryEnergyKwh`: current battery energy in kWh; is the initial battery energy for the simulation
 - `components`: optional simulation components (battery, grid, etc.)
+  - `components.battery.idle_losses_kw`: optional constant idle losses (standby power) of the whole system in kW; subtracted from every timestep's power balance (default 0)
 
 Each forecast timestep contains only external forecasts and constraints:
 

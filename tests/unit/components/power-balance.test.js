@@ -68,6 +68,31 @@ describe('PowerBalance domain model', () => {
     expect(balance.powerKw).toBe(-5)
   })
 
+  it('subtracts constant idle losses from the balance', () => {
+    const balance = PowerBalance.fromTimestep({
+      productionPowerKw: 8,
+      consumptionPowerKw: 3,
+      gridTargetPowerKw: 0,
+      idleLossesKw: 0.2,
+      start,
+      end,
+    })
+
+    expect(balance.powerKw).toBeCloseTo(4.8, 6)
+  })
+
+  it('ignores idle losses when not configured', () => {
+    const balance = PowerBalance.fromTimestep({
+      productionPowerKw: 8,
+      consumptionPowerKw: 3,
+      gridTargetPowerKw: 0,
+      start,
+      end,
+    })
+
+    expect(balance.powerKw).toBe(5)
+  })
+
   it('does not alter the timestep', () => {
     const timestep = {
       productionPowerKw: 8,

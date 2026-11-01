@@ -41,6 +41,7 @@ module.exports = function (RED) {
               capacity_kwh: batteryConfigNode.capacity_kwh,
               max_charge_power_kw: batteryConfigNode.max_charge_power_kw,
               max_discharge_power_kw: batteryConfigNode.max_discharge_power_kw,
+              idle_losses_kw: batteryConfigNode.idle_losses_kw,
               charge_efficiency: batteryConfigNode.charge_efficiency,
               discharge_efficiency: batteryConfigNode.discharge_efficiency,
               charge_efficiency_curve: batteryConfigNode.charge_efficiency_curve,

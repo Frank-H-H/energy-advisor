@@ -23,6 +23,9 @@ export class PowerBalance {
       timestep.end
     );
 
+    // Constant idle losses of the whole system (e.g. inverter standby)
+    powerBalance -= Number(timestep.idleLossesKw || 0);
+
     return new PowerBalance(powerBalance)
   }
 }

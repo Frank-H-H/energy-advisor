@@ -51,6 +51,12 @@ export function simulateTimestep({ state = {}, timestep, components = {} }) {
     gridSpec.max_export_power_kw ?? gridSpec.KW_MAX_EXPORT_POWER ?? Infinity
   );
 
+  // Constant system idle losses (standby power), configured via the battery
+  // config. Stored on the timestep so all sub-parts inherit it.
+  timestep.idleLossesKw = Number(
+    timestep.idleLossesKw ?? batterySpec.idle_losses_kw ?? 0
+  );
+
   // helpers
 
   const timestepPartsToSimulate = computeTimestepPartsToSimulate(

@@ -8,6 +8,7 @@ describe('config mapping', () => {
         capacity_kwh: 50,
         max_charge_power_kw: 5,
         max_discharge_power_kw: 4,
+        idle_losses_kw: 0.1,
         charge_efficiency: 0.95
       },
       grid: {
@@ -18,6 +19,7 @@ describe('config mapping', () => {
     expect(comps.battery.capacity_kwh).toBe(50)
     expect(comps.battery.max_charge_power_kw).toBe(5)
     expect(comps.battery.charge_efficiency).toBeCloseTo(0.95)
+    expect(comps.battery.idle_losses_kw).toBeCloseTo(0.1)
     expect(comps.grid.max_export_power_kw).toBe(6)
   })
 
@@ -26,5 +28,16 @@ describe('config mapping', () => {
     // battery defaults to 0 capacity if not provided
     expect(typeof comps.battery.capacity_kwh).toBe('number')
     expect(comps.battery.charge_efficiency).toBeCloseTo(0.9)
+    expect(comps.battery.idle_losses_kw).toBe(0)
+  })
+
+  it('maps idle losses to the battery component', () => {
+    const comps = mapConfigsToComponents({ idle_losses_kw: 0.15 }, null)
+    expect(comps.battery.idle_losses_kw).toBeCloseTo(0.15)
+  })
+
+  it('accepts camelCase idleLossesKw alias', () => {
+    const comps = mapConfigsToComponents({ idleLossesKw: 0.2 }, null)
+    expect(comps.battery.idle_losses_kw).toBeCloseTo(0.2)
   })
 })
