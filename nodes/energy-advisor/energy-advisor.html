@@ -102,26 +102,35 @@ msg.plan = {
         return descriptors[0];
       }
 
-      // Config nodes are not returned by RED.nodes.filterNodes() (which
-      // only covers flow nodes); they are stored in RED.nodes.configs.
+      // Config nodes are enumerated with RED.nodes.eachConfig(), the
+      // same API the Node-RED core uses to fill its own config node
+      // selects (RED.nodes.filterNodes() only covers flow nodes). Like
+      // the core, only configs of the active workspace are offered.
       function getBatteryConfigNodes() {
         var configNodes = [];
         var seen = {};
+        var activeWorkspace = null;
+        try {
+          activeWorkspace =
+            RED.nodes.workspace(RED.workspaces.active()) ||
+            RED.nodes.subflow(RED.workspaces.active());
+        } catch (e) { /* older editor versions */ }
         function add(configNode) {
           if (!configNode || configNode.type !== 'energy-battery-config' || seen[configNode.id]) return;
+          if (activeWorkspace && configNode.z && configNode.z !== activeWorkspace.id) return;
           seen[configNode.id] = true;
           configNodes.push(configNode);
         }
-        var configs = RED.nodes.configs;
-        if (configs) {
+        if (typeof RED.nodes.eachConfig === 'function') {
+          RED.nodes.eachConfig(add);
+        } else if (RED.nodes.configs) {
+          // Fallback for very old editor versions
+          var configs = RED.nodes.configs;
           if (Array.isArray(configs)) {
             configs.forEach(add);
           } else {
             Object.keys(configs).forEach(function (id) { add(configs[id]); });
           }
-        }
-        if (typeof RED.nodes.filterNodes === 'function') {
-          RED.nodes.filterNodes({ type: 'energy-battery-config' }).forEach(add);
         }
         configNodes.sort(function (a, b) {
           return String(a.name || a.id).localeCompare(String(b.name || b.id));
