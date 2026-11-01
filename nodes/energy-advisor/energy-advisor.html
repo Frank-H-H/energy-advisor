@@ -10,7 +10,12 @@
     <button type="button" id="node-input-add-strategy-button" class="red-ui-button red-ui-button-small">Add</button>
   </div>
   <div class="form-row" style="min-height: 200px;">
-    <ol id="node-input-strategies"></ol>
+      <!-- The editableList container id must NOT match the node-input-<property>
+       convention of the strategies default: the Node-RED properties pane reads
+       that element on save and would overwrite the value collected in
+       oneditsave with the empty .val() of the <ol> element. Core nodes use
+       the same *-container suffix convention (e.g. the switch node rules). -->
+    <ol id="node-input-strategies-container"></ol>
   </div>
 </script>
 
@@ -85,7 +90,7 @@ msg.plan = {
       var node = this;
       var descriptors = [];
 
-      var list = $('#node-input-strategies').editableList({
+      var list = $('#node-input-strategies-container').editableList({
         header: false,
         removable: true,
         sortable: true,
@@ -224,7 +229,7 @@ msg.plan = {
     },
     oneditsave: function() {
       var strategies = [];
-      $('#node-input-strategies').editableList('items').each(function() {
+      $('#node-input-strategies-container').editableList('items').each(function() {
         var row = $(this);
         var type = row.find('.strategy-type-select').val();
         if (!type) return;
