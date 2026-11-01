@@ -1,11 +1,9 @@
 // tests/integration/forecast-run.test.js
 import { describe, it, expect } from 'vitest'
-import { simulateTimestep } from '../../src/simulation/timestep.js'
 import { ForecastEngine } from '../../src/simulation/forecastEngine.js'
 import { AdvisorEngine } from '../../src/advisor/advisorEngine.js'
 import { ImmediateNegativePriceExportStrategy } from '../../src/advisor/strategies/immediateNegativePriceExportStrategy.js'
 import {
-  makeInterval,
   makeComponents
 } from '../helpers/simulation.js'
 

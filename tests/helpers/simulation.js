@@ -2,7 +2,8 @@ import { assert } from 'vitest';
 
 export function defaultSimpleTestSettingsForPartialStepFixture(
   extraStateValues,
-  extraTimestepValues
+  extraTimestepValues,
+  extraComponentValues
 ) {
   return {
     state: makeState('2026-04-08T12:05:00.000Z', {
@@ -14,13 +15,14 @@ export function defaultSimpleTestSettingsForPartialStepFixture(
       '2026-04-08T12:15:00.000Z',
       { ...extraTimestepValues }
     ),
-    components: makeComponents({}),
+    components: makeComponents({ ...extraComponentValues }),
   };
 }
 
 export function defaultSimpleTestSettingsForFullStepFixture(
   extraStateValues,
-  extraTimestepValues
+  extraTimestepValues,
+  extraComponentValues
 ) {
   return {
     state: makeState('2026-04-08T12:00:00.000Z', {
@@ -32,7 +34,7 @@ export function defaultSimpleTestSettingsForFullStepFixture(
       '2026-04-08T13:15:00.000Z',
       { ...extraTimestepValues }
     ),
-    components: makeComponents({}),
+    components: makeComponents({ ...extraComponentValues }),
   };
 }
 
@@ -70,6 +72,8 @@ export function makeComponents({
   max_export_kw = 7,
   charge_efficiency = 1,
   discharge_efficiency = 1,
+  charge_efficiency_curve = null,
+  discharge_efficiency_curve = null,
   min_soc_kwh = 0,
 } = {}) {
   return {
@@ -79,6 +83,8 @@ export function makeComponents({
       max_discharge_power_kw: max_discharge_kw,
       charge_efficiency,
       discharge_efficiency,
+      charge_efficiency_curve,
+      discharge_efficiency_curve,
       min_soc_kwh,
     },
     grid: {

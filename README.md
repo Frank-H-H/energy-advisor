@@ -100,18 +100,22 @@ Developer flow (recommended)
 
    # From project root
 
+   ```
+   npm install -g node-red
    npm link
+   ```
 
-   # start Node-RED (my local windows machine)
+   # start (and debug) Node-RED (my local windows machine)
 
    ```
    pm2 start ${HOME}/AppData/Roaming/npm/node_modules/node-red/red.js --name "node-red" --watch .
    ```
 
    or for debugging via visual studio code:
+   In VS Code press CTRL+Shift+P and then enable debug auto attach
 
    ```
-   node red
+   node-red
    ```
 
 4. Run tests:
