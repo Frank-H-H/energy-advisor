@@ -4,7 +4,6 @@ import { Strategy } from '../strategy.js';
 import { getTimestepDurationHours } from '../timestep-duration.js';
 
 const DEFAULT_MAX_EXPORT_POWER_KW = 7.46;
-const DEFAULT_PRIORITY = 50;
 
 /**
  * Plans exports immediately before negative-price periods so that energy
@@ -21,15 +20,10 @@ const DEFAULT_PRIORITY = 50;
  * receives and never executes an action.
  */
 export class ImmediateNegativePriceExportStrategy extends Strategy {
-  constructor({
-    maxExportPowerKw = DEFAULT_MAX_EXPORT_POWER_KW,
-    priority = DEFAULT_PRIORITY,
-  } = {}) {
+  constructor({ maxExportPowerKw = DEFAULT_MAX_EXPORT_POWER_KW } = {}) {
     super();
     validatePositiveOrZero(maxExportPowerKw, 'maxExportPowerKw');
-    validatePriority(priority);
     this.maxExportPowerKw = maxExportPowerKw;
-    this.priority = priority;
   }
 
   get id() {
@@ -75,7 +69,6 @@ export class ImmediateNegativePriceExportStrategy extends Strategy {
     return [
       new ActionProposal({
         strategyId: this.id,
-        priority: this.priority,
         action: new Action({
           type: 'set-grid-target',
           start,
@@ -84,7 +77,7 @@ export class ImmediateNegativePriceExportStrategy extends Strategy {
           reason: 'AVOID_NEGATIVE_PRICE_EXPORT',
           expectedBenefit: {
             type: 'avoided-negative-price-export',
-            estimatedEnergyKwh: actionEnergyKwh,
+            estimatedEnergyKwh: actionEnergyKwh
           },
           confidence: 1,
         }),
@@ -156,9 +149,4 @@ function initializeState(state, series, maxExportPowerKw) {
 function validatePositiveOrZero(value, name) {
   if (!Number.isFinite(value) || value < 0)
     throw new Error(name + ' must be a non-negative finite number');
-}
-
-function validatePriority(value) {
-  if (!Number.isFinite(value))
-    throw new Error('priority must be a finite number');
 }

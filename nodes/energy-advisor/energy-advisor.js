@@ -3,17 +3,34 @@ const path = require('path');
 const { pathToFileURL } = require('url');
 
 module.exports = function (RED) {
+  const coreUrl = pathToFileURL(
+    path.join(__dirname, '..', '..', 'src', 'index.js')
+  ).href;
+
+  // The ESM core is imported once and shared by the node runtime and the
+  // editor endpoint below.
+  const corePromise = import(coreUrl);
+
+  // Serves the strategy descriptors for the node editor: the available
+  // strategy types with their per-strategy configuration options.
+  if (RED.httpAdmin && typeof RED.httpAdmin.get === 'function') {
+    RED.httpAdmin.get('/energy-advisor/strategies', async (req, res) => {
+      try {
+        const core = await corePromise;
+        res.json(core.getStrategyDescriptors());
+      } catch (err) {
+        res.status(500).json({ error: String(err) });
+      }
+    });
+  }
+
   function EnergyAdvisorNode(config) {
     RED.nodes.createNode(this, config);
     const node = this;
 
-    const coreUrl = pathToFileURL(
-      path.join(__dirname, '..', '..', 'src', 'index.js')
-    ).href;
-
     node.on('input', async function (msg) {
       try {
-        const core = await import(coreUrl);
+        const core = await corePromise;
         // Keep the forecast result intact and only add the generated Plan
         // separately. A subsequent forecast node can then reuse the
         // original timeSeries together with msg.plan.
@@ -26,62 +43,17 @@ module.exports = function (RED) {
           return;
         }
 
-        // The order of the IDs in config.strategies defines the order in
-        // which the strategies are applied within every timestep.
-        const strategyIds = (config.strategies || 'immediate-negative-price-export')
-          .split(',')
-          .map((id) => id.trim())
-          .filter(Boolean);
+        // The order of the entries defines the order in which the
+        // strategies are applied within every timestep. The legacy
+        // comma-separated string (and the node-level battery config
+        // reference of old flows) is migrated automatically.
+        const strategyConfigs = core.normalizeStrategyConfigs(
+          config.strategies,
+          { legacyBatteryConfig: config.batteryConfig }
+        );
 
-        const strategies = strategyIds.map((id) => {
-          switch (id) {
-            case 'immediate-negative-price-export':
-              return new core.ImmediateNegativePriceExportStrategy({
-                maxExportPowerKw:
-                  config.maxExportPowerKw === '' ||
-                  config.maxExportPowerKw === undefined
-                    ? 7.46
-                    : Number(config.maxExportPowerKw),
-                priority:
-                  config.priority === '' || config.priority === undefined
-                    ? 50
-                    : Number(config.priority),
-              });
-            case 'distributed-negative-price-export':
-              return new core.DistributedNegativePriceExportStrategy({
-                maxExportPowerKw:
-                  config.maxExportPowerKw === '' ||
-                  config.maxExportPowerKw === undefined
-                    ? 7.46
-                    : Number(config.maxExportPowerKw),
-                priority:
-                  config.priority === '' || config.priority === undefined
-                    ? 50
-                    : Number(config.priority),
-              });
-            case 'battery-min-soc-hold': {
-              const batteryConfigNode = config.batteryConfig
-                ? RED.nodes.getNode(config.batteryConfig)
-                : null;
-              if (!batteryConfigNode) {
-                throw new Error(
-                  'battery-min-soc-hold requires a battery config: select an energy-battery-config node in the advisor node configuration'
-                );
-              }
-              return new core.BatteryMinSocHoldStrategy({
-                capacityKwh: batteryConfigNode.capacity_kwh,
-                maxChargePowerKw: batteryConfigNode.max_charge_power_kw,
-                chargeEfficiencyCurve:
-                  batteryConfigNode.charge_efficiency_curve,
-                priority:
-                  config.priority === '' || config.priority === undefined
-                    ? 50
-                    : Number(config.priority),
-              });
-            }
-            default:
-              throw new Error('Unknown advisor strategy: ' + id);
-          }
+        const strategies = core.createStrategies(strategyConfigs, {
+          getBatteryConfig: (id) => (id ? RED.nodes.getNode(id) : null),
         });
 
         const plan = core.AdvisorEngine.run({ timeSeries, strategies });

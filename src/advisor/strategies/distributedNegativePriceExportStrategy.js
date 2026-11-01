@@ -4,7 +4,6 @@ import { Strategy } from '../strategy.js';
 import { getTimestepDurationHours } from '../timestep-duration.js';
 
 const DEFAULT_MAX_EXPORT_POWER_KW = 7.46;
-const DEFAULT_PRIORITY = 50;
 
 /**
  * Distributes the export that would otherwise happen during negative-price
@@ -17,22 +16,17 @@ const DEFAULT_PRIORITY = 50;
  * Applied per timestep by the AdvisorEngine: on every candidate timestep
  * (non-negative price, before the first negative-price timestep) it plans
  * an even share of the still remaining surplus. Candidates, their count
- * and the total surplus are precomputed once per run, which reproduces the
- * previous whole-series distribution exactly.
+ * and the total surplus are precomputed once per run, which reproduces
+ * the previous whole-series distribution exactly.
  *
  * The strategy only creates proposals. It never changes the timestep it
  * receives and never executes an action.
  */
 export class DistributedNegativePriceExportStrategy extends Strategy {
-  constructor({
-    maxExportPowerKw = DEFAULT_MAX_EXPORT_POWER_KW,
-    priority = DEFAULT_PRIORITY,
-  } = {}) {
+  constructor({ maxExportPowerKw = DEFAULT_MAX_EXPORT_POWER_KW } = {}) {
     super();
     validatePositiveOrZero(maxExportPowerKw, 'maxExportPowerKw');
-    validatePriority(priority);
     this.maxExportPowerKw = maxExportPowerKw;
-    this.priority = priority;
   }
 
   get id() {
@@ -84,7 +78,6 @@ export class DistributedNegativePriceExportStrategy extends Strategy {
     return [
       new ActionProposal({
         strategyId: this.id,
-        priority: this.priority,
         action: new Action({
           type: 'set-grid-target',
           start,
@@ -93,7 +86,7 @@ export class DistributedNegativePriceExportStrategy extends Strategy {
           reason: 'AVOID_NEGATIVE_PRICE_EXPORT_DISTRIBUTED',
           expectedBenefit: {
             type: 'avoided-negative-price-export',
-            estimatedEnergyKwh: actionEnergyKwh,
+            estimatedEnergyKwh: actionEnergyKwh
           },
           confidence: 1,
         }),
@@ -162,9 +155,4 @@ function initializeState(state, series) {
 function validatePositiveOrZero(value, name) {
   if (!Number.isFinite(value) || value < 0)
     throw new Error(name + ' must be a non-negative finite number');
-}
-
-function validatePriority(value) {
-  if (!Number.isFinite(value))
-    throw new Error('priority must be a finite number');
 }

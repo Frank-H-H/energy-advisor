@@ -3,10 +3,9 @@ import { Action } from '../../src/advisor/action.js';
 import { ActionProposal } from '../../src/advisor/action-proposal.js';
 import { PlanBuilder } from '../../src/advisor/plan-builder.js';
 
-function proposal(strategyId, start, end, gridTargetPowerKw, priority = 50) {
+function proposal(strategyId, start, end, gridTargetPowerKw) {
   return new ActionProposal({
     strategyId,
-    priority,
     action: new Action({
       type: 'set-grid-target',
       start,
@@ -50,38 +49,36 @@ describe('PlanBuilder', () => {
     ]);
   });
 
-  it('rejects a lower-priority overlapping action', () => {
+  it('rejects an overlapping action that arrives later in proposal order', () => {
     const result = new PlanBuilder().build([
       {
-        strategyId: 'low',
+        strategyId: 'first',
         proposals: [
           proposal(
-            'low',
+            'first',
             '2026-01-01T00:00:00Z',
             '2026-01-01T00:15:00Z',
-            5,
-            10
+            5
           ),
         ],
       },
       {
-        strategyId: 'high',
+        strategyId: 'second',
         proposals: [
           proposal(
-            'high',
+            'second',
             '2026-01-01T00:05:00Z',
             '2026-01-01T00:20:00Z',
-            -5,
-            90
+            -5
           ),
         ],
       },
     ]);
 
     expect(result.actions).toHaveLength(1);
-    expect(result.actions[0].gridTargetPowerKw).toBe(-5);
+    expect(result.actions[0].gridTargetPowerKw).toBe(5);
     expect(result.rejectedProposals).toHaveLength(1);
     expect(result.rejectedProposals[0].reason).toBe('ACTION_CONFLICT');
-    expect(result.rejectedProposals[0].proposal.strategyId).toBe('low');
+    expect(result.rejectedProposals[0].proposal.strategyId).toBe('second');
   });
 });
