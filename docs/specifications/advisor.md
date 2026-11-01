@@ -84,3 +84,27 @@ The following strategies handle energy that would otherwise be exported during n
 
 Both strategies use `grid.spotPerKwh` to detect negative-price periods. They produce `set-grid-target` ActionProposals and never modify the TimeSeries. Their `maxExportPowerKw` configuration caps the total export target of a timestep: when strategies applied earlier in the timestep already added export, a later strategy never plans beyond this maximum.
 
+
+## Battery minimum SOC strategy
+
+`BatteryMinSocHoldStrategy` (`battery-min-soc-hold`) keeps the battery state of charge above a minimum level. It analyses the battery SOC trajectory of the TimeSeries (`battery.energyKwh`, the SOC at the end of each timestep) and plans grid imports at earlier timesteps whenever the SOC would drop below the configured minimum, so that the SOC never falls below it.
+
+Configuration:
+
+- `capacityKwh` (required): battery capacity in kWh.
+- `minSocKwh` (optional): minimum SOC in kWh. Defaults to 15% of `capacityKwh`; a per-node configuration will be added later.
+- `maxChargePowerKw` (required): maximum charge power in kW; caps the planned import of a timestep.
+- `chargeEfficiencyCurve` (optional): power dependent charge efficiency curve. Without a curve charging is planned loss-free.
+- `priority` (optional, default 50).
+
+Planning model:
+
+- Deficit timesteps (`battery.energyKwh` below the minimum at the end of the timestep) are processed chronologically. A timestep without `battery.energyKwh` is never a deficit timestep but may serve as a purchase timestep.
+- Purchases are selected by ascending `grid.buyPerKwh` (ties: chronologically first). Timesteps without a buy price are used as a last resort.
+- The required import of a purchase is derived from the required SOC gain and the charge efficiency at the resulting charge power (fixed point solution against the power dependent curve), so charge losses are included. `maxChargePowerKw` caps the import of a timestep; the remainder is bought at the next cheapest timestep.
+- Purchases lift the SOC of all later timesteps additively, so a single purchase can cover several later deficits. The base trajectory is not re-simulated; capacity clamping of the lift is not modelled (purchases are sized to cover the deficit only).
+- Hard guarantee: if even charging at full `maxChargePowerKw` in every available timestep cannot cover a deficit, the strategy buys as much as possible and reports the remainder in `summarizeRun()` as `uncoveredDeficitKwh`.
+
+Actions: positive `set-grid-target` import additions on top of the existing target of the timestep. The strategy never modifies the TimeSeries. Summary fields: `minSocKwh`, `totalPlannedImportKwh`, `totalPlannedSocGainKwh`, `uncoveredDeficitKwh`.
+
+In the Node-RED node the battery parameters (capacity, max charge power, charge efficiency curve) are read from a referenced `energy-battery-config` node. The minimum SOC is a strategy setting of the advisor node (currently fixed at 15% of the capacity). The strategy requires the battery config reference; without it the node reports an error.
