@@ -27,8 +27,16 @@ const EPSILON = 1e-9;
  * possible and reports the remainder via summarizeRun() as
  * uncoveredDeficitKwh.
  *
- * Purchases lift the SOC of all later timesteps additively; the base
- * trajectory is not re-simulated (see the advisor specification).
+ * Deficits are evaluated against the effective SOC of each timestep: the
+ * reported SOC minus the grid energy the base simulation had to import
+ * beyond the grid target (the load the grid served because the battery
+ * was empty) plus the SOC gain of all purchases planned so far. Purchased
+ * energy is therefore consumed by the load of later timesteps instead of
+ * lifting the SOC of all later timesteps forever, so runs of consecutive
+ * deficit timesteps are covered step by step. The base trajectory is not
+ * re-simulated (see the advisor specification); without grid.importKwh
+ * data the drain at an empty battery is unknown and the strategy falls
+ * back to the purely additive model.
  *
  * Applied per timestep by the AdvisorEngine: the whole plan is precomputed
  * once per run in the strategy state; planTimestep() only emits the
@@ -128,15 +136,25 @@ export class BatteryMinSocHoldStrategy extends Strategy {
  * Precomputes, once per run, the import to plan for every timestep so that
  * the battery SOC never falls below the strategy's minimum SOC.
  *
- * Deficit timesteps (battery.energyKwh below the minimum at the end of the
- * timestep) are processed chronologically. For every deficit the cheapest
- * still available earlier timesteps (by grid.buyPerKwh, ties resolved by
- * chronological order) are charged until the deficit is covered. The SOC
- * gain of all planned purchases carries forward additively to all later
- * timesteps, so a single purchase can cover several later deficits.
+ * Deficit timesteps are processed chronologically. A timestep is a deficit
+ * when its effective SOC - the reported battery.energyKwh minus the grid
+ * energy that the base simulation had to import beyond the grid target
+ * because the battery was empty, plus the SOC gain of all purchases
+ * planned so far - is below the minimum. This unfloored view of the base
+ * trajectory makes purchased energy consumed by later load: a purchase
+ * only helps later timesteps while it is actually still stored in the
+ * battery, so runs of consecutive deficit timesteps are covered step by
+ * step instead of by a single purchase.
  *
- * If even the full charge power in every available timestep cannot cover a
- * deficit, the remainder is accumulated as uncoveredDeficitKwh.
+ * For every deficit the cheapest still available earlier timesteps (by
+ * grid.buyPerKwh, ties resolved by chronological order) are charged until
+ * the deficit is covered. When the TimeSeries provides no grid.importKwh,
+ * the drain while the battery sits empty cannot be observed; the strategy
+ * then falls back to the old additive model, where purchases lift all
+ * later timesteps.
+ *
+ * If even the full charge power in every available timestep cannot cover
+ * a deficit, the remainder is accumulated as uncoveredDeficitKwh.
  */
 function initializeState(state, series, strategy) {
   if (state.initialized) return;
@@ -148,10 +166,21 @@ function initializeState(state, series, strategy) {
     const durationHours = getTimestepDurationHours(start, end);
     const socEndKwh = Number(timestep.battery?.energyKwh);
     const buyPerKwh = Number(timestep.grid?.buyPerKwh);
+    const importKwh = Number(timestep.grid?.importKwh);
+    const targetPowerKw = Number(timestep.grid?.targetPowerKw);
+    const targetImportKwh =
+      Number.isFinite(targetPowerKw) && targetPowerKw > 0
+        ? targetPowerKw * durationHours
+        : 0;
     return {
       durationHours,
       socEndKwh: Number.isFinite(socEndKwh) ? socEndKwh : null,
       buyPerKwh: Number.isFinite(buyPerKwh) ? buyPerKwh : Infinity,
+      // Grid energy that served load because the battery was empty. It
+      // keeps draining the battery in the effective (unfloored) trajectory.
+      uncoveredImportKwh: Number.isFinite(importKwh)
+        ? Math.max(0, importKwh - targetImportKwh)
+        : 0,
     };
   });
 
@@ -163,11 +192,18 @@ function initializeState(state, series, strategy) {
 
   let coveredSocGainKwh = 0;
   let uncoveredDeficitKwh = 0;
+  let uncoveredImportRunningKwh = 0;
 
   for (let i = 0; i < entries.length; i += 1) {
+    uncoveredImportRunningKwh += entries[i].uncoveredImportKwh;
     const socEndKwh = entries[i].socEndKwh;
     if (socEndKwh === null) continue;
-    let neededSocGainKwh = minSocKwh - socEndKwh - coveredSocGainKwh;
+    // The SOC the battery would show without the floor at zero: the
+    // reported SOC plus the load the grid served while the battery was
+    // empty.
+    const unflooredSocEndKwh = socEndKwh - uncoveredImportRunningKwh;
+    let neededSocGainKwh =
+      minSocKwh - unflooredSocEndKwh - coveredSocGainKwh;
     if (neededSocGainKwh <= EPSILON) continue;
 
     const candidates = [];
