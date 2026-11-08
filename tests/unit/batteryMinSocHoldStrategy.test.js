@@ -8,7 +8,13 @@ function run(strategy, timeSeries) {
 
 function timestep(
   startMinute,
-  { socKwh, buyPerKwh, durationMinutes = 15, targetPowerKw = 0 }
+  {
+    socKwh,
+    buyPerKwh,
+    durationMinutes = 15,
+    targetPowerKw = 0,
+    importKwh,
+  }
 ) {
   const start = new Date(Date.UTC(2026, 0, 1) + startMinute * 60 * 1000);
   const end = new Date(start.getTime() + durationMinutes * 60 * 1000);
@@ -18,6 +24,7 @@ function timestep(
     grid: { buyPerKwh, targetPowerKw },
   };
   if (socKwh !== undefined) timestep.battery = { energyKwh: socKwh };
+  if (importKwh !== undefined) timestep.grid.importKwh = importKwh;
   return timestep;
 }
 
@@ -226,6 +233,157 @@ describe('BatteryMinSocHoldStrategy', () => {
     expect(plan.actions).toHaveLength(2);
     expect(plan.actions[0].gridTargetPowerKw).toBeCloseTo(4, 10);
     expect(plan.actions[1].gridTargetPowerKw).toBeCloseTo(0.8, 10);
+    expect(plan.strategyPlans[0].uncoveredDeficitKwh).toBeCloseTo(0, 10);
+  });
+
+  it('keeps buying for consecutive deficit timesteps while the battery sits empty', () => {
+    const timeSeries = [
+      timestep(0, { socKwh: 3.0, buyPerKwh: 0.1 }),
+      timestep(15, { socKwh: 0, buyPerKwh: 0.2, importKwh: 0.5 }),
+      timestep(30, { socKwh: 0, buyPerKwh: 0.2, importKwh: 0.5 }),
+      timestep(45, { socKwh: 0, buyPerKwh: 0.2, importKwh: 0.5 }),
+      timestep(60, { socKwh: 0, buyPerKwh: 0.2, importKwh: 0.5 }),
+      timestep(75, { socKwh: 0, buyPerKwh: 0.2, importKwh: 0.5 }),
+    ];
+    const plan = run(
+      new BatteryMinSocHoldStrategy({
+        capacityKwh: 10,
+        minSocKwh: 1.5,
+        maxChargePowerKw: 4,
+      }),
+      timeSeries
+    );
+
+    // Every empty-battery timestep drains another 0.5 kWh that the grid
+    // served, so the strategy keeps buying instead of assuming that the
+    // first purchases lift all later timesteps above the minimum.
+    expect(plan.actions).toHaveLength(4);
+    expect(plan.actions[0].gridTargetPowerKw).toBeCloseTo(4, 10);
+    expect(plan.actions[1].gridTargetPowerKw).toBeCloseTo(4, 10);
+    expect(plan.actions[2].gridTargetPowerKw).toBeCloseTo(4, 10);
+    expect(plan.actions[3].gridTargetPowerKw).toBeCloseTo(4, 10);
+    expect(plan.strategyPlans[0].totalPlannedImportKwh).toBeCloseTo(4.0, 10);
+    expect(plan.strategyPlans[0].totalPlannedSocGainKwh).toBeCloseTo(4.0, 10);
+    expect(plan.strategyPlans[0].uncoveredDeficitKwh).toBeCloseTo(0, 10);
+  });
+
+  it('counts only the grid import beyond the grid target as consumed load', () => {
+    const timeSeries = [
+      timestep(0, {
+        socKwh: 3.0,
+        buyPerKwh: 0.1,
+        targetPowerKw: 1.6,
+        importKwh: 0.4,
+      }),
+      timestep(15, {
+        socKwh: 2.0,
+        buyPerKwh: 0.2,
+        targetPowerKw: 1.6,
+        importKwh: 0.4,
+      }),
+      timestep(30, {
+        socKwh: 0.5,
+        buyPerKwh: 0.3,
+        targetPowerKw: 0,
+        importKwh: 0.5,
+      }),
+    ];
+    const plan = run(
+      new BatteryMinSocHoldStrategy({
+        capacityKwh: 10,
+        minSocKwh: 1.5,
+        maxChargePowerKw: 4,
+      }),
+      timeSeries
+    );
+
+    // The imports of t0 and t1 match their grid targets (served load),
+    // only the 0.5 kWh beyond the target at t2 drain the battery.
+    expect(plan.actions).toHaveLength(2);
+    expect(plan.actions[0].gridTargetPowerKw).toBeCloseTo(5.6, 10);
+    expect(plan.actions[1].gridTargetPowerKw).toBeCloseTo(3.6, 10);
+    expect(plan.strategyPlans[0].totalPlannedImportKwh).toBeCloseTo(1.5, 10);
+    expect(plan.strategyPlans[0].uncoveredDeficitKwh).toBeCloseTo(0, 10);
+  });
+
+  it('falls back to the additive model when the series has no import data', () => {
+    const timeSeries = [
+      timestep(0, { socKwh: 3.0, buyPerKwh: 0.1 }),
+      timestep(15, { socKwh: 0, buyPerKwh: 0.2 }),
+      timestep(30, { socKwh: 0, buyPerKwh: 0.3 }),
+    ];
+    const plan = run(
+      new BatteryMinSocHoldStrategy({
+        capacityKwh: 10,
+        minSocKwh: 1.5,
+        maxChargePowerKw: 4,
+      }),
+      timeSeries
+    );
+
+    // Without grid.importKwh the drain at the empty battery cannot be
+    // observed, so the SOC gain of purchases carries forward additively.
+    expect(plan.actions).toHaveLength(2);
+    expect(plan.actions[0].gridTargetPowerKw).toBeCloseTo(4, 10);
+    expect(plan.actions[1].gridTargetPowerKw).toBeCloseTo(2, 10);
+    expect(plan.strategyPlans[0].totalPlannedImportKwh).toBeCloseTo(1.5, 10);
+    expect(plan.strategyPlans[0].totalPlannedSocGainKwh).toBeCloseTo(1.5, 10);
+    expect(plan.strategyPlans[0].uncoveredDeficitKwh).toBeCloseTo(0, 10);
+  });
+
+  it('reports the uncovered deficit honestly when the empty battery drains faster than it can be charged', () => {
+    const timeSeries = [
+      timestep(0, { socKwh: 3.0, buyPerKwh: 0.1 }),
+      timestep(15, { socKwh: 0, buyPerKwh: 0.2, importKwh: 0.5 }),
+      timestep(30, { socKwh: 0, buyPerKwh: 0.2, importKwh: 0.5 }),
+      timestep(45, { socKwh: 0, buyPerKwh: 0.2, importKwh: 0.5 }),
+      timestep(60, { socKwh: 0, buyPerKwh: 0.2, importKwh: 0.5 }),
+      timestep(75, { socKwh: 0, buyPerKwh: 0.2, importKwh: 0.5 }),
+    ];
+    const plan = run(
+      new BatteryMinSocHoldStrategy({
+        capacityKwh: 10,
+        minSocKwh: 1.5,
+        maxChargePowerKw: 0.5,
+      }),
+      timeSeries
+    );
+
+    // Every timestep can only store 0.125 kWh, so most of the deficit
+    // cannot be covered and is reported instead of being hidden by the
+    // additive carry-forward.
+    expect(plan.actions).toHaveLength(6);
+    for (const action of plan.actions) {
+      expect(action.gridTargetPowerKw).toBeCloseTo(0.5, 10);
+    }
+    expect(plan.strategyPlans[0].totalPlannedImportKwh).toBeCloseTo(0.75, 10);
+    expect(plan.strategyPlans[0].uncoveredDeficitKwh).toBeCloseTo(12.5, 10);
+  });
+
+  it('consumes an earlier purchase with later load before it can cover later deficits', () => {
+    const timeSeries = [
+      timestep(0, { socKwh: 2.5, buyPerKwh: 0.1 }),
+      timestep(15, { socKwh: 0.5, buyPerKwh: 0.2 }),
+      timestep(30, { socKwh: 0, buyPerKwh: 0.3, importKwh: 0.7 }),
+      timestep(45, { socKwh: 0, buyPerKwh: 0.4, importKwh: 0.7 }),
+    ];
+    const plan = run(
+      new BatteryMinSocHoldStrategy({
+        capacityKwh: 10,
+        minSocKwh: 1.5,
+        maxChargePowerKw: 4,
+      }),
+      timeSeries
+    );
+
+    // The purchase in t0 is consumed by the load of the empty-battery
+    // steps, so t2 must buy again and t3 needs the leftover capacity of
+    // t2 (3.6 kW for 15 minutes).
+    expect(plan.actions).toHaveLength(3);
+    expect(plan.actions[0].gridTargetPowerKw).toBeCloseTo(4, 10);
+    expect(plan.actions[1].gridTargetPowerKw).toBeCloseTo(4, 10);
+    expect(plan.actions[2].gridTargetPowerKw).toBeCloseTo(3.6, 10);
+    expect(plan.strategyPlans[0].totalPlannedImportKwh).toBeCloseTo(2.9, 10);
     expect(plan.strategyPlans[0].uncoveredDeficitKwh).toBeCloseTo(0, 10);
   });
 
