@@ -1,6 +1,7 @@
 import { ImmediateNegativePriceExportStrategy } from './strategies/immediateNegativePriceExportStrategy.js';
 import { DistributedNegativePriceExportStrategy } from './strategies/distributedNegativePriceExportStrategy.js';
 import { BatteryMinSocHoldStrategy } from './strategies/batteryMinSocHoldStrategy.js';
+import { BatteryMinSocHoldEfficientStrategy } from './strategies/batteryMinSocHoldEfficientStrategy.js';
 
 const DEFAULT_MAX_EXPORT_POWER_KW = 7.46;
 const DEFAULT_MIN_SOC_PERCENT = 15;
@@ -104,6 +105,55 @@ export const advisorStrategyRegistry = {
         maxChargePowerKw: batteryConfig.max_charge_power_kw,
         chargeEfficiencyCurve: batteryConfig.charge_efficiency_curve,
         minSocPercent: minSocPercent / 100
+      });
+    }
+  },
+  'battery-min-soc-hold-efficient': {
+    label: 'Battery minimum SOC hold (efficient)',
+    options: [
+      {
+        name: 'minSocPercent',
+        label: 'Min SOC %',
+        type: 'number',
+        default: DEFAULT_MIN_SOC_PERCENT,
+        min: 0,
+        max: 100,
+        step: 1
+      },
+      {
+        name: 'batteryConfig',
+        label: 'Battery config',
+        type: 'battery-config'
+      },
+      {
+        name: 'chunkSizeKwh',
+        label: 'Chunk size kWh (optional)',
+        type: 'number',
+        default: null,
+        min: 0,
+        step: 0.1
+      }
+    ],
+    create(config, ctx) {
+      const batteryConfig = ctx.getBatteryConfig(config.batteryConfig);
+      if (!batteryConfig) {
+        throw new Error(
+          'battery-min-soc-hold-efficient requires a battery config: select an energy-battery-config node for this strategy'
+        );
+      }
+      const minSocPercent = numberOption(
+        config.minSocPercent,
+        DEFAULT_MIN_SOC_PERCENT
+      );
+      const chunkSizeKwh = config.chunkSizeKwh !== null && config.chunkSizeKwh !== undefined
+        ? numberOption(config.chunkSizeKwh, null)
+        : null;
+      return new BatteryMinSocHoldEfficientStrategy({
+        capacityKwh: batteryConfig.capacity_kwh,
+        maxChargePowerKw: batteryConfig.max_charge_power_kw,
+        chargeEfficiencyCurve: batteryConfig.charge_efficiency_curve,
+        minSocPercent: minSocPercent / 100,
+        chunkSizeKwh: chunkSizeKwh
       });
     }
   }
