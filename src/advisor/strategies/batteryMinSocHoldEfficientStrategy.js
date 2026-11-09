@@ -195,7 +195,6 @@ function initializeState(state, series, strategy) {
     for (const chunk of chunks) {
       let bestSlotIndex = -1;
       let bestEffectiveCost = Infinity;
-      let bestEfficiency = 0;
 
       // Look at all past timesteps (including current)
       for (let j = 0; j <= i; j += 1) {
@@ -227,7 +226,6 @@ function initializeState(state, series, strategy) {
         ) {
           bestEffectiveCost = effectiveCost;
           bestSlotIndex = j;
-          bestEfficiency = efficiency;
         }
       }
 
