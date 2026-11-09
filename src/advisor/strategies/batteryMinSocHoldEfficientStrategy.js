@@ -249,7 +249,7 @@ function initializeState(state, series, strategy) {
         plannedChunks[bestSlotIndex] += 1;
         remainingCapacityKwh[bestSlotIndex] -= chunk.sizeKwh;
         coveredSocGainKwh += socGainKwh;
-        neededSocGainKwh -= socGainKwh;
+        neededSocGainKwh -= chunk.sizeKwh;
         totalEfficiencySum += efficiency * chunk.sizeKwh;
       }
     }
