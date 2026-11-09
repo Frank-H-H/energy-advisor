@@ -23,12 +23,13 @@ describe('strategy registry', () => {
   it('describes all available strategies for the node editor', () => {
     expect(Object.keys(advisorStrategyRegistry).sort()).toEqual([
       'battery-min-soc-hold',
+      'battery-min-soc-hold-efficient',
       'distributed-negative-price-export',
       'immediate-negative-price-export'
     ]);
 
     const descriptors = getStrategyDescriptors();
-    expect(descriptors).toHaveLength(3);
+    expect(descriptors).toHaveLength(4);
     descriptors.forEach((descriptor) => {
       expect(typeof descriptor.id).toBe('string');
       expect(typeof descriptor.label).toBe('string');
@@ -66,15 +67,19 @@ describe('strategy registry', () => {
   it('falls back to the node-level legacy battery config for migrated battery strategies', () => {
     expect(
       normalizeStrategyConfigs('battery-min-soc-hold', {
+      'battery-min-soc-hold-efficient',
         legacyBatteryConfig: 'bat1'
       })
     ).toEqual([{ type: 'battery-min-soc-hold', batteryConfig: 'bat1' }]);
+      'battery-min-soc-hold-efficient',
 
     expect(
       normalizeStrategyConfigs([{ type: 'battery-min-soc-hold', batteryConfig: 'bat2' }], {
+      'battery-min-soc-hold-efficient',
         legacyBatteryConfig: 'bat1'
       })
     ).toEqual([{ type: 'battery-min-soc-hold', batteryConfig: 'bat2' }]);
+      'battery-min-soc-hold-efficient',
   });
 
   it('creates export strategies with the configured or default export power', () => {
@@ -93,6 +98,7 @@ describe('strategy registry', () => {
   it('creates the battery strategy from a battery config node and minSocPercent', () => {
     const [strategy] = createStrategies(
       [{ type: 'battery-min-soc-hold', batteryConfig: 'bat1', minSocPercent: 20 }],
+      'battery-min-soc-hold-efficient',
       ctx
     );
     expect(strategy).toBeInstanceOf(BatteryMinSocHoldStrategy);
@@ -100,6 +106,7 @@ describe('strategy registry', () => {
 
     const [defaultPercent] = createStrategies(
       [{ type: 'battery-min-soc-hold', batteryConfig: 'bat1' }],
+      'battery-min-soc-hold-efficient',
       ctx
     );
     expect(defaultPercent.minSocKwh).toBeCloseTo(1.5, 10);
