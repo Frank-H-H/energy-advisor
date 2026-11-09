@@ -23,12 +23,13 @@ describe('strategy registry', () => {
   it('describes all available strategies for the node editor', () => {
     expect(Object.keys(advisorStrategyRegistry).sort()).toEqual([
       'battery-min-soc-hold',
+      'battery-min-soc-hold-efficient',
       'distributed-negative-price-export',
       'immediate-negative-price-export'
     ]);
 
     const descriptors = getStrategyDescriptors();
-    expect(descriptors).toHaveLength(3);
+    expect(descriptors).toHaveLength(4);
     descriptors.forEach((descriptor) => {
       expect(typeof descriptor.id).toBe('string');
       expect(typeof descriptor.label).toBe('string');
