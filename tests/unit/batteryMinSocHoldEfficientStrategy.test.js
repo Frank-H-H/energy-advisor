@@ -127,4 +127,46 @@ describe('BatteryMinSocHoldEfficientStrategy', () => {
     expect(strategyPlan.uncoveredDeficitKwh).toBeCloseTo(0, 10);
     expect(strategyPlan.totalPlannedImportKwh).toBeGreaterThan(0);
   });
+
+  it('does not plan purchases for timesteps without buy prices', () => {
+    const timeSeries = [
+      timestep(0, { socKwh: 2.0, buyPerKwh: undefined }),
+      timestep(15, { socKwh: 0.5, buyPerKwh: undefined }),
+    ];
+    const plan = run(
+      new BatteryMinSocHoldEfficientStrategy({ 
+        capacityKwh: 10, 
+        maxChargePowerKw: 4,
+        minSocKwh: 1.5
+      }),
+      timeSeries
+    );
+
+    const strategyPlan = plan.strategyPlans[0];
+    // Without buy prices, no purchases can be planned
+    expect(plan.actions).toHaveLength(0);
+    expect(strategyPlan.totalPlannedImportKwh).toBeCloseTo(0, 10);
+    expect(strategyPlan.uncoveredDeficitKwh).toBeCloseTo(1.0, 10);
+  });
+
+  it('uses only timesteps with buy prices for planning', () => {
+    const timeSeries = [
+      timestep(0, { socKwh: 2.0, buyPerKwh: 0.1 }),
+      timestep(15, { socKwh: 0.5, buyPerKwh: undefined }),
+    ];
+    const plan = run(
+      new BatteryMinSocHoldEfficientStrategy({ 
+        capacityKwh: 10, 
+        maxChargePowerKw: 4,
+        minSocKwh: 1.5
+      }),
+      timeSeries
+    );
+
+    const strategyPlan = plan.strategyPlans[0];
+    // Only the first timestep has a buy price, so it's used
+    expect(plan.actions).toHaveLength(1);
+    expect(strategyPlan.totalPlannedSocGainKwh).toBeCloseTo(1.0, 10);
+    expect(strategyPlan.uncoveredDeficitKwh).toBeCloseTo(0, 10);
+  });
 });
