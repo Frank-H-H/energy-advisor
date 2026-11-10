@@ -142,4 +142,47 @@ describe('strategy registry', () => {
     expect(plan.actions[0].gridTargetPowerKw).toBeCloseTo(-7, 10);
     expect(plan.actions[1].gridTargetPowerKw).toBeCloseTo(-7.46, 10);
   });
+
+  it('describes sourceable min SOC options and the hysteresis default', () => {
+    const efficient = advisorStrategyRegistry['battery-min-soc-hold-efficient'];
+    const minSocOption = efficient.options.find(
+      (o) => o.name === 'minSocPercent'
+    );
+    const hysteresisOption = efficient.options.find(
+      (o) => o.name === 'minSocHysteresisPercent'
+    );
+    expect(minSocOption.sourceable).toBe(true);
+    expect(hysteresisOption).toBeDefined();
+    expect(hysteresisOption.sourceable).toBe(true);
+    expect(hysteresisOption.default).toBe(2);
+    expect(hysteresisOption.min).toBe(0);
+    expect(hysteresisOption.max).toBe(100);
+    expect(
+      advisorStrategyRegistry['battery-min-soc-hold'].options.find(
+        (o) => o.name === 'minSocPercent'
+      ).sourceable
+    ).toBe(true);
+  });
+
+  it('creates the efficient battery strategy with the configured hysteresis', () => {
+    const [strategy] = createStrategies(
+      [
+        {
+          type: 'battery-min-soc-hold-efficient',
+          batteryConfig: 'bat1',
+          minSocPercent: 20,
+          minSocHysteresisPercent: 3
+        }
+      ],
+      ctx
+    );
+    expect(strategy.minSocKwh).toBeCloseTo(2, 10);
+    expect(strategy.minSocHysteresisKwh).toBeCloseTo(0.3, 10);
+
+    const [defaults] = createStrategies(
+      [{ type: 'battery-min-soc-hold-efficient', batteryConfig: 'bat1' }],
+      ctx
+    );
+    expect(defaults.minSocHysteresisKwh).toBeCloseTo(0.2, 10);
+  });
 });
