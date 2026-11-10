@@ -165,7 +165,7 @@ function initializeState(state, series, strategy) {
     const end = new Date(timestep.end);
     const durationHours = getTimestepDurationHours(start, end);
     const socEndKwh = Number(timestep.battery?.energyKwh);
-    const buyPerKwh = Number(timestep.grid?.buyPerKwh);
+    const buyPerKwhRaw = timestep.grid?.buyPerKwh;
     const importKwh = Number(timestep.grid?.importKwh);
     const targetPowerKw = Number(timestep.grid?.targetPowerKw);
     const targetImportKwh =
@@ -175,7 +175,7 @@ function initializeState(state, series, strategy) {
     return {
       durationHours,
       socEndKwh: Number.isFinite(socEndKwh) ? socEndKwh : null,
-      buyPerKwh: Number.isFinite(buyPerKwh) ? buyPerKwh : Infinity,
+      buyPerKwh: (buyPerKwhRaw == null || !Number.isFinite(buyPerKwhRaw)) ? Infinity : Number(buyPerKwhRaw),
       // Grid energy that served load because the battery was empty. It
       // keeps draining the battery in the effective (unfloored) trajectory.
       uncoveredImportKwh: Number.isFinite(importKwh)

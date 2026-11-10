@@ -535,4 +535,52 @@ describe('BatteryMinSocHoldStrategy', () => {
         })
     ).toThrow('minSocPercent must be between 0 and 1');
   });
+
+  it('does not plan purchases for timesteps with null buy prices', () => {
+    const timeSeries = [
+      timestep(0, { socKwh: 2.0, buyPerKwh: null }),
+      timestep(15, { socKwh: 0.5, buyPerKwh: null }),
+    ];
+    const plan = run(
+      new BatteryMinSocHoldStrategy({ capacityKwh: 10, maxChargePowerKw: 4 }),
+      timeSeries
+    );
+
+    // With null buy prices, no purchases can be planned
+    expect(plan.actions).toHaveLength(0);
+    expect(plan.strategyPlans[0].totalPlannedSocGainKwh).toBeCloseTo(0, 10);
+    expect(plan.strategyPlans[0].uncoveredDeficitKwh).toBeCloseTo(1.0, 10);
+  });
+
+  it('uses only timesteps with buy prices (not null) for planning', () => {
+    const timeSeries = [
+      timestep(0, { socKwh: 2.0, buyPerKwh: 0.1 }),
+      timestep(15, { socKwh: 0.5, buyPerKwh: null }),
+    ];
+    const plan = run(
+      new BatteryMinSocHoldStrategy({ capacityKwh: 10, maxChargePowerKw: 4 }),
+      timeSeries
+    );
+
+    // Only the first timestep has a buy price, so it's used
+    expect(plan.actions).toHaveLength(1);
+    expect(plan.actions[0].gridTargetPowerKw).toBeCloseTo(4, 10);
+    expect(plan.strategyPlans[0].totalPlannedSocGainKwh).toBeCloseTo(1.0, 10);
+    expect(plan.strategyPlans[0].uncoveredDeficitKwh).toBeCloseTo(0, 10);
+  });
+
+  it('treats null and undefined buy prices the same', () => {
+    const timeSeries = [
+      timestep(0, { socKwh: 2.0, buyPerKwh: null }),
+      timestep(15, { socKwh: 0.5, buyPerKwh: undefined }),
+    ];
+    const plan = run(
+      new BatteryMinSocHoldStrategy({ capacityKwh: 10, maxChargePowerKw: 4 }),
+      timeSeries
+    );
+
+    // Both null and undefined should be treated the same - no purchases
+    expect(plan.actions).toHaveLength(0);
+    expect(plan.strategyPlans[0].uncoveredDeficitKwh).toBeCloseTo(1.0, 10);
+  });
 });
