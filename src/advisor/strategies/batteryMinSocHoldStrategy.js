@@ -208,7 +208,9 @@ function initializeState(state, series, strategy) {
 
     const candidates = [];
     for (let j = 0; j <= i; j += 1) {
-      if (remainingImportKwh[j] > EPSILON) candidates.push(j);
+      if (remainingImportKwh[j] > EPSILON && entries[j].buyPerKwh < Infinity) {
+        candidates.push(j);
+      }
     }
     candidates.sort(
       (a, b) => entries[a].buyPerKwh - entries[b].buyPerKwh || a - b

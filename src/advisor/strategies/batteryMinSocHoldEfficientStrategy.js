@@ -200,6 +200,9 @@ function initializeState(state, series, strategy) {
       for (let j = 0; j <= i; j += 1) {
         const slot = entries[j];
         
+        // Skip timesteps without a buy price - no reaction should be planned for these
+        if (slot.buyPerKwh >= Infinity) continue;
+
         // Check remaining capacity
         if (remainingCapacityKwh[j] < chunk.sizeKwh - EPSILON) continue;
 
