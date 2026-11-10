@@ -61,7 +61,8 @@ module.exports = function (RED) {
             getMessageProperty: (propertyPath) =>
               RED.util.getMessageProperty(msg, propertyPath)
           });
-        if (fallbacks.length > 0) {
+        const msgSourceFallback = fallbacks.length > 0;
+        if (msgSourceFallback) {
           node.warn(
             'Strategy option msg sources fell back to fixed/default values: ' +
               fallbacks
@@ -78,12 +79,22 @@ module.exports = function (RED) {
                 )
                 .join(', ')
           );
-          if (typeof node.status === 'function') {
+        }
+        // The Node-RED node status is sticky: only update it when the
+        // fallback state changes, and clear it again once the msg sources
+        // resolve, so a single fallback message does not leave a yellow
+        // status forever while later messages resolve correctly.
+        if (typeof node.status === 'function') {
+          if (msgSourceFallback && node.msgSourceFallbackActive !== true) {
+            node.msgSourceFallbackActive = true;
             node.status({
               fill: 'yellow',
               shape: 'dot',
               text: 'msg source fallback'
             });
+          } else if (!msgSourceFallback && node.msgSourceFallbackActive) {
+            node.msgSourceFallbackActive = false;
+            node.status({});
           }
         }
 
