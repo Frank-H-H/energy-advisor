@@ -47,10 +47,45 @@ module.exports = function (RED) {
         // strategies are applied within every timestep. The legacy
         // comma-separated string (and the node-level battery config
         // reference of old flows) is migrated automatically.
-        const strategyConfigs = core.normalizeStrategyConfigs(
+        const normalizedConfigs = core.normalizeStrategyConfigs(
           config.strategies,
           { legacyBatteryConfig: config.batteryConfig }
         );
+
+        // Strategy options with a msg source (e.g. minSocPercentSource)
+        // are resolved per message against the incoming msg. Missing or
+        // invalid msg values fall back to the fixed value / default and
+        // are reported so the node can warn and show a status.
+        const { configs: strategyConfigs, fallbacks } =
+          core.resolveStrategyOptionSources(normalizedConfigs, {
+            getMessageProperty: (propertyPath) =>
+              RED.util.getMessageProperty(msg, propertyPath)
+          });
+        if (fallbacks.length > 0) {
+          node.warn(
+            'Strategy option msg sources fell back to fixed/default values: ' +
+              fallbacks
+                .map(
+                  (f) =>
+                    f.type +
+                    '.' +
+                    f.option +
+                    ' (msg.' +
+                    f.path +
+                    ': ' +
+                    f.reason +
+                    ')'
+                )
+                .join(', ')
+          );
+          node.status({
+            fill: 'yellow',
+            shape: 'dot',
+            text: 'msg source fallback'
+          });
+        } else {
+          node.status({});
+        }
 
         const strategies = core.createStrategies(strategyConfigs, {
           getBatteryConfig: (id) => (id ? RED.nodes.getNode(id) : null),
