@@ -84,16 +84,18 @@ module.exports = function (RED) {
         // fallback state changes, and clear it again once the msg sources
         // resolve, so a single fallback message does not leave a yellow
         // status forever while later messages resolve correctly.
-        if (
-          typeof node.status === 'function' &&
-          node.msgSourceFallbackActive !== msgSourceFallback
-        ) {
-          node.msgSourceFallbackActive = msgSourceFallback;
-          node.status(
-            msgSourceFallback
-              ? { fill: 'yellow', shape: 'dot', text: 'msg source fallback' }
-              : {}
-          );
+        if (typeof node.status === 'function') {
+          if (msgSourceFallback && node.msgSourceFallbackActive !== true) {
+            node.msgSourceFallbackActive = true;
+            node.status({
+              fill: 'yellow',
+              shape: 'dot',
+              text: 'msg source fallback'
+            });
+          } else if (!msgSourceFallback && node.msgSourceFallbackActive) {
+            node.msgSourceFallbackActive = false;
+            node.status({});
+          }
         }
 
         const strategies = core.createStrategies(strategyConfigs, {

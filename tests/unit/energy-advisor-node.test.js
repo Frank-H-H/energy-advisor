@@ -447,7 +447,7 @@ describe('energy-advisor Node-RED adapter', () => {
         charge_efficiency_curve: [{ up_to_kw: 0, efficiency: 1 }],
       },
     };
-    const { sent, errors, warnings, statuses, inputHandlers, RED } =
+    const { errors, warnings, statuses, inputHandlers, RED } =
       createRed(batteryConfigs);
 
     energyAdvisorNode(RED);
