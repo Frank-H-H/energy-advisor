@@ -4,11 +4,19 @@ import energyAdvisorNode from '../../nodes/energy-advisor/energy-advisor.js';
 function createRed(batteryConfigs = {}) {
   const sent = [];
   const errors = [];
+  const warnings = [];
+  const statuses = [];
   const inputHandlers = [];
 
   const RED = {
     httpAdmin: {
       get: () => {}
+    },
+    util: {
+      getMessageProperty: (msg, path) =>
+        String(path)
+          .split('.')
+          .reduce((obj, key) => (obj == null ? undefined : obj[key]), msg)
     },
     nodes: {
       createNode(node) {
@@ -17,6 +25,8 @@ function createRed(batteryConfigs = {}) {
         };
         node.send = (msg) => sent.push(msg);
         node.error = (error) => errors.push(error);
+        node.warn = (warning) => warnings.push(warning);
+        node.status = (status) => statuses.push(status);
       },
       registerType(name, constructor) {
         expect(name).toBe('energy-advisor');
@@ -26,7 +36,7 @@ function createRed(batteryConfigs = {}) {
     },
   };
 
-  return { sent, errors, inputHandlers, RED };
+  return { sent, errors, warnings, statuses, inputHandlers, RED };
 }
 
 describe('energy-advisor Node-RED adapter', () => {
@@ -369,6 +379,129 @@ describe('energy-advisor Node-RED adapter', () => {
     expect(errors).toHaveLength(0);
     expect(sent[0].plan.actions).toHaveLength(1);
     expect(sent[0].plan.actions[0].gridTargetPowerKw).toBeCloseTo(4, 10);
+  });
+
+  it('resolves minSocPercent from a msg source without leaving a status', async () => {
+    const batteryConfigs = {
+      bat1: {
+        capacity_kwh: 10,
+        max_charge_power_kw: 4,
+        charge_efficiency_curve: [{ up_to_kw: 0, efficiency: 1 }],
+      },
+    };
+    const { sent, errors, warnings, statuses, inputHandlers, RED } =
+      createRed(batteryConfigs);
+
+    energyAdvisorNode(RED);
+    const node = {};
+    RED.constructor.call(node, {
+      strategies: [
+        {
+          type: 'battery-min-soc-hold',
+          batteryConfig: 'bat1',
+          minSocPercentSource: 'payload.battery.minSocPercent',
+        },
+      ],
+    });
+
+    const forecast = {
+      timeSeries: [
+        {
+          start: '2026-01-01T00:00:00Z',
+          end: '2026-01-01T00:15:00Z',
+          battery: { energyKwh: 2.0 },
+          grid: { buyPerKwh: 0.05, targetPowerKw: 0 },
+        },
+        {
+          start: '2026-01-01T00:15:00Z',
+          end: '2026-01-01T00:30:00Z',
+          battery: { energyKwh: 0.5 },
+          grid: { buyPerKwh: 0.3, targetPowerKw: 0 },
+        },
+      ],
+    };
+
+    await inputHandlers[0]({
+      payload: {
+        timeSeries: forecast.timeSeries,
+        battery: { minSocPercent: 20 },
+      },
+    });
+
+    expect(errors).toHaveLength(0);
+    expect(warnings).toHaveLength(0);
+    // minSocPercent 20 (resolved from msg) keeps the SOC above 2.0 kWh,
+    // exactly like the fixed-value variant of this test.
+    expect(sent[0].plan.actions).toHaveLength(2);
+    expect(sent[0].plan.actions[0].gridTargetPowerKw).toBeCloseTo(4, 10);
+    expect(sent[0].plan.actions[1].gridTargetPowerKw).toBeCloseTo(2, 10);
+    // A resolving msg source must not leave a fallback status behind.
+    expect(statuses).toEqual([]);
+  });
+
+  it('sets a yellow fallback status once and clears it when the source resolves again', async () => {
+    const batteryConfigs = {
+      bat1: {
+        capacity_kwh: 10,
+        max_charge_power_kw: 4,
+        charge_efficiency_curve: [{ up_to_kw: 0, efficiency: 1 }],
+      },
+    };
+    const { sent, errors, warnings, statuses, inputHandlers, RED } =
+      createRed(batteryConfigs);
+
+    energyAdvisorNode(RED);
+    const node = {};
+    RED.constructor.call(node, {
+      strategies: [
+        {
+          type: 'battery-min-soc-hold',
+          batteryConfig: 'bat1',
+          minSocPercentSource: 'payload.battery.minSocPercent',
+        },
+      ],
+    });
+
+    const forecast = {
+      timeSeries: [
+        {
+          start: '2026-01-01T00:00:00Z',
+          end: '2026-01-01T00:15:00Z',
+          battery: { energyKwh: 2.0 },
+          grid: { buyPerKwh: 0.05, targetPowerKw: 0 },
+        },
+        {
+          start: '2026-01-01T00:15:00Z',
+          end: '2026-01-01T00:30:00Z',
+          battery: { energyKwh: 0.5 },
+          grid: { buyPerKwh: 0.3, targetPowerKw: 0 },
+        },
+      ],
+    };
+
+    // First message without the property: fallback, yellow status.
+    await inputHandlers[0]({ payload: { timeSeries: forecast.timeSeries } });
+    expect(errors).toHaveLength(0);
+    expect(warnings).toHaveLength(1);
+    expect(statuses).toEqual([
+      { fill: 'yellow', shape: 'dot', text: 'msg source fallback' }
+    ]);
+
+    // Second message still without the property: still a fallback warning,
+    // but the status is not set again.
+    await inputHandlers[0]({ payload: { timeSeries: forecast.timeSeries } });
+    expect(warnings).toHaveLength(2);
+    expect(statuses).toHaveLength(1);
+
+    // Third message resolves the source: the sticky status is cleared.
+    await inputHandlers[0]({
+      payload: {
+        timeSeries: forecast.timeSeries,
+        battery: { minSocPercent: 20 },
+      },
+    });
+    expect(warnings).toHaveLength(2);
+    expect(statuses[statuses.length - 1]).toEqual({});
   });
 
   it('errors for an unknown strategy type', async () => {
