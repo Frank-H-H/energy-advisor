@@ -78,13 +78,13 @@ module.exports = function (RED) {
                 )
                 .join(', ')
           );
-          node.status({
-            fill: 'yellow',
-            shape: 'dot',
-            text: 'msg source fallback'
-          });
-        } else {
-          node.status({});
+          if (typeof node.status === 'function') {
+            node.status({
+              fill: 'yellow',
+              shape: 'dot',
+              text: 'msg source fallback'
+            });
+          }
         }
 
         const strategies = core.createStrategies(strategyConfigs, {
