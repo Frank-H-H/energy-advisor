@@ -69,6 +69,8 @@ msg.plan = {
   <p><code>immediate-negative-price-export</code> exports the energy that would otherwise be exported during negative spot prices in the nearest earlier timesteps. Option: <code>Max export kW</code> (default 7.46).</p>
   <p><code>distributed-negative-price-export</code> exports that energy distributed across all earlier non-negative spot-price timesteps. It does not optimize for the highest prices. Option: <code>Max export kW</code> (default 7.46).</p>
   <p><code>battery-min-soc-hold</code> keeps the battery SOC above a minimum configured per strategy with <code>Min SOC %</code> (default 15% of the battery capacity). It plans grid imports at the cheapest earlier timesteps based on <code>grid.buyPerKwh</code>, honouring the power dependent charge efficiency curve and the max charge power of the <code>energy-battery-config</code> node selected for this strategy. It requires the battery config reference; without one the node reports an error.</p>
+  <p><code>battery-min-soc-hold-efficient</code> plans the same SOC hold as <code>battery-min-soc-hold</code> but distributes purchases in cost-optimized chunks over the cheapest earlier timesteps. It honours the power dependent charge efficiency curve and additionally supports <code>Hysteresis %</code> (default 2% of the battery capacity): new purchases are planned only when the SOC drops below <code>Min SOC %</code>, and a triggered purchase covers the SOC up to <code>Min SOC % + Hysteresis %</code>. This hysteresis band prevents grid purchases from toggling on and off when small SOC or forecast fluctuations move the SOC around the minimum. Option: <code>Chunk size kWh (optional)</code>.</p>
+  <p>The <code>Min SOC %</code> and <code>Hysteresis %</code> fields can take their value from two sources, selected with the type dropdown: a fixed value (<code>num</code>) or a property of the incoming message (<code>msg.</code>, e.g. <code>payload.battery.minSocPercent</code>). msg values are resolved per message and must be numbers within the field's range; missing or invalid msg values fall back to the fixed value or the default, and the node logs a warning and shows a yellow status dot.</p>
   <p>Actions are proposals for external execution. This node does not control devices.</p>
 </script>
 
@@ -164,6 +166,38 @@ msg.plan = {
               $('<option/>').val(configNode.id).text(configNode.name || configNode.id).appendTo(select);
             });
             if (value) select.val(value);
+          } else if (option.sourceable) {
+            // Sourceable options: either a fixed value (num) or a
+            // property path within the incoming message (msg.), resolved
+            // per message by the node runtime.
+            var input = $('<input/>', {
+              class: 'strategy-option-input',
+              'data-option-name': option.name,
+              'data-option-type': 'sourceable-number',
+              placeholder: String(option.default)
+            }).appendTo(optionRow);
+            input.typedInput({
+              types: [
+                'num',
+                {
+                  value: 'msg',
+                  label: 'msg.',
+                  hasValue: true,
+                  validate: /^(?:[a-zA-Z_$][a-zA-Z0-9_$]*)(?:\.[a-zA-Z_$][a-zA-Z0-9_$]*)*$/
+                }
+              ],
+              default: 'num'
+            });
+            var source = entry[option.name + 'Source'];
+            if (source) {
+              input.typedInput('type', 'msg');
+              input.typedInput('value', source);
+            } else {
+              input.typedInput('type', 'num');
+              if (value !== undefined && value !== '') {
+                input.typedInput('value', value);
+              }
+            }
           } else {
             var input = $('<input/>', {
               type: 'number',
@@ -237,6 +271,20 @@ msg.plan = {
         row.find('.strategy-option-input').each(function() {
           var input = $(this);
           var name = input.attr('data-option-name');
+          if (input.attr('data-option-type') === 'sourceable-number') {
+            var sourceType = input.typedInput('type');
+            var sourceValue = input.typedInput('value');
+            if (sourceType === 'msg') {
+              if (sourceValue) entry[name + 'Source'] = sourceValue;
+            } else if (
+              sourceValue !== '' &&
+              sourceValue !== null &&
+              Number.isFinite(Number(sourceValue))
+            ) {
+              entry[name] = Number(sourceValue);
+            }
+            return;
+          }
           var value = input.val();
           if (value === '' || value === null || value === undefined) return;
           if (input.attr('data-option-type') === 'number') {

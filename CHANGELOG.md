@@ -3,6 +3,8 @@
 All notable changes to this project will be documented in this file.
 
 ## Unreleased
+- Add a hysteresis band to the `battery-min-soc-hold-efficient` strategy (`minSocHysteresisPercent`, default 2% of the capacity): new purchases are planned only when the SOC drops below the minimum, and a triggered purchase covers the SOC up to minimum + hysteresis. This prevents grid purchases from toggling on and off due to small SOC or forecast fluctuations.
+- Add msg-sourced strategy options to the energy-advisor node: in the strategy editor, `Min SOC %` and `Hysteresis %` can be set to a fixed value or to a property path of the incoming message (typedInput type `msg.`). The values are resolved per message; missing or invalid msg values fall back to the fixed value or the default with a node warning and a yellow status.
 - Rework the energy-advisor node configuration: strategies are managed in a strategy editor (add, remove, reorder by dragging) instead of a comma-separated ID list. Each strategy entry carries its own options: `maxExportPowerKw` for the negative-price export strategies, `minSocPercent` plus an `energy-battery-config` reference for `battery-min-soc-hold`. Existing flows keep working: the stored comma-separated list and the node-level battery config reference are migrated automatically at runtime and in the editor.
 - Add a strategy registry (`src/advisor/strategyRegistry.js`) as the single source of truth for the strategies available to the Node-RED node, serving both the node editor (via `GET /energy-advisor/strategies`) and the node runtime.
 - Add `minSocPercent` option to `BatteryMinSocHoldStrategy` (fraction 0..1, default 0.15); previously the minimum SOC was fixed at 15% of the capacity.

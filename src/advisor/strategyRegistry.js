@@ -5,6 +5,7 @@ import { BatteryMinSocHoldEfficientStrategy } from './strategies/batteryMinSocHo
 
 const DEFAULT_MAX_EXPORT_POWER_KW = 7.46;
 const DEFAULT_MIN_SOC_PERCENT = 15;
+const DEFAULT_MIN_SOC_HYSTERESIS_PERCENT = 2;
 
 function numberOption(value, fallback) {
   if (value === '' || value === null || value === undefined) return fallback;
@@ -27,6 +28,11 @@ function numberOption(value, fallback) {
  * - 'number': rendered as a numeric input, stored as a number.
  * - 'battery-config': rendered as an energy-battery-config selection,
  *   stored as the config node id.
+ *
+ * Options marked with sourceable: true can additionally be read from
+ * the incoming message per run: the editor stores a
+ * '<optionName>Source' property path (e.g. 'payload.battery.minSocPercent')
+ * which resolveStrategyOptionSources() resolves against the message.
  */
 export const advisorStrategyRegistry = {
   'immediate-negative-price-export': {
@@ -81,7 +87,8 @@ export const advisorStrategyRegistry = {
         default: DEFAULT_MIN_SOC_PERCENT,
         min: 0,
         max: 100,
-        step: 1
+        step: 1,
+        sourceable: true
       },
       {
         name: 'batteryConfig',
@@ -118,7 +125,18 @@ export const advisorStrategyRegistry = {
         default: DEFAULT_MIN_SOC_PERCENT,
         min: 0,
         max: 100,
-        step: 1
+        step: 1,
+        sourceable: true
+      },
+      {
+        name: 'minSocHysteresisPercent',
+        label: 'Hysteresis %',
+        type: 'number',
+        default: DEFAULT_MIN_SOC_HYSTERESIS_PERCENT,
+        min: 0,
+        max: 100,
+        step: 0.5,
+        sourceable: true
       },
       {
         name: 'batteryConfig',
@@ -145,6 +163,10 @@ export const advisorStrategyRegistry = {
         config.minSocPercent,
         DEFAULT_MIN_SOC_PERCENT
       );
+      const minSocHysteresisPercent = numberOption(
+        config.minSocHysteresisPercent,
+        DEFAULT_MIN_SOC_HYSTERESIS_PERCENT
+      );
       const chunkSizeKwh = config.chunkSizeKwh !== null && config.chunkSizeKwh !== undefined
         ? numberOption(config.chunkSizeKwh, null)
         : null;
@@ -153,6 +175,7 @@ export const advisorStrategyRegistry = {
         maxChargePowerKw: batteryConfig.max_charge_power_kw,
         chargeEfficiencyCurve: batteryConfig.charge_efficiency_curve,
         minSocPercent: minSocPercent / 100,
+        minSocHysteresisPercent: minSocHysteresisPercent / 100,
         chunkSizeKwh: chunkSizeKwh
       });
     }
@@ -169,6 +192,101 @@ export function getStrategyDescriptors() {
     label: descriptor.label,
     options: descriptor.options
   }));
+}
+
+/**
+ * Resolves per-message strategy option sources.
+ *
+ * Strategy entries can carry a '<optionName>Source' string (e.g.
+ * minSocPercentSource: 'payload.battery.minSocPercent') for options
+ * marked as sourceable in the registry. The value is read from the
+ * incoming message via getMessageProperty(path) and, when it is a
+ * finite number within the option's range, replaces the fixed value.
+ *
+ * Missing or invalid message values fall back to the fixed value of the
+ * entry (or the option default applied by create()); every fallback is
+ * reported in the returned fallbacks list so the node can warn and set
+ * a status. The function is pure and throws nothing: a resolver that
+ * throws is treated like a missing property.
+ *
+ * Returns { configs, fallbacks } where configs is a new array of
+ * entries with all source keys removed.
+ */
+export function resolveStrategyOptionSources(
+  configs = [],
+  { getMessageProperty } = {}
+) {
+  const resolved = [];
+  const fallbacks = [];
+
+  configs.forEach((entry) => {
+    if (entry === null || typeof entry !== 'object') {
+      resolved.push(entry);
+      return;
+    }
+    const descriptor = advisorStrategyRegistry[entry.type];
+    const result = { ...entry };
+
+    Object.keys(result)
+      .filter((key) => key.endsWith('Source'))
+      .forEach((sourceKey) => {
+        const optionName = sourceKey.slice(0, -'Source'.length);
+        const option =
+          descriptor &&
+          descriptor.options.find(
+            (candidate) => candidate.name === optionName
+          );
+        const path = result[sourceKey];
+
+        if (!option) {
+          // Unknown option or unknown strategy type: nothing to resolve.
+          delete result[sourceKey];
+          return;
+        }
+
+        let value;
+        let fallbackReason = null;
+        if (
+          typeof getMessageProperty !== 'function' ||
+          typeof path !== 'string' ||
+          path === ''
+        ) {
+          fallbackReason = 'missing';
+        } else {
+          try {
+            value = getMessageProperty(path);
+          } catch (err) {
+            value = undefined;
+          }
+          const number = Number(value);
+          const inRange =
+            value !== undefined &&
+            value !== null &&
+            Number.isFinite(number) &&
+            (option.min === undefined || number >= option.min) &&
+            (option.max === undefined || number <= option.max);
+          if (inRange) {
+            result[optionName] = number;
+          } else {
+            fallbackReason = value === undefined ? 'missing' : 'invalid';
+          }
+        }
+
+        delete result[sourceKey];
+        if (fallbackReason) {
+          fallbacks.push({
+            type: entry.type,
+            option: optionName,
+            path,
+            reason: fallbackReason
+          });
+        }
+      });
+
+    resolved.push(result);
+  });
+
+  return { configs: resolved, fallbacks };
 }
 
 /**

@@ -24,12 +24,20 @@ const EPSILON = 1e-9;
  * - Very cheap slots are still preferred even with some efficiency loss
  * - Energy is distributed more evenly to maintain higher efficiency
  * - Overall cost is minimized while respecting efficiency constraints
+ *
+ * A hysteresis band (minSocHysteresisKwh) prevents on/off toggling of grid
+ * purchases: new purchases are only planned when the effective SOC drops
+ * below the minimum SOC, but a triggered purchase covers the SOC up to
+ * minimum + hysteresis. Small SOC or forecast fluctuations within the
+ * band therefore do not switch charging back and forth.
  */
 export class BatteryMinSocHoldEfficientStrategy extends Strategy {
   constructor({
     capacityKwh,
     minSocKwh,
     minSocPercent,
+    minSocHysteresisKwh,
+    minSocHysteresisPercent,
     maxChargePowerKw,
     chargeEfficiencyCurve = null,
     chunkSizeKwh = null,
@@ -53,11 +61,33 @@ export class BatteryMinSocHoldEfficientStrategy extends Strategy {
     ) {
       throw new Error('minSocKwh must be between 0 and capacityKwh');
     }
+    if (minSocHysteresisKwh === undefined) {
+      const hysteresisPercent =
+        minSocHysteresisPercent === undefined ? 0 : minSocHysteresisPercent;
+      if (
+        !Number.isFinite(hysteresisPercent) ||
+        hysteresisPercent < 0 ||
+        hysteresisPercent > 1
+      ) {
+        throw new Error('minSocHysteresisPercent must be between 0 and 1');
+      }
+      minSocHysteresisKwh = capacityKwh * hysteresisPercent;
+    }
+    if (
+      !Number.isFinite(minSocHysteresisKwh) ||
+      minSocHysteresisKwh < 0 ||
+      minSocKwh + minSocHysteresisKwh > capacityKwh
+    ) {
+      throw new Error(
+        'minSocHysteresisKwh must be between 0 and capacityKwh - minSocKwh'
+      );
+    }
     if (!Number.isFinite(maxChargePowerKw) || maxChargePowerKw < 0) {
       throw new Error('maxChargePowerKw must be a non-negative finite number');
     }
     this.capacityKwh = capacityKwh;
     this.minSocKwh = minSocKwh;
+    this.minSocHysteresisKwh = minSocHysteresisKwh;
     this.maxChargePowerKw = maxChargePowerKw;
     this.chargeEfficiencyCurve = chargeEfficiencyCurve;
     this.chunkSizeKwh = chunkSizeKwh;
@@ -109,6 +139,7 @@ export class BatteryMinSocHoldEfficientStrategy extends Strategy {
     if (!state.initialized) return undefined;
     return {
       minSocKwh: state.minSocKwh,
+      minSocHysteresisKwh: state.minSocHysteresisKwh,
       totalPlannedImportKwh: state.totalPlannedImportKwh,
       totalPlannedSocGainKwh: state.totalPlannedSocGainKwh,
       uncoveredDeficitKwh: state.uncoveredDeficitKwh,
@@ -126,13 +157,17 @@ function initializeState(state, series, strategy) {
   if (state.initialized) return;
 
   const minSocKwh = strategy.minSocKwh;
+  const minSocHysteresisKwh = strategy.minSocHysteresisKwh;
+  // Once a deficit triggered a purchase, the purchase covers the SOC up to
+  // this hysteresis target instead of only up to the minimum SOC.
+  const targetSocKwh = minSocKwh + minSocHysteresisKwh;
   const maxChargePowerKw = strategy.maxChargePowerKw;
   const chargeEfficiencyCurve = strategy.chargeEfficiencyCurve;
-  
+
   // Determine chunk size
   const defaultChunkSize = Math.max(maxChargePowerKw * 0.25, 0.5);
-  const chunkSizeKwh = strategy.chunkSizeKwh || 
-    (chargeEfficiencyCurve 
+  const chunkSizeKwh = strategy.chunkSizeKwh ||
+    (chargeEfficiencyCurve
       ? calculateOptimalChunkSize(series, chargeEfficiencyCurve, maxChargePowerKw)
       : Math.max(defaultChunkSize, 0.5));
 
@@ -172,7 +207,7 @@ function initializeState(state, series, strategy) {
   let totalEfficiencySum = 0;
 
   // Pre-calculate remaining capacity for each slot
-  const remainingCapacityKwh = entries.map(e => 
+  const remainingCapacityKwh = entries.map(e =>
     maxChargePowerKw * e.durationHours
   );
 
@@ -183,9 +218,15 @@ function initializeState(state, series, strategy) {
     if (socEndKwh === null) continue;
 
     const unflooredSocEndKwh = socEndKwh - uncoveredImportRunningKwh;
-    let neededSocGainKwh =
-      minSocKwh - unflooredSocEndKwh - coveredSocGainKwh;
-    if (neededSocGainKwh <= EPSILON) continue;
+    const effectiveSocEndKwh = unflooredSocEndKwh + coveredSocGainKwh;
+    // Hysteresis band: only plan new purchases when the effective SOC drops
+    // below the minimum SOC. Within the band (between the minimum and the
+    // hysteresis target) nothing is re-triggered, so small SOC or forecast
+    // fluctuations do not toggle charging on and off.
+    if (effectiveSocEndKwh >= minSocKwh - EPSILON) continue;
+
+    // A triggered deficit is covered up to the hysteresis target.
+    let neededSocGainKwh = targetSocKwh - effectiveSocEndKwh;
 
     // Split the deficit into chunks
     const chunks = splitIntoChunks(neededSocGainKwh, chunkSizeKwh);
@@ -199,7 +240,7 @@ function initializeState(state, series, strategy) {
       // Look at all past timesteps (including current)
       for (let j = 0; j <= i; j += 1) {
         const slot = entries[j];
-        
+
         // Skip timesteps without a buy price - no reaction should be planned for these
         if (slot.buyPerKwh >= Infinity) continue;
 
@@ -208,10 +249,10 @@ function initializeState(state, series, strategy) {
 
         // Calculate power required for this chunk in this slot
         const powerKw = chunk.sizeKwh / slot.durationHours;
-        
+
         // Skip if power exceeds max (shouldn't happen with our capacity calc, but safety check)
         if (powerKw > maxChargePowerKw + EPSILON) continue;
-        
+
         // Calculate efficiency at this power level
         const efficiency = lookupEfficiency(
           chargeEfficiencyCurve,
@@ -241,10 +282,10 @@ function initializeState(state, series, strategy) {
           powerKw,
           1
         );
-        
+
         // Calculate actual SOC gain (considering efficiency)
         const socGainKwh = chunk.sizeKwh * efficiency;
-        
+
         plannedImportKwh[bestSlotIndex] += chunk.sizeKwh;
         plannedSocGainKwh[bestSlotIndex] += socGainKwh;
         plannedChunks[bestSlotIndex] += 1;
@@ -262,15 +303,16 @@ function initializeState(state, series, strategy) {
 
   // Store results in state
   state.minSocKwh = minSocKwh;
+  state.minSocHysteresisKwh = minSocHysteresisKwh;
   state.plannedImportKwh = plannedImportKwh;
   state.plannedSocGainKwh = plannedSocGainKwh;
   state.totalPlannedImportKwh = plannedImportKwh.reduce((a, b) => a + b, 0);
   state.totalPlannedSocGainKwh = plannedSocGainKwh.reduce((a, b) => a + b, 0);
   state.uncoveredDeficitKwh = uncoveredDeficitKwh;
   state.chunksPlanned = totalChunks;
-  state.averageEfficiency = 
-    state.totalPlannedImportKwh > 0 
-      ? totalEfficiencySum / state.totalPlannedImportKwh 
+  state.averageEfficiency =
+    state.totalPlannedImportKwh > 0
+      ? totalEfficiencySum / state.totalPlannedImportKwh
       : 1;
   state.initialized = true;
 }
@@ -280,20 +322,20 @@ function initializeState(state, series, strategy) {
  */
 function splitIntoChunks(totalKwh, chunkSizeKwh) {
   const chunks = [];
-  
+
   // Ensure chunk size is valid
-  const validChunkSize = Number.isFinite(chunkSizeKwh) && chunkSizeKwh > 0 
-    ? chunkSizeKwh 
+  const validChunkSize = Number.isFinite(chunkSizeKwh) && chunkSizeKwh > 0
+    ? chunkSizeKwh
     : Math.max(totalKwh * 0.1, 0.1); // Fallback to 10% of total or 0.1 kWh
-  
+
   let remaining = totalKwh;
-  
+
   while (remaining > EPSILON) {
     const size = Math.min(validChunkSize, remaining);
     chunks.push({ sizeKwh: size });
     remaining -= size;
   }
-  
+
   return chunks;
 }
 
@@ -310,22 +352,22 @@ function calculateOptimalChunkSize(series, chargeEfficiencyCurve, maxChargePower
   const start = new Date(firstSlot.start);
   const end = new Date(firstSlot.end);
   const typicalDurationHours = getTimestepDurationHours(start, end);
-  
+
   // Find power level with best efficiency
   const points = chargeEfficiencyCurve;
   let bestEfficiency = 0;
   let bestPower = maxChargePowerKw;
-  
+
   for (const point of points) {
     if (point.efficiency > bestEfficiency) {
       bestEfficiency = point.efficiency;
       bestPower = point.up_to_kw;
     }
   }
-  
+
   // Use power level with best efficiency, but cap at max
   const optimalPower = Math.min(bestPower, maxChargePowerKw);
-  
+
   // Chunk size = optimal power * typical duration
   return optimalPower * typicalDurationHours;
 }
