@@ -232,3 +232,136 @@ describe('BatteryMinSocHoldEfficientStrategy', () => {
     expect(strategyPlan.uncoveredDeficitKwh).toBeCloseTo(1.0, 10);
   });
 });
+
+describe('BatteryMinSocHoldEfficientStrategy hysteresis', () => {
+  it('covers a triggered deficit up to minSoc + hysteresis instead of only minSoc', () => {
+    const timeSeries = [
+      timestep(0, { socKwh: 2.0, buyPerKwh: 0.1 }),
+      timestep(15, { socKwh: 0.5, buyPerKwh: 0.2 }),
+    ];
+    const plan = run(
+      new BatteryMinSocHoldEfficientStrategy({
+        capacityKwh: 10,
+        maxChargePowerKw: 4,
+        minSocKwh: 1.0,
+        minSocHysteresisKwh: 0.5
+      }),
+      timeSeries
+    );
+
+    const strategyPlan = plan.strategyPlans[0];
+    expect(strategyPlan.uncoveredDeficitKwh).toBeCloseTo(0, 10);
+    // Deficit timestep SOC 0.5 is covered up to 1.5 (minSoc 1.0 + hysteresis 0.5)
+    expect(strategyPlan.totalPlannedSocGainKwh).toBeCloseTo(1.0, 10);
+    expect(strategyPlan.minSocHysteresisKwh).toBeCloseTo(0.5, 10);
+  });
+
+  it('does not plan purchases while the SOC stays above the minimum inside the band', () => {
+    const timeSeries = [
+      timestep(0, { socKwh: 1.2, buyPerKwh: 0.1 }),
+      timestep(15, { socKwh: 1.1, buyPerKwh: 0.2 }),
+    ];
+    const plan = run(
+      new BatteryMinSocHoldEfficientStrategy({
+        capacityKwh: 10,
+        maxChargePowerKw: 4,
+        minSocKwh: 1.0,
+        minSocHysteresisKwh: 0.5
+      }),
+      timeSeries
+    );
+
+    const strategyPlan = plan.strategyPlans[0];
+    expect(strategyPlan.totalPlannedImportKwh).toBeCloseTo(0, 10);
+    expect(strategyPlan.uncoveredDeficitKwh).toBeCloseTo(0, 10);
+  });
+
+  it('does not re-trigger for later timesteps within the covered band', () => {
+    const timeSeries = [
+      timestep(0, { socKwh: 2.0, buyPerKwh: 0.1 }),
+      timestep(15, { socKwh: 0.5, buyPerKwh: 0.2 }),
+      timestep(30, { socKwh: 0.9, buyPerKwh: 0.3 }),
+    ];
+    const plan = run(
+      new BatteryMinSocHoldEfficientStrategy({
+        capacityKwh: 10,
+        maxChargePowerKw: 4,
+        minSocKwh: 1.0,
+        minSocHysteresisKwh: 0.5
+      }),
+      timeSeries
+    );
+
+    const strategyPlan = plan.strategyPlans[0];
+    // Only the first deficit triggers a purchase; the follow-up timestep
+    // within the band does not add another purchase.
+    expect(strategyPlan.totalPlannedSocGainKwh).toBeCloseTo(1.0, 10);
+    expect(strategyPlan.uncoveredDeficitKwh).toBeCloseTo(0, 10);
+  });
+
+  it('behaves identically with zero hysteresis (backward compatibility)', () => {
+    const timeSeries = [
+      timestep(0, { socKwh: 3.0, buyPerKwh: 0.05 }),
+      timestep(15, { socKwh: 2.0, buyPerKwh: 0.3 }),
+      timestep(30, { socKwh: 0.5, buyPerKwh: 0.2 }),
+    ];
+    const withoutHysteresis = run(
+      new BatteryMinSocHoldEfficientStrategy({
+        capacityKwh: 10,
+        maxChargePowerKw: 4,
+        minSocKwh: 1.0
+      }),
+      timeSeries
+    );
+    const withZeroHysteresis = run(
+      new BatteryMinSocHoldEfficientStrategy({
+        capacityKwh: 10,
+        maxChargePowerKw: 4,
+        minSocKwh: 1.0,
+        minSocHysteresisKwh: 0
+      }),
+      timeSeries
+    );
+
+    expect(withZeroHysteresis.strategyPlans[0].totalPlannedImportKwh).toBeCloseTo(
+      withoutHysteresis.strategyPlans[0].totalPlannedImportKwh,
+      10
+    );
+    expect(withZeroHysteresis.strategyPlans[0].totalPlannedSocGainKwh).toBeCloseTo(
+      withoutHysteresis.strategyPlans[0].totalPlannedSocGainKwh,
+      10
+    );
+  });
+
+  it('accepts the hysteresis as a percentage of the capacity', () => {
+    const strategy = new BatteryMinSocHoldEfficientStrategy({
+      capacityKwh: 10,
+      maxChargePowerKw: 4,
+      minSocPercent: 0.15,
+      minSocHysteresisPercent: 0.03
+    });
+    expect(strategy.minSocKwh).toBeCloseTo(1.5, 10);
+    expect(strategy.minSocHysteresisKwh).toBeCloseTo(0.3, 10);
+  });
+
+  it('rejects a hysteresis lifting the target above the battery capacity', () => {
+    expect(
+      () =>
+        new BatteryMinSocHoldEfficientStrategy({
+          capacityKwh: 10,
+          maxChargePowerKw: 4,
+          minSocKwh: 9.9,
+          minSocHysteresisKwh: 0.5
+        })
+    ).toThrow('minSocHysteresisKwh must be between 0 and capacityKwh - minSocKwh');
+    expect(
+      () =>
+        new BatteryMinSocHoldEfficientStrategy({
+          capacityKwh: 10,
+          maxChargePowerKw: 4,
+          minSocPercent: 0.98,
+          minSocHysteresisPercent: 0.1
+        })
+    ).toThrow('minSocHysteresisKwh must be between 0 and capacityKwh - minSocKwh');
+  });
+});
